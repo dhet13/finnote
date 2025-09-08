@@ -1,0 +1,176 @@
+{% extends 'home/base.html' %}
+
+{% block title %}홈 피드 - FinTech SNS{% endblock %}
+
+{% block content %}
+
+
+<!-- 탭 영역 -->
+<div style="border-bottom: 1px solid #eff3f4;">
+    <div style="display: flex;">
+        <button class="feed-tab active-tab" onclick="switchTab('foryou')" style="flex: 1; padding: 16px; background: none; border: none; font-weight: bold; font-size: 15px; cursor: pointer; position: relative; color: #0f1419;">
+            For you
+        </button>
+        <button class="feed-tab" onclick="switchTab('following')" style="flex: 1; padding: 16px; background: none; border: none; font-weight: bold; font-size: 15px; cursor: pointer; position: relative; color: #536471;">
+            Following
+        </button>
+    </div>
+</div>
+
+<!-- 포스트 작성 영역 -->
+<div style="border-bottom: 1px solid #eff3f4; padding: 15px;">
+    <div style="display: flex; align-items: flex-start; gap: 12px;">
+        <!-- 프로필 이미지 placeholder -->
+        <div style="width: 40px; height: 40px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+            U
+        </div>
+        
+        <!-- 입력 영역 -->
+        <div style="flex: 1;">
+            <div style="min-height: 50px; font-size: 18px; color: #536471; display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #eff3f4; margin-bottom: 12px;">
+                What's happening?
+            </div>
+            
+            <!-- 액션 버튼들 -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 16px;">
+                    <a href="{% url 'home:create_trading' %}" style="display: inline-block; padding: 8px; border-radius: 50%; transition: background-color 0.2s; margin-right: 12px; text-decoration: none;" 
+                    onmouseover="this.style.backgroundColor='rgba(29, 155, 240, 0.1)'" 
+                    onmouseout="this.style.backgroundColor='transparent'"
+                    title="매매일지 작성">
+                        <span class="material-symbols-outlined" style="color: #1d9bf0; font-size: 20px;">assessment</span>
+                    </a>
+
+                    <a href="{% url 'home:create_image' %}" style="display: inline-block; padding: 8px; border-radius: 50%; transition: background-color 0.2s; text-decoration: none;"
+                    onmouseover="this.style.backgroundColor='rgba(29, 155, 240, 0.1)'" 
+                    onmouseout="this.style.backgroundColor='transparent'"
+                    title="이미지 첨부">
+                        <span class="material-symbols-outlined" style="color: #1d9bf0; font-size: 20px;">image</span>
+                    </a>
+
+                </div>
+                
+                <button style="background: #1d9bf0; color: white; border: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; opacity: 0.5;" disabled>
+                    Post
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- 필터 버튼 -->
+<div style="padding: 12px 16px; border-bottom: 1px solid #eff3f4; background: #f7f9fa;">
+    <button onclick="toggleTradingFilter()" style="background: #ffffff; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; color: #0f1419;">
+        <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">filter_list</span>
+        매매일지만 보기
+    </button>
+</div>
+
+<!-- 포스트 피드 -->
+<div id="posts-container">
+    {% if posts %}
+        {% for post in posts %}
+        <div class="post-card" data-post-type="{{ post.asset_class }}">
+            <div class="post-header">
+                <span class="post-username">{{ post.user.username }}</span>
+                <span class="post-time">{{ post.created_at|timesince }} 전</span>
+            </div>
+            
+            <div class="post-meta">
+                <span style="color: #1d9bf0; font-weight: 500;">{{ post.get_asset_class_display }}</span> • 
+                <span>{{ post.get_visibility_display }}</span>
+            </div>
+            
+            <div class="post-content">
+                {{ post.content }}
+            </div>
+            
+            {% if post.screenshot_url %}
+            <div style="margin: 10px 0;">
+                <img src="{{ post.screenshot_url }}" alt="첨부 이미지" 
+                     style="max-width: 100%; border-radius: 12px; border: 1px solid #eff3f4;">
+            </div>
+            {% endif %}
+            
+            <div class="action-buttons">
+                <div class="action-btn">
+                    <span class="material-symbols-outlined">chat_bubble</span>
+                    <span>{{ post.comments.count }}</span>
+                </div>
+                
+                <div class="action-btn">
+                    <span class="material-symbols-outlined">favorite</span>
+                    <span>{{ post.likes.count }}</span>
+                </div>
+                
+                <div class="action-btn">
+                    <span class="material-symbols-outlined">bookmark</span>
+                    <span>{{ post.bookmarks.count }}</span>
+                </div>
+                
+                <div class="action-btn">
+                    <span class="material-symbols-outlined">share</span>
+                    <span>0</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <h3>포스트가 없습니다</h3>
+            <p>
+                <a href="/admin/">관리자 페이지</a>에서 테스트 데이터를 추가해보세요.
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// 탭 전환 기능
+function switchTab(tabType) {
+    // 모든 탭 비활성화
+    document.querySelectorAll('.feed-tab').forEach(tab => {
+        tab.classList.remove('active-tab');
+        tab.style.color = '#536471';
+    });
+    
+    // 클릭된 탭 활성화
+    event.target.classList.add('active-tab');
+    event.target.style.color = '#0f1419';
+    
+    // 여기에 실제 필터링 로직 추가 예정
+    console.log('Tab switched to:', tabType);
+}
+
+// 매매일지 필터 토글
+let tradingFilterActive = false;
+function toggleTradingFilter() {
+    tradingFilterActive = !tradingFilterActive;
+    
+    const posts = document.querySelectorAll('.post-card');
+    const button = event.target;
+    
+    if (tradingFilterActive) {
+        // 매매일지만 보이기
+        posts.forEach(post => {
+            if (post.dataset.postType === 'stock') {
+                post.style.display = 'block';
+            } else {
+                post.style.display = 'none';
+            }
+        });
+        button.style.background = '#1d9bf0';
+        button.style.color = '#ffffff';
+    } else {
+        // 모든 포스트 보이기
+        posts.forEach(post => {
+            post.style.display = 'block';
+        });
+        button.style.background = '#ffffff';
+        button.style.color = '#0f1419';
+    }
+}
+</script>
+{% endblock %}
