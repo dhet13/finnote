@@ -147,3 +147,135 @@ box-sizing: border-box;
 .nav-item.active .text {
     color: #1a8aeb; /* 텍스트와 아이콘만 파란색으로 변경 */
 }
+
+/* 프로필 페이지 전체 컨테이너 */
+.profile-container {
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+    max-width: 600px; /* 메인 콘텐츠 영역에 맞게 최대 너비 설정 */
+    margin: 0 auto; /* 중앙 정렬 */
+}
+
+/* 프로필 헤더 (배경 사진 영역) */
+.profile-header {
+    height: 180px;
+    position: relative;
+}
+
+.background-picture {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.background-placeholder {
+    height: 100%;
+    background-color: #cfd9de; /* 배경 사진 없을 때의 색상 */
+}
+
+/* 프로필 사진과 정보가 있는 본문 */
+.profile-body {
+    padding: 16px;
+}
+
+/* 프로필 사진 컨테이너 */
+.profile-image-container {
+    margin-top: -82px; /* 배경 사진과 겹치는 위치 */
+    margin-left: 16px;
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 4px solid #fff;
+    z-index: 2;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 프로필 사진 */
+.profile-picture {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.profile-picture.default {
+    background-color: #e1e8ed; /* 기본 프로필 사진 배경색 */
+    border: 4px solid #e1e8ed;
+}
+
+/* 프로필 수정 버튼 */
+.profile-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -48px;
+    margin-bottom: 16px;
+    z-index: 1;
+    position: relative;
+}
+
+.edit-profile-button {
+    background-color: #fff;
+    color: #1a8aeb;
+    border: 1px solid #1a8aeb;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+/* 사용자 정보 */
+.user-info {
+    margin-top: 48px;
+}
+
+.user-info h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.user-id {
+    color: #536471;
+    font-size: 15px;
+    margin-top: 4px;
+}
+
+.user-details {
+    display: flex;
+    align-items: center;
+    color: #536471;
+    font-size: 15px;
+    margin-top: 8px;
+}
+
+.user-details p {
+    margin: 0;
+    margin-right: 16px;
+}
+
+.user-details .icon {
+    margin-right: 4px;
+}
+
+.user-stats {
+    display: flex;
+    margin-top: 16px;
+}
+
+.user-stats .count {
+    font-weight: bold;
+    color: #0f1419;
+    margin-right: 4px;
+}
+
+.user-stats .label {
+    color: #536471;
+    margin-right: 16px;
+}

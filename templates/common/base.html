@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>팀플</title>
+    <title>홈</title>
     {% load static %}
         <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
@@ -35,24 +35,9 @@
                 </ul>
             </nav>
         </div>
-
         <div class="main-content">
-            <div class="header">
-                홈
-                <div class="search-container">
-                    <input type="text" class="search-bar" placeholder="트위터 검색">
-                </div>
-            </div>
-            
-            <div class="tweet-box">
-                <textarea placeholder="무슨 일이 일어나고 있나요?"></textarea>
-                <div style="text-align: right; margin-top: 10px;">
-                    <button style="background-color: #1a8aeb; color: white; border: none; padding: 10px 20px; border-radius: 20px;">게시하기</button>
-                </div>
-            </div>
-
-            </div>
-
+            {% block content %}
+            {% endblock %}
     </div>
 </body>
 </html>
