@@ -1,0 +1,39 @@
+{% extends 'home/base.html' %}
+
+{% block title %}테스트 페이지 - FinTech SNS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">테스트 페이지</h1>
+</div>
+
+<div style="padding: 20px;">
+    <div class="sidebar-widget" style="margin-bottom: 20px;">
+        <h3>데이터베이스 통계</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+            <div style="text-align: center; padding: 15px; background: #ffffff; border: 1px solid #eff3f4; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: bold; color: #1d9bf0;">{{ posts_count }}</div>
+                <div style="color: #536471; font-size: 14px;">총 포스트</div>
+            </div>
+            <div style="text-align: center; padding: 15px; background: #ffffff; border: 1px solid #eff3f4; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: bold; color: #1d9bf0;">{{ users_count }}</div>
+                <div style="color: #536471; font-size: 14px;">사용자</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar-widget">
+        <h3>빠른 링크</h3>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+            <a href="/admin/" class="action-btn" style="justify-content: flex-start;">
+                <span class="material-symbols-outlined">settings</span>
+                <span>관리자 페이지</span>
+            </a>
+            <a href="/" class="action-btn" style="justify-content: flex-start;">
+                <span class="material-symbols-outlined">home</span>
+                <span>홈화면</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
