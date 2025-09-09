@@ -1,0 +1,41 @@
+{% extends 'common/base.html' %}
+
+{% block title %}프로필{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        {% if user_to_view.background_picture %}
+            <img src="{{ user_to_view.background_picture.url }}" alt="배경 사진" class="background-picture">
+        {% else %}
+            <div class="background-placeholder"></div>
+        {% endif %}
+    </div>
+
+    <div class="profile-body">
+        <div class="profile-image-container">
+            {% if user_to_view.profile_picture %}
+                <img src="{{ user_to_view.profile_picture.url }}" alt="프로필 사진" class="profile-picture">
+            {% else %}
+                <div class="profile-picture default"></div>
+            {% endif %}
+        </div>
+        
+        <div class="profile-buttons">
+            {% if request.user.my_ID == user_to_view.my_ID %}
+                <a href="{% url 'user_profile:edit_profile' %}" class="edit-profile-button">프로필 수정</a>
+            {% endif %}
+        </div>
+        
+        <div class="user-info">
+            <h2>{{ user_to_view.nickname }}</h2>
+            <p class="user-id">@{{ user_to_view.my_ID }}</p>
+            
+            <div class="user-details">
+                <p><span class="icon">🗓️</span><span class="text">가입일: {{ user_to_view.created_at|date:"Y년 n월 j일" }}</span></p>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}
