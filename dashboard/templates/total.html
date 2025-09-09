@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% block title %}총자산 현황{% endblock %}
+
+{% block content %}
+  {% include "_tabs.html" with active="total" %}
+  <h2 style="font-size:20px; font-weight:800; margin:12px 0;">자산 현황</h2>
+
+  <!-- 상단: 일간/주간 토글 -->
+  <div class="row" style="margin-bottom:12px;">
+    <div class="muted">기간 보기</div>
+    <div class="tabs" id="intervalTabs">
+      <button class="btn" data-value="daily">일간</button>
+      <button class="btn active" data-value="weekly">주간</button>
+    </div>
+  </div>
+
+  <!-- 카드 3열 -->
+  <div class="grid cols-3">
+    <!-- 총 투자자산 카드 -->
+    <div class="card">
+      <h3>총 투자자산</h3>
+      <div class="value-xl" id="totalValue">0원</div>
+      <div class="muted">
+        전 구간 대비 <span id="totalChange" class="pct-up">+0.0%</span>
+      </div>
+      <div class="chart-box sm">
+        <canvas id="totalChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 주식 카드 -->
+    <div class="card">
+      <h3>주식</h3>
+      <div class="muted">
+        직전 대비 <span id="stockChange" class="pct-up">+0.0%</span>
+      </div>
+      <div class="chart-box sm">
+        <canvas id="stockChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 부동산 카드 -->
+    <div class="card">
+      <h3>부동산</h3>
+      <div class="muted">
+        직전 대비 <span id="realEstateChange" class="pct-up">+0.0%</span>
+      </div>
+      <div class="chart-box sm">
+        <canvas id="realEstateChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하단: 총자산 대형 차트 -->
+  <div class="card" style="margin-top:16px;">
+    <div class="row">
+      <h3>총자산 추이</h3>
+      <div class="tabs" id="granularityTabs">
+        <button class="btn" data-value="year">연간</button>
+        <button class="btn active" data-value="month">월간</button>
+        <button class="btn" data-value="day">일간</button>
+      </div>
+    </div>
+    <div class="chart-box">
+      <canvas id="totalTimeseriesChart"></canvas>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body_extra %}
+<script>
+// 전역 변수
+let totalChart, stockChart, realEstateChart, totalTimeseriesChart;
+let currentInterval = 'weekly';
+let currentGranularity = 'month';
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('총자산 현황 페이지 로드됨');
+    loadData();
+    setupEventListeners();
+});
+
+// 이벤트 리스너 설정
+function setupEventListeners() {
+    // 일간/주간 토글
+    document.getElementById('intervalTabs').addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn')) {
+            document.querySelectorAll('#intervalTabs .btn').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            currentInterval = e.target.getAttribute('data-value');
+            loadData();
+        }
+    });
+
+    // 연간/월간/일간 토글
+    document.getElementById('granularityTabs').addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn')) {
+            document.querySelectorAll('#granularityTabs .btn').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            currentGranularity = e.target.getAttribute('data-value');
+            loadTotalTimeseries();
+        }
+    });
+}
+
+// 데이터 로드
+function loadData() {
+    loadTotalCard();
+    loadStockChart();
+    loadRealEstateChart();
+    loadTotalTimeseries();
+}
+
+// 총자산 카드 데이터 로드
+function loadTotalCard() {
+    fetch(`/api/dashboard/total?interval=${currentInterval}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('totalValue').textContent = `${data.total_value.toLocaleString()}원`;
+            
+            const changeElement = document.getElementById('totalChange');
+            const changeValue = data.wow_change_pct;
+            changeElement.textContent = `${changeValue >= 0 ? '+' : ''}${changeValue}%`;
+            changeElement.className = changeValue >= 0 ? 'pct-up' : 'pct-down';
+            
+            updateTotalChart(data.series);
+        })
+        .catch(error => {
+            console.error('총자산 데이터 로드 실패:', error);
+            document.getElementById('totalValue').textContent = '데이터 로드 실패';
+        });
+}
+
+// 주식 차트 데이터 로드
+function loadStockChart() {
+    fetch(`/api/dashboard/stock?interval=${currentInterval}`)
+        .then(response => response.json())
+        .then(data => {
+            const changeElement = document.getElementById('stockChange');
+            const changeValue = data.latest_change_pct;
+            changeElement.textContent = `${changeValue >= 0 ? '+' : ''}${changeValue}%`;
+            changeElement.className = changeValue >= 0 ? 'pct-up' : 'pct-down';
+            
+            updateStockChart(data.series);
+        })
+        .catch(error => console.error('주식 데이터 로드 실패:', error));
+}
+
+// 부동산 차트 데이터 로드
+function loadRealEstateChart() {
+    fetch(`/api/dashboard/real_estate?interval=${currentInterval}`)
+        .then(response => response.json())
+        .then(data => {
+            const changeElement = document.getElementById('realEstateChange');
+            const changeValue = data.latest_change_pct;
+            changeElement.textContent = `${changeValue >= 0 ? '+' : ''}${changeValue}%`;
+            changeElement.className = changeValue >= 0 ? 'pct-up' : 'pct-down';
+            
+            updateRealEstateChart(data.series);
+        })
+        .catch(error => console.error('부동산 데이터 로드 실패:', error));
+}
+
+// 총자산 시계열 데이터 로드
+function loadTotalTimeseries() {
+    fetch(`/api/dashboard/total/timeseries?g=${currentGranularity}`)
+        .then(response => response.json())
+        .then(data => {
+            updateTotalTimeseriesChart(data.series);
+        })
+        .catch(error => console.error('총자산 시계열 데이터 로드 실패:', error));
+}
+
+// 차트 업데이트 함수들
+function updateTotalChart(data) {
+    const ctx = document.getElementById('totalChart').getContext('2d');
+    
+    if (totalChart) {
+        totalChart.destroy();
+    }
+    
+    totalChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(item => item.label),
+            datasets: [{
+                data: data.map(item => item.value),
+                borderColor: '#0a7f47',
+                backgroundColor: 'rgba(10, 127, 71, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            },
+            elements: { point: { radius: 0 } }
+        }
+    });
+}
+
+function updateStockChart(data) {
+    const ctx = document.getElementById('stockChart').getContext('2d');
+    
+    if (stockChart) {
+        stockChart.destroy();
+    }
+    
+    stockChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(item => item.label),
+            datasets: [{
+                data: data.map(item => item.value),
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            },
+            elements: { point: { radius: 0 } }
+        }
+    });
+}
+
+function updateRealEstateChart(data) {
+    const ctx = document.getElementById('realEstateChart').getContext('2d');
+    
+    if (realEstateChart) {
+        realEstateChart.destroy();
+    }
+    
+    realEstateChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(item => item.label),
+            datasets: [{
+                data: data.map(item => item.value),
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            },
+            elements: { point: { radius: 0 } }
+        }
+    });
+}
+
+function updateTotalTimeseriesChart(data) {
+    const ctx = document.getElementById('totalTimeseriesChart').getContext('2d');
+    
+    if (totalTimeseriesChart) {
+        totalTimeseriesChart.destroy();
+    }
+    
+    totalTimeseriesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(item => item.date),
+            datasets: [{
+                label: '수익률 (%)',
+                data: data.map(item => item.value),
+                borderColor: '#0a7f47',
+                backgroundColor: 'rgba(10, 127, 71, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    grid: { display: false }
+                },
+                y: {
+                    display: true,
+                    grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

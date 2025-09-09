@@ -1,0 +1,4 @@
+<div class="tabbar" role="tablist" aria-label="대시보드 탭">
+    <a href="{% url 'dashboard:page_total' %}" class="{% if active == 'total' %}active{% endif %}" role="tab" aria-selected="{{ active == 'total' }}">자산 현황</a>
+    <a href="{% url 'dashboard:page_portfolio' %}" class="{% if active == 'portfolio' %}active{% endif %}" role="tab" aria-selected="{{ active == 'portfolio' }}">포트폴리오</a>
+</div>
