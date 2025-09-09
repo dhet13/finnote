@@ -3,8 +3,8 @@ from .models import JournalPost, Like, Bookmark, Comment
 
 @admin.register(JournalPost)
 class JournalPostAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'asset_class', 'visibility', 'content_preview', 'created_at']
-    list_filter = ['asset_class', 'visibility', 'embed_style', 'created_at']
+    list_display = ['id', 'user', 'asset_class', 'content_preview', 'created_at']
+    list_filter = ['asset_class', 'embed_style', 'created_at']
     search_fields = ['content', 'user__username']
     
     def content_preview(self, obj):

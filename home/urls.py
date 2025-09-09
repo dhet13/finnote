@@ -11,4 +11,5 @@ urlpatterns = [
     path('create/trading/', views.create_trading_post, name='create_trading'),
     path('create/image/', views.create_image_post, name='create_image'),
     path('post/simple/', views.create_simple_post, name='create_simple_post'),
+    path('create-simple-post/', views.create_simple_post, name='create_simple_post'),
 ]

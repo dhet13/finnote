@@ -2,14 +2,10 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class JournalPost(models.Model):
+
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    
-    VISIBILITY_CHOICES = [
-        ('public', '공개'),
-        ('private', '비공개'),
-    ]
-    visibility = models.CharField(max_length=10, choices=VISIBILITY_CHOICES, default='public')
-    
+
     ASSET_CLASS_CHOICES = [
         ('stock', '주식'),
         ('realestate', '부동산'),
@@ -28,6 +24,7 @@ class JournalPost(models.Model):
     
     content = models.TextField()
     screenshot_url = models.URLField(blank=True, null=True)
+    image = models.ImageField(upload_to='posts/images/', blank=True, null=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
