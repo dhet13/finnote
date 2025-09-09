@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block feed %}
+<div class="what-is-happening" style="padding: var(--spacing-medium); border-bottom: 1px solid var(--border-color);">
+    <h2>What's happening?</h2>
+    <!-- Calendar Icon to trigger modal -->
+    <span id="compose-trigger" style="cursor: pointer; font-size: 24px;" title="매매일지 작성">🗓️</span>
+    <div style="font-size: 14px; color: var(--dark-gray); margin-top: var(--spacing-small);">클릭하여 매매일지를 작성하세요.</div>
+</div>
+
+<div id="feed-content">
+    <!-- New cards will be inserted here -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const composeTrigger = document.getElementById('compose-trigger');
+    if (composeTrigger) {
+        composeTrigger.addEventListener('click', () => {
+            if (window.innerWidth < 768) {
+                window.location.href = "/journals/compose/?asset=stock";
+            } else {
+                openModal('/journals/compose/?asset=stock&modal=1');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+

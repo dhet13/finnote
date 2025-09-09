@@ -1,0 +1,118 @@
+<div id="journal-compose" data-asset="{{ asset_type }}">
+  <!-- Tabs -->
+  <div style="display:flex; gap:24px; border-bottom: 1px solid var(--border-color); margin-bottom: var(--spacing-medium);">
+    <a href="/journals/compose/?asset=stock" style="padding-bottom:8px; border-bottom: 3px solid var(--primary-color); color: var(--black); text-decoration: none; font-weight: 600;">주식</a>
+    <a href="/journals/compose/?asset=realty" style="padding-bottom:8px; border-bottom: 3px solid transparent; color: var(--dark-gray); text-decoration: none;">부동산</a>
+  </div>
+
+  <!-- Section: 주식 선택 -->
+  <div style="display:grid; gap:12px;">
+    <h3 style="margin:0;">주식 선택</h3>
+    <div style="position: relative;">
+      <input id="jc-search" type="text" placeholder="투자 하신 종목을 선택해주세요." style="width:100%; height: 44px; border:1px solid var(--border-color); border-radius: 22px; padding: 0 44px 0 16px;">
+      <span style="position:absolute; right:12px; top:50%; transform: translateY(-50%);">🔍</span>
+    </div>
+
+    <!-- Selected stock card -->
+    <div id="jc-selected" style="display:none; align-items:center; gap:12px; border:1px solid var(--border-color); border-radius:8px; padding:12px;">
+      <div id="jc-logo" style="width:36px; height:36px; border-radius:50%; background: var(--extra-light-gray); display:flex; align-items:center; justify-content:center; font-weight:700;">
+        ?
+      </div>
+      <div style="flex:1;">
+        <div style="display:flex; align-items:baseline; gap:8px;">
+          <a id="jc-ticker" href="#" style="font-weight:700; text-decoration:none;">TICK</a>
+          <div id="jc-price" style="font-size:20px; font-weight:700;">0.00</div>
+          <div id="jc-change" style="font-size:14px; color:green;">+0.00%</div>
+        </div>
+      </div>
+      <canvas id="jc-spark" width="120" height="36" style="background:transparent;"></canvas>
+    </div>
+  </div>
+
+  <!-- Targets -->
+  <div style="display:grid; grid-template-columns: 1fr 120px 1fr 120px; gap:12px; align-items:end; margin-top:16px;">
+    <div>
+      <label>목표 가격</label>
+      <input id="jc-target-price" type="number" step="0.01" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+    </div>
+    <div>
+      <label>%</label>
+      <input id="jc-target-pct" type="number" step="0.01" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+    </div>
+    <div>
+      <label>손절 가격</label>
+      <input id="jc-stop-price" type="number" step="0.01" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+    </div>
+    <div>
+      <label>%</label>
+      <input id="jc-stop-pct" type="number" step="0.01" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+    </div>
+  </div>
+
+  <!-- Side selector -->
+  <div style="display:flex; gap:12px; margin:16px 0;">
+    <button type="button" id="jc-side-buy"  class="jc-side" style="padding:10px 20px; border:1px solid var(--border-color); border-radius: 20px; background:white; cursor:pointer;">매수</button>
+    <button type="button" id="jc-side-sell" class="jc-side" style="padding:10px 20px; border-radius: 20px; background: #22c55e; color:white; border:0; cursor:pointer;">매도</button>
+  </div>
+
+  <!-- Holdings card (computed preview) -->
+  <div id="jc-holdings" style="display:none; gap:12px; align-items:center; margin-bottom:12px;">
+    <div style="border:1px solid var(--border-color); border-radius:8px; padding:8px 12px;">보유 주식: <strong id="jc-holdings-shares">0</strong>주</div>
+    <div style="border:1px solid var(--border-color); border-radius:8px; padding:8px 12px;">수익률(+): <strong id="jc-pnl-rate">+0.00%</strong> ↑</div>
+    <div style="margin-left:auto;">평균 매도 가격: <strong id="jc-avg-sell">$0.00</strong></div>
+  </div>
+
+  <!-- Trade input row -->
+  <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
+    <div>
+      <label>매도 금액(원)</label>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input id="jc-trade-price" type="number" step="0.01" value="0" style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+        <button type="button" class="jc-dec" data-target="jc-trade-price">–</button>
+        <button type="button" class="jc-inc" data-target="jc-trade-price">+</button>
+        <span title="현재가 기준으로 조정">ⓘ</span>
+      </div>
+    </div>
+    <div>
+      <label>매도 수량</label>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input id="jc-trade-qty" type="number" step="0.01" value="0.00" style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+        <button type="button" class="jc-dec" data-target="jc-trade-qty">–</button>
+        <button type="button" class="jc-inc" data-target="jc-trade-qty">+</button>
+        <span title="보유 수량과 비교하여 안내">ⓘ</span>
+      </div>
+    </div>
+    <div>
+      <label>매도 날짜</label>
+      <input id="jc-trade-date" type="date" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+    </div>
+  </div>
+
+  <!-- Close trade -->
+  <div style="display:flex; align-items:center; gap:8px; margin:16px 0;">
+    <input id="jc-close-trade" type="checkbox">
+    <label for="jc-close-trade">매매 종료</label>
+  </div>
+
+  <!-- Reason -->
+  <div style="display:grid; gap:8px;">
+    <label for="jc-reason">매매 이유를 적어주세요.</label>
+    <textarea id="jc-reason" rows="5" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:8px;"></textarea>
+  </div>
+
+  <!-- Hidden submit form mapping to API contract -->
+  <form id="jc-submit-form" action="/api/stock/journals/" method="POST" onsubmit="event.preventDefault(); handleFormSubmit(this);" style="margin-top:16px; display:flex; justify-content:center;">
+    {% csrf_token %}
+    <input type="hidden" name="title" id="f-title" value="">
+    <input type="hidden" name="content" id="f-content" value="">
+    <input type="hidden" name="ticker" id="f-ticker" value="">
+    <input type="hidden" name="target_price" id="f-target" value="">
+    <input type="hidden" name="stop_price" id="f-stop" value="">
+    <button id="jc-submit" type="submit" style="background: var(--primary-color); color: white; border: 0; padding: 12px 28px; border-radius: 999px; cursor: pointer;">확인</button>
+  </form>
+</div>
+
+{% block scripts %}
+<script src="{% static 'js/compose.js' %}"></script>
+{% endblock %}
+

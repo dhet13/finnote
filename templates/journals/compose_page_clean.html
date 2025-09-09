@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block feed %}
+    <div style="padding: 20px;">
+        <h1>매매일지 작성</h1>
+        {% include 'journals/_compose_form.html' %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/compose.js' %}"></script>
+{% endblock %}
+
