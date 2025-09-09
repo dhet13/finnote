@@ -1,0 +1,27 @@
+:root {
+    /* Colors */
+    --primary-color: #1DA1F2;
+    --dark-gray: #657786;
+    --light-gray: #AAB8C2;
+    --extra-light-gray: #E1E8ED;
+    --extra-extra-light-gray: #F5F8FA;
+    --white: #FFFFFF;
+    --black: #14171A;
+
+    /* Spacing */
+    --spacing-small: 8px;
+    --spacing-medium: 16px;
+    --spacing-large: 24px;
+
+    /* Sizing */
+    --header-height: 60px;
+    --container-max-width: 1200px;
+    --feed-max-width: 600px;
+    --left-column-width: 275px;
+    --right-column-width: 325px;
+
+    /* Borders */
+    --border-radius-small: 4px;
+    --border-radius-medium: 20px;
+    --border-color: var(--extra-light-gray);
+}

@@ -1,0 +1,8 @@
+<div style="background: white; padding: var(--spacing-medium); border-radius: 8px; width: 720px; max-width: 95vw;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-medium);">
+        <h2 style="margin: 0;">매매일지 작성</h2>
+        <button class="close-modal" style="border: none; background: transparent; font-size: 24px; cursor: pointer;">&times;</button>
+    </div>
+    {% include 'journals/_compose_form.html' %}
+    <script src="{% static 'js/compose.js' %}"></script>
+</div>
