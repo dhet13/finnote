@@ -11,8 +11,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', default=False, cast=bool)
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-temp-key-for-development-only-change-in-production')
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
@@ -29,6 +29,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Local apps
+    'dashboard',
+    'home', 
+    'accounts',
+    'user_profile',
+    'base',
     'apps.journals.apps.JournalsConfig',
 ]
 
@@ -119,4 +124,4 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Per prompt_master.md, use settings.AUTH_USER_MODEL for FKs
-# AUTH_USER_MODEL = 'users.User' # Assuming a custom user model might be created later
+AUTH_USER_MODEL = 'accounts.User'

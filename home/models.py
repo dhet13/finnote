@@ -1,10 +1,10 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 
 class JournalPost(models.Model):
 
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     ASSET_CLASS_CHOICES = [
         ('stock', '주식'),
@@ -35,7 +35,7 @@ class JournalPost(models.Model):
 
 class Like(models.Model):
     journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='likes')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)  # CREATE_AT
     
     class Meta:
@@ -44,7 +44,7 @@ class Like(models.Model):
 
 class Bookmark(models.Model):
     journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='bookmarks')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)  # CREATE_AT
     
     class Meta:
@@ -53,7 +53,7 @@ class Bookmark(models.Model):
 
 class Comment(models.Model):
     journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='comments')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True)  # PARENT_ID
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)  # CREATE_AT
