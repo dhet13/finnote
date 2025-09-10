@@ -1,12 +1,98 @@
-{% extends 'common/base.html' %}
+{% extends 'base.html' %}
+{% load static %}
 
 {% block title %}프로필 수정{% endblock %}
 
-{% block content %}
-    <h2>프로필 수정</h2>
-    <form method="post" enctype="multipart/form-data">
+{% block feed %}
+<div class="edit-profile-container">
+    <h2 class="edit-profile-title">프로필 수정</h2>
+    <form method="POST" enctype="multipart/form-data" class="edit-profile-form">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">저장</button>
+        
+        <div class="form-field-wrapper">
+            <label for="{{ form.nickname.id_for_label }}">닉네임</label>
+            {{ form.nickname }}
+        </div>
+        
+        <div class="form-field-wrapper">
+            <label for="{{ form.profile_picture.id_for_label }}">프로필 사진</label>
+            {% if form.instance.profile_picture %}
+                <img src="{{ form.instance.profile_picture.url }}" alt="현재 프로필 사진" class="current-profile-picture">
+            {% endif %}
+            {{ form.profile_picture }}
+        </div>
+        
+        <div class="form-field-wrapper">
+            <label for="{{ form.background_picture.id_for_label }}">배경 사진</label>
+            {% if form.instance.background_picture %}
+                <img src="{{ form.instance.background_picture.url }}" alt="현재 배경 사진" class="current-background-picture">
+            {% endif %}
+            {{ form.background_picture }}
+        </div>
+        
+        <button type="submit" class="submit-button">저장</button>
     </form>
+</div>
+
+<style>
+    .edit-profile-container {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 16px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .edit-profile-title {
+        text-align: center;
+        color: #14171a;
+        margin-bottom: 20px;
+    }
+    .edit-profile-form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .form-field-wrapper {
+        display: flex;
+        flex-direction: column;
+    }
+    .form-field-wrapper label {
+        font-weight: bold;
+        color: #657786;
+        margin-bottom: 5px;
+    }
+    .form-field-wrapper input[type="text"],
+    .form-field-wrapper input[type="file"] {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+    .current-profile-picture, .current-background-picture {
+        max-width: 150px;
+        max-height: 150px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    .current-profile-picture {
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+    }
+    .submit-button {
+        background-color: #1da1f2;
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 9999px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        align-self: flex-end;
+    }
+    .submit-button:hover {
+        background-color: #1991da;
+    }
+</style>
 {% endblock %}

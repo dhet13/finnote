@@ -1,41 +1,44 @@
-{% extends 'common/base.html' %}
+{% extends 'base.html' %}
 
 {% block title %}프로필{% endblock %}
 
-{% block content %}
-<div class="profile-container">
-    <div class="profile-header">
+{% block feed %}
+{% load static %}
+<div style="width: 100%; margin: 0 auto; background-color: #fff; border-radius: 16px; box-shadow: 0 0 10px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #ebeef0; box-sizing: border-box;">
+    <div style="height: 200px; position: relative; background-color: #cfd9de;">
         {% if user_to_view.background_picture %}
-            <img src="{{ user_to_view.background_picture.url }}" alt="배경 사진" class="background-picture">
+            <img src="{{ user_to_view.background_picture.url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
         {% else %}
-            <div class="background-placeholder"></div>
+            <div style="height: 100%; background-color: #cfd9de;"></div>
         {% endif %}
     </div>
 
-    <div class="profile-body">
-        <div class="profile-image-container">
+    <div style="padding: 16px; display: flex; flex-direction: column; align-items: center;">
+        <div style="margin-top: -70px; margin-left: -360px; width: 130px; height: 130px; border-radius: 50%; background-color: #fff; border: 4px solid #fff; z-index: 2; position: relative; overflow: hidden;">
             {% if user_to_view.profile_picture %}
-                <img src="{{ user_to_view.profile_picture.url }}" alt="프로필 사진" class="profile-picture">
+                <img src="{{ user_to_view.profile_picture.url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
             {% else %}
-                <div class="profile-picture default"></div>
+                <div style="background-color: #e1e8ed; border: 4px solid #e1e8ed; width: 100%; height: 100%; border-radius: 50%;"></div>
             {% endif %}
         </div>
         
-        <div class="profile-buttons">
+        <div style="display: flex; justify-content: flex-end; margin-top: -40px; margin-bottom: 16px; z-index: 1; position: relative; padding-right: 16px; width: 100%;">
             {% if request.user.my_ID == user_to_view.my_ID %}
-                <a href="{% url 'user_profile:edit_profile' %}" class="edit-profile-button">프로필 수정</a>
+                <a href="{% url 'user_profile:edit_profile' %}" style="background-color: #fff; color: #1da1f2; border: 1px solid #1da1f2; padding: 8px 16px; border-radius: 9999px; text-decoration: none; font-weight: bold; font-size: 14px; white-space: nowrap; transition: background-color 0.2s, color 0.2s;">프로필 수정</a>
             {% endif %}
         </div>
         
-        <div class="user-info">
-            <h2>{{ user_to_view.nickname }}</h2>
-            <p class="user-id">@{{ user_to_view.my_ID }}</p>
+        <div style="margin-top: 20px; width: 100%;">
+            <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #14171a;">{{ user_to_view.nickname }}</h2>
+            <p style="color: #657786; font-size: 15px; margin-top: 4px;">@{{ user_to_view.my_ID }}</p>
             
-            <div class="user-details">
-                <p><span class="icon">🗓️</span><span class="text">가입일: {{ user_to_view.created_at|date:"Y년 n월 j일" }}</span></p>
+            <div style="display: flex; align-items: center; color: #657786; font-size: 15px; margin-top: 8px; width: 100%;">
+                <p style="margin: 0; margin-right: 16px;"><span style="margin-right: 4px;">🗓️</span><span style="margin-right: 4px;">가입일: {{ user_to_view.created_at|date:"Y년 n월 j일" }}</span></p>
             </div>
             
         </div>
     </div>
+    
 </div>
+
 {% endblock %}

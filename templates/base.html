@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>finote</title>
-    <link rel="stylesheet" href="{% static 'tokens.css' %}">
+        <link rel="stylesheet" href="{% static 'tokens.css' %}">
+        <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
     <style>
         body { margin: 0; font-family: sans-serif; background-color: var(--white); }
         .container { max-width: var(--container-max-width); margin: 0 auto; display: grid; grid-template-columns: var(--left-column-width) minmax(0, var(--feed-max-width)) var(--right-column-width); }
@@ -24,9 +25,17 @@
         <div class="header-center" style="width: 600px; text-align: center;">
             <input type="text" placeholder="Search Twitter" style="width: 400px; height: 40px; border-radius: 20px; border: 1px solid var(--border-color); padding: 0 16px;">
         </div>
-        <div class="header-right" style="width: var(--right-column-width); text-align: right; padding-right: 20px;">
-            <!-- Settings Icon Placeholder -->
-            <div style="width: 24px; height: 24px; background-color: var(--light-gray); display: inline-block;"></div>
+        <div class="header-right" style="width: var(--right-column-width); text-align: right; padding-right: 20px; display: flex; align-items: center; justify-content: flex-end; gap: 16px;">
+            {% if user.is_authenticated %}
+                <a href="{% url 'user_profile:user_profile' %}" style="text-decoration: none; color: var(--black);">Profile</a>
+                <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="background: none; border: none; cursor: pointer; color: var(--black); text-decoration: none; padding: 0; font-size: inherit; font-family: inherit;">Logout</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}" style="text-decoration: none; color: var(--black);">Login</a>
+                <a href="{% url 'signup' %}" style="text-decoration: none; color: var(--black);">Sign Up</a>
+            {% endif %}
         </div>
     </header>
 
@@ -34,6 +43,45 @@
         <aside class="left-sidebar">
             {% block left %}
             <!-- Left sidebar content -->
+             <div style="font-size: 30px; margin-bottom: 20px;">
+                🦁
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item active" data-target="home">
+                        <span class="icon">
+                            <img src="{% static 'icon/home.svg' %}" alt="홈">
+                        </span>
+                        <span class="text">홈</span>
+                    </li>
+                    <li class="nav-item" data-target="dashboard">
+                        <span class="icon">
+                            <img src="{% static 'icon/dashboard.svg' %}" alt="대시보드">
+                        </span>
+                        <span class="text">대시 보드</span>
+                    </li>
+                    <li class="nav-item" data-target="trading journal">
+                        <span class="icon">
+                            <img src="{% static 'icon/journal.svg' %}" alt="매매일지">
+                        </span>
+                        <span class="text">매매 일지</span>
+                    </li>
+                    <li class="nav-item" data-target="bookmarks">
+                        <span class="icon">
+                            <img src="{% static 'icon/bookmarks.svg' %}" alt="북마크">
+                        </span>
+                        <span class="text">북마크</span>
+                    </li>
+                    <li class="nav-item" data-target="profile">
+                        <a href="{% url 'user_profile:profile' my_ID=request.user.my_ID %}">
+                        <span class="icon">
+                            <img src="{% static 'icon/profile.svg' %}" alt="프로필">
+                        </span>
+                        <span class="text">프로필</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
             {% endblock %}
         </aside>
 

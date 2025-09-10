@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/profile_styles.css' %}">
+{% endblock %}
+
+{% block title %}프로필{% endblock %}
+
+{% block feed %}
+<div class="profile-container">
+    <div class="background-image-container">
+        {% if user_to_view.background_picture %}
+            <img src="{{ user_to_view.background_picture.url }}" alt="배경 사진" class="background-image">
+        {% else %}
+            <div style="height: 100%; background-color: #cfd9de;"></div>
+        {% endif %}
+    </div>
+
+    <div class="content-wrapper">
+        <div class="profile-picture-container">
+            {% if user_to_view.profile_picture %}
+                <img src="{{ user_to_view.profile_picture.url }}" alt="프로필 사진" class="profile-picture">
+            {% else %}
+                <div style="background-color: #e1e8ed; border: 4px solid #e1e8ed; width: 100%; height: 100%; border-radius: 50%;"></div>
+            {% endif %}
+        </div>
+        
+        <div class="edit-profile-button-container">
+            {% if request.user.my_ID == user_to_view.my_ID %}
+                <a href="{% url 'user_profile:edit_profile' %}" class="edit-profile-button">프로필 수정</a>
+            {% endif %}
+        </div>
+        
+        <div class="user-info-section">
+            <h2 class="user-name">{{ user_to_view.nickname }}</h2>
+            <p class="user-id">@{{ user_to_view.my_ID }}</p>
+            
+            <div class="join-date-container">
+                <p class="join-date"><span>🗓️</span><span>가입일: {{ user_to_view.created_at|date:"Y년 n월 j일" }}</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

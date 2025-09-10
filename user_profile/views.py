@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from accounts.forms import ProfileForm
 
 # 프로필 보기 페이지
+@login_required
 def my_profile(request):
     return redirect('user_profile:profile', my_ID=request.user.my_ID)
 
