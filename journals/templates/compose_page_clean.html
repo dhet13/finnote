@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block feed %}
     <div style="padding: 20px;">
         <h1>매매일지 작성</h1>
-        {% include 'journals/_compose_form.html' %}
+        {% include '_compose_form.html' %}
     </div>
 {% endblock %}
 

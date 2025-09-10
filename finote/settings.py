@@ -34,7 +34,7 @@ INSTALLED_APPS = [
     'accounts',
     'user_profile',
     'base',
-    'apps.journals.apps.JournalsConfig',
+    'journals.apps.JournalsConfig',
 ]
 
 MIDDLEWARE = [
