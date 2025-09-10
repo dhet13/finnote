@@ -6,7 +6,7 @@
     <title>{% block title %}FinTech SNS{% endblock %}</title>
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
@@ -326,12 +326,548 @@
                 </div>
             </div>
             
+            <style>
+            .price-change.positive {
+                color: #e74c3c;
+            }
+            .price-change.negative {
+                color: #3498db;
+            }
+            .exchange-item.first-item {
+                background-color: rgba(29, 155, 240, 0.1);
+            }
+            .finance-item.chart-selected {
+                background-color: rgba(29, 155, 240, 0.15);
+                border-left: 3px solid #1d9bf0;
+            }
+            </style>
+
             <div class="sidebar-widget">
                 <h3>금융 정보</h3>
-                <div style="color: #536471; font-size: 14px;">
-                    실시간 시세 / 환율 정보<br>
-                    (탭 형태로 구현 예정)
+                
+                <!-- 탭 버튼들 -->
+                <div style="display: flex; border-bottom: 1px solid #eff3f4; margin-bottom: 15px;">
+                    <button class="finance-tab active" onclick="switchFinanceTab('indices')" data-tab="indices" 
+                        style="flex: 1; padding: 8px 12px; background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #1d9bf0; border-bottom: 2px solid #1d9bf0;">
+                        지수
+                    </button>
+                    <button class="finance-tab" onclick="switchFinanceTab('stocks')" data-tab="stocks"
+                        style="flex: 1; padding: 8px 12px; background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #536471; border-bottom: 2px solid transparent;">
+                        주식
+                    </button>
+                    <button class="finance-tab" onclick="switchFinanceTab('exchange')" data-tab="exchange"
+                        style="flex: 1; padding: 8px 12px; background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #536471; border-bottom: 2px solid transparent;">
+                        환율
+                    </button>
+
                 </div>
+
+                <!-- 기간 선택 버튼들 -->
+                <div style="display: flex; gap: 16px; margin-bottom: 15px; padding: 8px 12px; justify-content: center;">
+                    <button class="period-btn active" data-period="1d" onclick="changePeriod('1d')" 
+                        style="background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #1d9bf0; border-bottom: 2px solid #1d9bf0; padding: 4px 0;">
+                        1일
+                    </button>
+                    <button class="period-btn" data-period="5d" onclick="changePeriod('5d')" 
+                        style="background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #536471; border-bottom: 2px solid transparent; padding: 4px 0;">
+                        1주
+                    </button>
+                    <button class="period-btn" data-period="1mo" onclick="changePeriod('1mo')" 
+                        style="background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #536471; border-bottom: 2px solid transparent; padding: 4px 0;">
+                        1달
+                    </button>
+                    <button class="period-btn" data-period="6mo" onclick="changePeriod('6mo')" 
+                        style="background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #536471; border-bottom: 2px solid transparent; padding: 4px 0;">
+                        6달
+                    </button>
+                    <button class="period-btn" data-period="1y" onclick="changePeriod('1y')" 
+                        style="background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #536471; border-bottom: 2px solid transparent; padding: 4px 0;">
+                        1년
+                    </button>
+                    <button class="period-btn" data-period="5y" onclick="changePeriod('5y')" 
+                        style="background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #536471; border-bottom: 2px solid transparent; padding: 4px 0;">
+                        5년
+                    </button>
+                </div>
+                <!-- 지수 탭 내용 -->
+                <div id="indices-content" class="finance-content">
+                    {% if stock_indices %}
+                        {% for index in stock_indices %}
+                        <div class="finance-item" data-symbol="{{ index.symbol }}" onclick="showChart('{{ index.symbol }}', '{{ index.name }}', 'index')" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer;"
+                            onmouseover="this.style.backgroundColor='rgba(29, 155, 240, 0.05)'" 
+                            onmouseout="this.style.backgroundColor='transparent'">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px; color: #0f1419;">{{ index.name }}</div>
+                                <div style="font-size: 12px; color: #536471;">{{ index.current_price }}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="price-change {% if index.is_positive %}positive{% else %}negative{% endif %}" style="font-size: 12px; font-weight: 600;">
+                                    {% if index.is_positive %}▲{% else %}▼{% endif %} {{ index.change_percent }}%
+                                </div>
+                                <div class="price-change {% if index.is_positive %}positive{% else %}negative{% endif %}" style="font-size: 11px;">
+                                    {% if index.is_positive %}+{% endif %}{{ index.change }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; color: #536471; padding: 20px;">
+                            지수 데이터를 불러오는 중...
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- 주식 탭 내용 -->
+                <div id="stocks-content" class="finance-content" style="display: none;">
+                    {% if individual_stocks %}
+                        {% for stock in individual_stocks %}
+                        <div class="finance-item" data-symbol="{{ stock.symbol }}" data-name="{{ stock.name }}" data-type="{% if stock.market == 'US' %}us_stock{% else %}kr_stock{% endif %}" onclick="showStockChart(this)" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer;"
+                            onmouseout="this.style.backgroundColor='transparent'">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px; color: #0f1419;">{{ stock.name }}</div>
+                                <div style="font-size: 12px; color: #536471;">
+                                    {% if stock.market == 'KR' %}{{ stock.current_price }}원{% else %} ${{ stock.current_price }}{% endif %}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="price-change {% if stock.is_positive %}positive{% else %}negative{% endif %}" style="font-size: 12px; font-weight: 600;">
+                                    {% if stock.is_positive %}▲{% else %}▼{% endif %} {{ stock.change_percent }}%
+                                </div>
+                                <div class="price-change {% if stock.is_positive %}positive{% else %}negative{% endif %}" style="font-size: 11px;">
+                                    {% if stock.is_positive %}+{% endif %}{% if stock.market == 'KR' %}{{ stock.change }}원{% else %} ${{ stock.change }}{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; color: #536471; padding: 20px;">
+                            주식 데이터를 불러오는 중...
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- 환율 탭 내용 -->
+                <div id="exchange-content" class="finance-content" style="display: none;">
+                    <!-- 선택된 환율 상단 표시 -->
+                    <div id="selected-exchange" style="padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #1d9bf0;">
+                        <div style="font-size: 16px; font-weight: bold; color: #0f1419;" id="selected-exchange-name">USD/KRW</div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                            <span style="font-size: 18px; font-weight: bold; color: #0f1419;" id="selected-exchange-rate">1,340</span>
+                            <span style="font-size: 14px; font-weight: 600;" id="selected-exchange-change">▲ 5원 (+0.37%)</span>
+                        </div>
+                    </div>
+
+                    <!-- 환율 리스트 -->
+                    {% if exchange_rates %}
+                        {% for rate in exchange_rates %}
+                        <div class="finance-item exchange-item {% if forloop.first %}first-item{% endif %}" data-name="{{ rate.name }}" data-rate="{{ rate.current_rate }}" 
+                            data-change="{% if rate.is_positive %}▲{% else %}▼{% endif %} {{ rate.change }}원 ({% if rate.change_percent >= 0 %}+{% endif %}{{ rate.change_percent }}%)"
+                            data-positive="{{ rate.is_positive }}"
+                            style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer;"
+                            onclick="showChart('{{ rate.symbol }}', '{{ rate.name }}', 'exchange'); selectExchange(this);"
+                            onmouseover="if(!this.classList.contains('selected')) this.style.backgroundColor='rgba(29, 155, 240, 0.05)'" 
+                            onmouseout="if(!this.classList.contains('selected')) this.style.backgroundColor='transparent'">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px; color: #0f1419;">{{ rate.name }}</div>
+                                <div style="font-size: 12px; color: #536471;">
+                                    {% if rate.symbol == 'JPY' %}{{ rate.current_rate }}원{% else %}{{ rate.current_rate }}원{% endif %}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="price-change {% if rate.is_positive %}positive{% else %}negative{% endif %}" style="font-size: 12px; font-weight: 600;">
+                                    {% if rate.is_positive %}▲{% else %}▼{% endif %} {{ rate.change_percent }}%
+                                </div>
+                                <div class="price-change {% if rate.is_positive %}positive{% else %}negative{% endif %}" style="font-size: 11px;">
+                                    {% if rate.is_positive %}+{% endif %}{{ rate.change }}원
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; color: #536471; padding: 20px;">
+                            환율 데이터를 불러오는 중...
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <script>
+            // 금융 탭 전환 함수
+            function switchFinanceTab(tabName) {
+                // 모든 탭 버튼 비활성화
+                document.querySelectorAll('.finance-tab').forEach(tab => {
+                    tab.style.color = '#536471';
+                    tab.style.borderBottomColor = 'transparent';
+                    tab.classList.remove('active');
+                });
+                
+                // 모든 탭 내용 숨기기
+                document.querySelectorAll('.finance-content').forEach(content => {
+                    content.style.display = 'none';
+                });
+                
+                // 선택된 탭 활성화
+                const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+                if (activeTab) {
+                    activeTab.style.color = '#1d9bf0';
+                    activeTab.style.borderBottomColor = '#1d9bf0';
+                    activeTab.classList.add('active');
+                }
+                
+                // 선택된 탭 내용 보이기
+                const activeContent = document.getElementById(`${tabName}-content`);
+                if (activeContent) {
+                    activeContent.style.display = 'block';
+                }
+            }
+
+            // 환율 선택 함수
+            function selectExchange(element) {
+                // 기존 선택 제거
+                document.querySelectorAll('.exchange-item').forEach(item => {
+                    item.classList.remove('selected');
+                    item.style.backgroundColor = 'transparent';
+                });
+                
+                // 새로운 선택 적용
+                element.classList.add('selected');
+                element.style.backgroundColor = 'rgba(29, 155, 240, 0.1)';
+                // 상단 정보 업데이트
+                const name = element.dataset.name;
+                const rate = element.dataset.rate;
+                const change = element.dataset.change;
+                const isPositive = element.dataset.positive === 'true';
+                
+                document.getElementById('selected-exchange-name').textContent = name;
+                document.getElementById('selected-exchange-rate').textContent = rate + '원';
+                
+                const changeElement = document.getElementById('selected-exchange-change');
+                changeElement.textContent = change;
+                changeElement.style.color = isPositive ? '#e74c3c' : '#3498db';
+            }
+
+            // 페이지 로드시 첫 번째 환율 선택 + 디폴트 차트 표시
+            document.addEventListener('DOMContentLoaded', function() {
+                const firstExchange = document.querySelector('.exchange-item');
+                if (firstExchange) {
+                    selectExchange(firstExchange);
+                }
+                
+                // 디폴트 차트 표시 (KOSPI)
+                showChart('^KS11', 'KOSPI', 'index');
+            });
+            // 차트 관련 변수
+            let currentChart = null;
+
+            // 차트 표시 함수
+            function showChart(symbol, name, dataType, period = null) {
+                const actualPeriod = period || currentPeriod || '1d';
+                
+                // 기존 선택 제거
+                document.querySelectorAll('.finance-item').forEach(item => {
+                    item.classList.remove('chart-selected');
+                });
+                
+                // 로딩 표시
+                document.getElementById('chart-title').textContent = name + ' - 로딩 중...';
+                document.getElementById('chart-widget').style.display = 'block';
+                
+                // AJAX로 차트 데이터 가져오기
+                fetch(`/home/chart-data/?symbol=${symbol}&type=${dataType}&period=${actualPeriod}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            createChart(data.chart_data, name);
+                        } else {
+                            document.getElementById('chart-title').textContent = name + ' - 데이터 오류';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('차트 데이터 오류:', error);
+                        document.getElementById('chart-title').textContent = name + ' - 네트워크 오류';
+                    });
+                
+                // 선택된 항목 표시
+                markSelectedItem(symbol, dataType);
+            }
+            // 기간별 점 크기 결정 함수
+            function getPointRadius(period) {
+                switch(period) {
+                    case '1d':
+                        return 2; // 1일만 점 보임
+                    default:
+                        return 0; // 나머지는 모두 점 숨김
+                }
+            }
+            // Chart.js로 차트 생성
+            function createChart(chartData, name) {
+                const ctx = document.getElementById('finance-chart').getContext('2d');
+                
+                // 기존 차트 삭제
+                if (currentChart) {
+                    currentChart.destroy();
+                }
+                
+                // 새 차트 생성
+                currentChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            label: name,
+                            data: chartData.data,
+                            borderColor: '#1d9bf0',
+                            backgroundColor: 'rgba(29, 155, 240, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: getPointRadius(currentPeriod),
+                            pointHoverRadius: getPointRadius(currentPeriod) + 2,
+                            pointBackgroundColor: '#1d9bf0',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                grid: {
+                                    color: '#f0f0f0'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: '#f0f0f0'
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // 제목 업데이트
+                document.getElementById('chart-title').textContent = name + ' 차트';
+            }
+
+            // 차트 숨기기
+            function hideChart() {
+                document.getElementById('chart-widget').style.display = 'none';
+                if (currentChart) {
+                    currentChart.destroy();
+                    currentChart = null;
+                }
+            }
+            // 선택된 항목 표시 함수
+            function markSelectedItem(symbol, dataType) {
+                setTimeout(() => {
+                    document.querySelectorAll('.finance-item').forEach(item => {
+                        if (item.dataset.symbol === symbol) {
+                            item.classList.add('chart-selected');
+                        }
+                    });
+                }, 100);
+            }
+            // 전역 변수 추가
+            let currentPeriod = '1d';
+
+            // 기간 변경 함수
+            function changePeriod(period) {
+                // 환율 탭에서 장기간 선택시 제한
+                const currentTab = document.querySelector('.finance-tab.active').dataset.tab;
+                if (currentTab === 'exchange' && ['6mo', '1y', '5y', 'max'].includes(period)) {
+                    alert('환율 데이터는 1달까지만 지원합니다.');
+                    return;
+                }
+                
+                currentPeriod = period;
+                
+                // 기간 버튼 스타일 변경
+                document.querySelectorAll('.period-btn').forEach(btn => {
+                    btn.style.color = '#536471';
+                    btn.style.borderBottomColor = 'transparent';
+                    btn.classList.remove('active');
+                });
+
+                // 선택된 버튼 활성화
+                const selectedBtn = document.querySelector(`[data-period="${period}"]`);
+                if (selectedBtn) {
+                    selectedBtn.style.color = '#1d9bf0';
+                    selectedBtn.style.borderBottomColor = '#1d9bf0';
+                    selectedBtn.classList.add('active');
+                }
+                
+                // 리스트 데이터 새로 가져오기
+                console.log('기간 변경:', period);
+                updateFinancialData(period);
+            }
+
+            // 현재 차트 다시 로드
+            function reloadCurrentChart() {
+                // 선택된 항목 찾기
+                const selectedItem = document.querySelector('.finance-item.chart-selected');
+                if (selectedItem) {
+                    const symbol = selectedItem.dataset.symbol;
+                    const name = selectedItem.textContent.split(' ')[0]; // 첫 번째 단어가 이름
+                    
+                    // 현재 탭에 따라 데이터 타입 결정
+                    const currentTab = document.querySelector('.finance-tab.active').dataset.tab;
+                    let dataType = 'index';
+                    if (currentTab === 'stocks') {
+                        dataType = selectedItem.dataset.type || 'us_stock';
+                    } else if (currentTab === 'exchange') {
+                        dataType = 'exchange';
+                    }
+                    
+                    showChart(symbol, name, dataType);
+                }
+            }
+            // 주식 차트 전용 함수
+            function showStockChart(element) {
+                const symbol = element.dataset.symbol;
+                const name = element.dataset.name;
+                const type = element.dataset.type;
+                showChart(symbol, name, type);
+            }
+                    // 금융 데이터 업데이트 함수
+                    function updateFinancialData(period) {
+                        const currentTab = document.querySelector('.finance-tab.active').dataset.tab;
+                        
+                        // 현재 선택된 항목 정보 저장
+                        const selectedItem = document.querySelector('.finance-item.chart-selected');
+                        let selectedSymbol = null;
+                        let selectedName = null;
+                        let selectedType = null;
+                        
+                        if (selectedItem) {
+                            selectedSymbol = selectedItem.dataset.symbol;
+                            selectedName = selectedItem.textContent.split(' ')[0];
+                            
+                            if (currentTab === 'indices') {
+                                selectedType = 'index';
+                            } else if (currentTab === 'stocks') {
+                                selectedType = selectedItem.dataset.type || 'us_stock';
+                            } else if (currentTab === 'exchange') {
+                                selectedType = 'exchange';
+                            }
+                        }
+                        
+                        fetch(`/home/financial-data/?period=${period}&tab=${currentTab}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    updateFinancialList(data.data, currentTab);
+                                    
+                                    // 리스트 업데이트 후 선택 상태 복원
+                                    if (selectedSymbol && selectedName && selectedType) {
+                                        setTimeout(() => {
+                                            showChart(selectedSymbol, selectedName, selectedType, period);
+                                        }, 100);
+                                    }
+                                } else {
+                                    console.error('데이터 업데이트 실패:', data.error);
+                                }
+                            })
+                            .catch(error => console.error('리스트 업데이트 오류:', error));
+                    }
+
+                    // 금융 리스트 HTML 업데이트 함수
+                    function updateFinancialList(data, tabType) {
+                        let contentId = '';
+                        
+                        if (tabType === 'indices') {
+                            contentId = 'indices-content';
+                        } else if (tabType === 'stocks') {
+                            contentId = 'stocks-content';
+                        } else if (tabType === 'exchange') {
+                            contentId = 'exchange-content';
+                            updateExchangeList(data);
+                            return;
+                        }
+                        
+                        const container = document.getElementById(contentId);
+                        if (!container) return;
+                        
+                        container.innerHTML = '';
+                        
+                        if (data.length === 0) {
+                            container.innerHTML = '<div style="text-align: center; color: #536471; padding: 20px;">데이터를 불러올 수 없습니다.</div>';
+                            return;
+                        }
+                        
+                        data.forEach(item => {
+                            const itemHtml = createFinancialItemHtml(item, tabType);
+                            container.insertAdjacentHTML('beforeend', itemHtml);
+                        });
+                    }
+
+                    // 금융 항목 HTML 생성 함수
+                    function createFinancialItemHtml(item, tabType) {
+                        const isPositive = item.is_positive;
+                        const changeClass = isPositive ? 'positive' : 'negative';
+                        const changeSymbol = isPositive ? '▲' : '▼';
+                        const changeSign = isPositive ? '+' : '';
+                        
+                        let onclick = '';
+                        let dataAttrs = '';
+                        
+                        if (tabType === 'indices') {
+                            onclick = `onclick="showChart('${item.symbol}', '${item.name}', 'index')"`;
+                            dataAttrs = `data-symbol="${item.symbol}"`;
+                        } else if (tabType === 'stocks') {
+                            onclick = `onclick="showStockChart(this)"`;
+                            dataAttrs = `data-symbol="${item.symbol}" data-name="${item.name}" data-type="${item.market === 'US' ? 'us_stock' : 'kr_stock'}"`;
+                        }
+                        
+                        const priceDisplay = tabType === 'stocks' && item.market === 'KR' 
+                            ? `${item.current_price}원` 
+                            : tabType === 'stocks' 
+                            ? `$${item.current_price}` 
+                            : item.current_price;
+                        
+                        const changeDisplay = tabType === 'stocks' && item.market === 'KR'
+                            ? `${changeSign}${item.change}원`
+                            : tabType === 'stocks'
+                            ? `${changeSign}$${item.change}`
+                            : `${changeSign}${item.change}`;
+                        
+                        return `
+                            <div class="finance-item" ${dataAttrs} ${onclick} 
+                                style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer;"
+                                onmouseover="this.style.backgroundColor='rgba(29, 155, 240, 0.05)'" 
+                                onmouseout="this.style.backgroundColor='transparent'">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px; color: #0f1419;">${item.name}</div>
+                                    <div style="font-size: 12px; color: #536471;">${priceDisplay}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="price-change ${changeClass}" style="font-size: 12px; font-weight: 600;">
+                                        ${changeSymbol} ${item.change_percent}%
+                                    </div>
+                                    <div class="price-change ${changeClass}" style="font-size: 11px;">
+                                        ${changeDisplay}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+            </script>
+
+            <!-- 차트 위젯 -->
+            <div class="sidebar-widget" id="chart-widget" style="display: block;">
+                <h3 id="chart-title">차트</h3>
+                <div style="position: relative; height: 200px;">
+                    <canvas id="finance-chart"></canvas>
+                </div>
+                <button onclick="hideChart()" style="margin-top: 10px; padding: 6px 12px; background: #f0f0f0; border: none; border-radius: 6px; cursor: pointer;">
+                    닫기
+                </button>
             </div>
             {% endblock %}
         </aside>
