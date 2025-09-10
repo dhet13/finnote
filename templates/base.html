@@ -72,6 +72,7 @@
                         </span>
                         <span class="text">북마크</span>
                     </li>
+                    {% if user.is_authenticated %}
                     <li class="nav-item" data-target="profile">
                         <a href="{% url 'user_profile:profile' my_ID=request.user.my_ID %}">
                         <span class="icon">
@@ -80,6 +81,16 @@
                         <span class="text">프로필</span>
                         </a>
                     </li>
+                    {% else %}
+                    <li class="nav-item" data-target="profile">
+                        <a href="{% url 'login' %}">
+                        <span class="icon">
+                            <img src="{% static 'icon/profile.svg' %}" alt="프로필">
+                        </span>
+                        <span class="text">프로필</span>
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
             </nav>
             {% endblock %}
