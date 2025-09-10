@@ -76,17 +76,7 @@ class PortfolioHolding(models.Model):
             models.Index(fields=["user_id", "sector_or_region"]),
         ]
         constraints = [
-            # 주식 키/부동산 키 중 정확히 하나만 채워져야 함
-            CheckConstraint(
-                check=Q(stock_ticker_symbol__isnull=False, property_info_id__isnull=True) |
-                      Q(stock_ticker_symbol__isnull=True,  property_info_id__isnull=False),
-                name="chk_hold_poly_exactly_one_key",
-            ),
-        ]
-
-    class Meta:
-        constraints = [
-            # 유저별 자산 1행 보장(조건부 유니크: Postgres)
+            # 유저별 자산 1행 보장(조건부 유니크)
             models.UniqueConstraint(
                 fields=["user_id","stock_ticker_symbol"],
                 condition=Q(asset_type="stock"),
@@ -97,6 +87,7 @@ class PortfolioHolding(models.Model):
                 condition=Q(asset_type="real_estate"),
                 name="ux_hold_re"
             ),
+            # 주식 키/부동산 키 중 정확히 하나만 채워져야 함
             models.CheckConstraint(
                 check=Q(asset_type="stock", stock_ticker_symbol__isnull=False, property_info_id__isnull=True)
                    | Q(asset_type="real_estate", property_info_id__isnull=False, stock_ticker_symbol__isnull=True),

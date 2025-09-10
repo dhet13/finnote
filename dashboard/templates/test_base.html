@@ -1,0 +1,25 @@
+{% extends "common/base.html" %}
+
+{% block title %}Dashboard 테스트{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title">🔧 Base.html 상속 테스트</h1>
+                    <p class="card-text"><strong>상태:</strong> ✅ base.html 상속 성공!</p>
+                    <p class="card-text"><strong>페이지:</strong> {{ page_title|default:"대시보드" }}</p>
+                    <p class="card-text"><strong>사용자:</strong> {{ user_id|default:"테스트" }}</p>
+                    <p class="card-text"><strong>디버그:</strong> {{ debug_info|default:"없음" }}</p>
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle"></i> 
+                        Bootstrap과 Bootstrap Icons가 정상 로드되었습니다.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

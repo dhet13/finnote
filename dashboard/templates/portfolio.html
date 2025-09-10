@@ -1,0 +1,20 @@
+{%extends "common/base.html"%}
+
+{%block content%}
+    <div class = "dashboard-container">
+        <nav class ="dashboard-tabs">
+            <ul class = "nav nav-pills">
+                <li class = "nev-time">
+                    <a class = "nav-link" href="{%url 'dashboard:page_total'%}">자산 현황</a>
+                </li>
+                <li clss = "nav-time">
+                    <a class = "nav-link" href="{url 'dashboard:page_portfolio'}">포트폴리오</a>
+
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <h1>포트폴리오 분석</h1>
+        <p> 이곳에 원형 그래프와 섹터별 분석 내용이 들어감</p>
+    </div>
+{%endblock%}

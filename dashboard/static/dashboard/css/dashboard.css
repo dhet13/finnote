@@ -1,0 +1,113 @@
+/* 폰트 및 기본 배경 설정 */
+.dashboard-container {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f7f9fa; /* 매우 옅은 회색 배경 */
+    padding: 24px;
+    border-radius: 8px;
+}
+
+/* 탭 메뉴 스타일 */
+.dashboard-tabs .nav-pills .nav-link {
+    color: #536471;
+    font-weight: 500;
+    font-size: 16px;
+    padding: 12px 0;
+    margin-right: 32px;
+    background-color: transparent;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+.dashboard-tabs .nav-pills .nav-link:hover {
+    color: #1d9bf0;
+}
+
+.dashboard-tabs .nav-pills .nav-link.active {
+    color: #1d9bf0;
+    background-color: transparent;
+    border-bottom-color: #1d9bf0;
+}
+
+/* 기간 선택 버튼 (우측 정렬) */
+.period-controls {
+    display: flex;
+    justify-content: flex-end; /* 버튼들을 오른쪽으로 정렬 */
+    margin-bottom: 24px;
+}
+
+/* 통계 카드 행(row) 설정 */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3개의 카드를 동일한 너비로 배치 */
+    gap: 24px; /* 카드 사이의 간격 */
+    margin-bottom: 32px;
+}
+
+/* 개별 통계 카드 스타일 */
+.stat-card {
+    background-color: #ffffff;
+    border: 1px solid #e1e8ed;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.08);
+}
+
+.stat-card-title {
+    font-size: 14px;
+    color: #536471; /* 옅은 회색 글자 */
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #0f1419; /* 진한 검정색 글자 */
+}
+
+/* 수익률 표시 스타일 */
+.stat-change {
+    font-size: 16px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 16px;
+    margin-top: 8px;
+}
+
+.stat-change.positive {
+    color: #00ba7c; /* 초록색 계열 */
+    background-color: #e6f8f3;
+}
+
+.stat-change.negative {
+    color: #f91880; /* 빨간색/핑크색 계열 */
+    background-color: #fde7f2;
+}
+
+.stat-change.positive::before {
+    content: "▲";
+    margin-right: 4px;
+    font-size: 12px;
+}
+
+.stat-change.negative::before {
+    content: "▼";
+    margin-right: 4px;
+    font-size: 12px;
+}
+
+/* 메인 차트 영역 제목 */
+.dashboard-container > h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 24px;
+}
