@@ -23,7 +23,7 @@
             <a href="{% url 'home' %}" style="text-decoration: none; color: var(--black);">Home</a>
         </div>
         <div class="header-center" style="width: 600px; text-align: center;">
-            <input type="text" placeholder="Search Twitter" style="width: 400px; height: 40px; border-radius: 20px; border: 1px solid var(--border-color); padding: 0 16px;">
+            <input type="text" placeholder="Search" style="width: 400px; height: 40px; border-radius: 20px; border: 1px solid var(--border-color); padding: 0 16px;">
         </div>
         <div class="header-right" style="width: var(--right-column-width); text-align: right; padding-right: 20px; display: flex; align-items: center; justify-content: flex-end; gap: 16px;">
             {% if user.is_authenticated %}

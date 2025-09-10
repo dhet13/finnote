@@ -1,3 +1,4 @@
+{% load static %}
 <div id="journal-compose" data-asset="{{ asset_type }}">
   <!-- Tabs -->
   <div style="display:flex; gap:24px; border-bottom: 1px solid var(--border-color); margin-bottom: var(--spacing-medium);">
@@ -10,23 +11,11 @@
     <h3 style="margin:0;">주식 선택</h3>
     <div style="position: relative;">
       <input id="jc-search" type="text" placeholder="투자 하신 종목을 선택해주세요." style="width:100%; height: 44px; border:1px solid var(--border-color); border-radius: 22px; padding: 0 44px 0 16px;">
-      <span style="position:absolute; right:12px; top:50%; transform: translateY(-50%);">🔍</span>
+      <span style="position:absolute; right:12px; top:50%; transform: translateY(-50%); cursor: pointer;" onclick="performSearch()">🔍</span>
     </div>
 
-    <!-- Selected stock card -->
-    <div id="jc-selected" style="display:none; align-items:center; gap:12px; border:1px solid var(--border-color); border-radius:8px; padding:12px;">
-      <div id="jc-logo" style="width:36px; height:36px; border-radius:50%; background: var(--extra-light-gray); display:flex; align-items:center; justify-content:center; font-weight:700;">
-        ?
-      </div>
-      <div style="flex:1;">
-        <div style="display:flex; align-items:baseline; gap:8px;">
-          <a id="jc-ticker" href="#" style="font-weight:700; text-decoration:none;">TICK</a>
-          <div id="jc-price" style="font-size:20px; font-weight:700;">0.00</div>
-          <div id="jc-change" style="font-size:14px; color:green;">+0.00%</div>
-        </div>
-      </div>
-      <canvas id="jc-spark" width="120" height="36" style="background:transparent;"></canvas>
-    </div>
+    {% include '_stock_card.html' %}
+
   </div>
 
   <!-- Targets -->
@@ -89,7 +78,7 @@
   </div>
 
   <!-- Close trade -->
-  <div style="display:flex; align-items:center; gap:8px; margin:16px 0;">
+  <div id="jc-close-trade-container" style="display:none; align-items:center; gap:8px; margin:16px 0;">
     <input id="jc-close-trade" type="checkbox">
     <label for="jc-close-trade">매매 종료</label>
   </div>
@@ -112,7 +101,44 @@
   </form>
 </div>
 
-{% block scripts %}
-<script src="{% static 'js/compose.js' %}"></script>
-{% endblock %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('jc-search');
+        const searchIcon = document.querySelector('#journal-compose > div:nth-child(2) > div:nth-child(2) > span'); // Specific selector for the magnifying glass
+
+        function performSearch() {
+            const ticker = searchInput.value.trim().toUpperCase();
+            if (ticker) {
+                // Assuming fetchAndRenderStockCard is globally available from _stock_card.html
+                if (typeof fetchAndRenderStockCard === 'function') {
+                    fetchAndRenderStockCard(ticker);
+                } else {
+                    console.error('fetchAndRenderStockCard is not defined. Make sure _stock_card.html is included before _compose_form.html.');
+                }
+            }
+        }
+
+        if (searchIcon) {
+            searchIcon.addEventListener('click', performSearch);
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    performSearch();
+                }
+            });
+        }
+
+        // Set default date to today
+        const tradeDateInput = document.getElementById('jc-trade-date');
+        if (tradeDateInput) {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const dd = String(today.getDate()).padStart(2, '0');
+            tradeDateInput.value = `${yyyy}-${mm}-${dd}`;
+        }
+    });
+</script>
 

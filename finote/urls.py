@@ -17,8 +17,8 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('profile/', include('user_profile.urls')),
     path('base/', include('base.urls')),
-    path('journals/', include('apps.journals.urls')),
-    path('api/', include('apps.journals.api_urls')),
+    path('journals/', include('journals.urls')),
+    path('api/', include('journals.api_urls')),
 ]
 
 if settings.DEBUG:

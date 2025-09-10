@@ -2,6 +2,9 @@ from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
+from django.db.models import Sum, F
+from django.db.models.functions import Coalesce
+from django.utils import timezone
 
 # Per prompt_master.md:
 # enums via CharField(choices=...), timezone-aware DateTime (USE_TZ=True),
@@ -40,6 +43,7 @@ class StockJournal(models.Model):
 
     net_qty = models.DecimalField(max_digits=18, decimal_places=6, default=Decimal('0.0'))
     realized_pnl = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
+    return_rate = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
 
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.OPEN)
 
@@ -50,6 +54,58 @@ class StockJournal(models.Model):
         indexes = [
             models.Index(fields=['user', 'ticker_symbol']),
         ]
+
+    def recalculate_aggregates(self):
+        """Recalculates all aggregate fields for the journal based on its trades."""
+        trades = self.trades.all()
+
+        # Calculate total buy/sell quantities and values
+        buy_data = trades.filter(side=StockTrade.Side.BUY).aggregate(
+            total_qty=Coalesce(Sum('quantity'), Decimal(0)),
+            total_value=Coalesce(Sum(F('quantity') * F('price_per_share')), Decimal(0))
+        )
+        sell_data = trades.filter(side=StockTrade.Side.SELL).aggregate(
+            total_qty=Coalesce(Sum('quantity'), Decimal(0)),
+            total_value=Coalesce(Sum(F('quantity') * F('price_per_share')), Decimal(0))
+        )
+
+        total_buy_qty = buy_data['total_qty']
+        total_sell_qty = sell_data['total_qty']
+
+        # Calculate average prices
+        avg_buy_price = buy_data['total_value'] / total_buy_qty if total_buy_qty > 0 else None
+        avg_sell_price = sell_data['total_value'] / total_sell_qty if total_sell_qty > 0 else None
+
+        # Calculate net quantity
+        net_qty = total_buy_qty - total_sell_qty
+
+        # Update status
+        new_status = self.Status.OPEN
+        if net_qty == 0 and total_buy_qty > 0:
+            new_status = self.Status.COMPLETED
+
+        # Calculate realized PnL and Return Rate
+        realized_pnl = None
+        return_rate = None
+        if new_status == self.Status.COMPLETED:
+            if avg_buy_price is not None and avg_sell_price is not None:
+                # This calculation is simplified. It assumes all bought shares are sold.
+                realized_pnl = (avg_sell_price - avg_buy_price) * total_buy_qty
+                if buy_data['total_value'] > 0:
+                    return_rate = (realized_pnl / buy_data['total_value']) * 100
+
+        # Use a direct update to prevent save signal recursion
+        StockJournal.objects.filter(pk=self.pk).update(
+            total_buy_qty=total_buy_qty,
+            total_sell_qty=total_sell_qty,
+            avg_buy_price=avg_buy_price,
+            avg_sell_price=avg_sell_price,
+            net_qty=net_qty,
+            realized_pnl=realized_pnl,
+            return_rate=return_rate,
+            status=new_status,
+            updated_at=timezone.now()
+        )
 
 
 class StockTrade(models.Model):
@@ -80,6 +136,15 @@ class StockTrade(models.Model):
         indexes = [
             models.Index(fields=['journal', 'trade_date']),
         ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.journal.recalculate_aggregates()
+
+    def delete(self, *args, **kwargs):
+        journal = self.journal
+        super().delete(*args, **kwargs)
+        journal.recalculate_aggregates()
 
 
 class REPropertyInfo(models.Model):
@@ -178,4 +243,3 @@ class JournalPost(models.Model):
                 ),
             )
         ]
-
