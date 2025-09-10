@@ -12,4 +12,6 @@ urlpatterns = [
     path('create/image/', views.create_image_post, name='create_image'),
     path('post/simple/', views.create_simple_post, name='create_simple_post'),
     path('create-simple-post/', views.create_simple_post, name='create_simple_post'),
+    path('chart-data/', views.get_stock_chart_data, name='chart_data'),
+    path('financial-data/', views.get_financial_data, name='financial_data'),
 ]
