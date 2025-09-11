@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}보유 주식 추가{% endblock %}
+
+{% block feed %}
+<div style="max-width: 600px; margin: 40px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h2>보유 주식 추가</h2>
+    <p style="color: #666;">프로필에 표시할 보유 주식을 등록합니다. 매수 기록을 바탕으로 보유 현황이 계산됩니다.</p>
+
+    <!-- 1. 주식 검색 -->
+    <div style="margin-top: 24px;">
+        <label for="stock-search-input" style="font-weight: 600; display: block; margin-bottom: 8px;">종목 검색</label>
+        <div style="position: relative;">
+            <input id="stock-search-input" type="text" placeholder="종목명 또는 티커를 입력하세요 (예: AAPL)" style="width: 100%; height: 44px; border:1px solid #ccc; border-radius: 4px; padding: 0 40px 0 12px;">
+            <span id="search-icon" style="position:absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer;">🔍</span>
+        </div>
+    </div>
+
+    <!-- 검색 결과 카드 -->
+    <div id="stock-card-container" style="margin-top: 16px;">
+        <!-- _stock_card.html의 내용과 유사한 구조가 여기에 동적으로 생성됩니다. -->
+    </div>
+
+    <!-- 2. 매수 정보 입력 폼 -->
+    <form method="post" style="margin-top: 24px;">
+        {% csrf_token %}
+        
+        <!-- Django Form Fields -->
+        <div style="display: none;">
+            {{ form.ticker_symbol }}
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label for="{{ form.price_per_share.id_for_label }}" style="font-weight: 600; display: block; margin-bottom: 8px;">{{ form.price_per_share.label }}</label>
+            {{ form.price_per_share }}
+            {% if form.price_per_share.errors %}
+                <div style="color: #d9534f; font-size: 0.9em; margin-top: 4px;">{{ form.price_per_share.errors.as_text }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label for="{{ form.quantity.id_for_label }}" style="font-weight: 600; display: block; margin-bottom: 8px;">{{ form.quantity.label }}</label>
+            {{ form.quantity }}
+            {% if form.quantity.errors %}
+                <div style="color: #d9534f; font-size: 0.9em; margin-top: 4px;">{{ form.quantity.errors.as_text }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <label for="{{ form.trade_date.id_for_label }}" style="font-weight: 600; display: block; margin-bottom: 8px;">{{ form.trade_date.label }}</label>
+            {{ form.trade_date }}
+            {% if form.trade_date.errors %}
+                <div style="color: #d9534f; font-size: 0.9em; margin-top: 4px;">{{ form.trade_date.errors.as_text }}</div>
+            {% endif %}
+        </div>
+
+        <button type="submit" id="submit-button" disabled style="width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background-color 0.2s;">자산 추가</button>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('stock-search-input');
+    const searchIcon = document.getElementById('search-icon');
+    const cardContainer = document.getElementById('stock-card-container');
+    const hiddenTickerInput = document.querySelector('[name="ticker_symbol"]');
+    const submitButton = document.getElementById('submit-button');
+
+    // Style Django form widgets
+    document.querySelectorAll('form input[type="text"], form input[type="number"], form input[type="date"]').forEach(el => {
+        el.style.width = '100%';
+        el.style.padding = '10px';
+        el.style.border = '1px solid #ccc';
+        el.style.borderRadius = '4px';
+        el.style.fontSize = '16px';
+    });
+
+    // Set default trade date to today
+    const tradeDateInput = document.querySelector('[name="trade_date"]');
+    if (tradeDateInput && !tradeDateInput.value) {
+        const today = new Date();
+        tradeDateInput.value = today.toISOString().split('T')[0];
+    }
+
+    async function fetchAndRenderStock(ticker) {
+        if (!ticker) return;
+
+        cardContainer.innerHTML = '<p>검색 중...</p>';
+        submitButton.disabled = true;
+        submitButton.style.backgroundColor = '#ccc';
+
+
+        try {
+            const response = await fetch(`/api/stock/${ticker}/card-details/`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || '종목 정보를 찾을 수 없습니다.');
+            }
+            
+            const data = await response.json();
+
+            cardContainer.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; background-color: #f9f9f9;">
+                    <img src="${data.logo_url}" alt="${data.ticker} logo" style="width: 40px; height: 40px; border-radius: 50%;">
+                    <div style="flex-grow: 1;">
+                        <div style="font-weight: bold; font-size: 1.1em;">${data.ticker}</div>
+                        <div style="font-size: 0.9em; color: #666;">${data.stock_name}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 1.2em; font-weight: 500;">$${data.price}</div>
+                        <div style="color: ${parseFloat(data.change_percent) >= 0 ? '#26a69a' : '#ef5350'};">
+                            ${parseFloat(data.change_percent) >= 0 ? '+' : ''}${data.change_percent}%
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Populate hidden form field
+            hiddenTickerInput.value = data.ticker;
+            
+            // Enable submit button
+            submitButton.disabled = false;
+            submitButton.style.backgroundColor = '#007bff';
+
+        } catch (error) {
+            cardContainer.innerHTML = `<p style="color: #d9534f;">${error.message}</p>`;
+            hiddenTickerInput.value = '';
+            submitButton.disabled = true;
+            submitButton.style.backgroundColor = '#ccc';
+        }
+    }
+
+    function handleSearch() {
+        const ticker = searchInput.value.trim().toUpperCase();
+        fetchAndRenderStock(ticker);
+    }
+
+    searchIcon.addEventListener('click', handleSearch);
+    searchInput.addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            handleSearch();
+        }
+    });
+});
+</script>
+{% endblock %}
