@@ -10,42 +10,70 @@
 .dashboard-header {
     display: flex !important;
     align-items: baseline !important;
-    gap: 0px !important;
-    margin-bottom: 0px !important;
-    padding: 0px 0 !important;
+    gap: 20px !important;
+    margin: 0 !important;                           /* 마진 제거 */
+    padding: 16px !important;                       /* home.html과 같은 패딩 (var(--spacing-medium)) */
+    border-bottom: 1px solid #e1e8ed !important;   /* home.html과 같은 보더 (var(--border-color)) */
 }
 
 .dashboard-header .dashboard-title,
 .dashboard-header h1.dashboard-title,
 h1.dashboard-title {
-    font-size: 18px !important;
-    font-weight: 700 !important;
+    font-size: 20px !important;                    /* h2 크기에 맞춤 */
+    font-weight: 600 !important;                   /* 적당한 두께 */
     color: #0f1419 !important;
     margin: 0 !important;
     padding: 0 !important;
     line-height: 1.2 !important;
-    display: inline !important; /* 인라인으로 변경 */
+    display: inline !important;
 }
 
 .dashboard-header .dashboard-subtitle,
 .dashboard-header p.dashboard-subtitle,
 p.dashboard-subtitle {
-    font-size: 12px !important;
-    color: #536471 !important;
+    font-size: 14px !important;                    /* home.html과 같은 크기 */
+    color: #536471 !important;                     /* home.html의 dark-gray와 유사 */
     margin: 0 !important;
     padding: 0 !important;
     line-height: 1.4 !important;
-    display: inline !important; /* 인라인으로 변경 */
-    
+    display: inline !important;
+}
+
+/* 탭 메뉴 컨테이너 스타일 */
+.dashboard-tabs {
+    margin: 10px 0 !important;
+    padding: 0px 10px !important;
+    border-bottom: 1px solid #eff3f4;
+}
+
+/* 탭 아이템 스타일 */
+.dashboard-tabs .nav-item {
+    margin: 0 20px 0 0 !important;          /* 상 우 하 좌 마진 */
+    padding: 0 !important;                   /* 패딩 */
+    font-size: 14px !important;             /* 글씨 크기 */
+    font-weight: 500 !important;            /* 글씨 두께 */
+    list-style: none !important;            /* 리스트 점 제거 */
+}
+
+.dashboard-tabs .nav-item:last-child {
+    margin-right: 0 !important;             /* 마지막 아이템은 우측 마진 없음 */
+}
+
+/* 탭 메뉴 컨테이너 스타일 */
+.dashboard-tabs .nav-pills {
+    display: flex !important;
+    list-style: none !important;
+    padding: 0 !important;                   /* 패딩 */
+    margin: 16px 0 !important;              /* 마진 (상하 16px) */
 }
 
 /* 탭 메뉴 스타일 */
 .dashboard-tabs .nav-pills .nav-link {
     color: #536471;
     font-weight: 500;
-    font-size: 16px;
+    font-size: 14px;
     padding: 12px 0;
-    margin-right: 32px;
+    margin-right: 0px;
     background-color: transparent;
     border-radius: 0;
     border-bottom: 2px solid transparent;
@@ -75,8 +103,8 @@ p.dashboard-subtitle {
     grid-template-columns: repeat(3, 1fr); /* 3개의 카드를 동일한 너비로 배치 */
     gap: 2px; /* 카드 사이의 간격 최소화 */
     margin-bottom: 20px; /* 하단 간격 줄임 */
-    width: 580px; /* 고정 너비로 강제 제한 (여유분 20px) */
-    max-width: 580px; /* 최대 너비도 580px로 제한 */
+    width: 100%; /* 전체 너비 사용 */
+    max-width: 560px; /* feed(600px) - padding(40px) = 560px */
 }
 
 /* 개별 통계 카드 스타일 */

@@ -4,7 +4,7 @@
 {% block title %}총 자산 현황{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'dashboard/css/dashboard.css' %}">
+<!-- CSS는 base.html에서 로드됨 -->
 {% endblock %}
 
 {% block content %}
@@ -19,7 +19,7 @@
 </div>
 
 <!-- 통계 카드들 -->
-<div class="stats-row" style="display: flex; gap: 2px; justify-content: space-between; margin-bottom: 20px; max-width: 600px; width: 580px;">
+<div class="stats-row" style="display: flex; gap: 2px; justify-content: space-between; margin-bottom: 20px; max-width: 560px; width: 100%;">
     <!-- 총 투자 자산 카드 -->
     <div class="stat-card" style="background: #f7f9fa; padding: 4px; border-radius: 4px; min-width: 0; overflow: hidden; max-width: 180px; width: 100%; box-sizing: border-box;">
         <div class="stat-card-title" style="font-size: 8px; font-weight: 500; color: #536471; margin-bottom: 4px;">총 투자 자산</div>
@@ -81,5 +81,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'dashboard/js/dashboard.js' %}"></script>
+<!-- JavaScript는 base.html에서 로드됨 -->
 {% endblock %}

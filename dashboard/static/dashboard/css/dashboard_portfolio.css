@@ -47,7 +47,7 @@
     margin: 0;
     padding: 0;
     width: 100%;
-    max-width: 600px; /* 메인 대시보드 영역에 맞춤 */
+    max-width: 560px; /* feed(600px) - padding(40px) = 560px에 맞춤 */
 }
 
 .portfolio-chart-container h3 {
@@ -144,7 +144,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
+    padding: 15px 0;
     border-bottom: 1px solid #eff3f4;
 }
 
