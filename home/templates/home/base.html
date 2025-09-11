@@ -248,6 +248,44 @@
                 max-width: 100%;
             }
         }
+        .news-carousel {
+            padding-right: 12px; 
+        }
+        .news-carousel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .news-carousel::-webkit-scrollbar-track {
+            background: #f7f9fa;
+            border-radius: 10px;
+        }
+        .news-carousel::-webkit-scrollbar-thumb {
+            background: #cfd9de;
+            border-radius: 10px;
+        }
+        .news-carousel::-webkit-scrollbar-thumb:hover {
+            background: #8b98a5;
+        }
+        /* 로딩 스피너 스타일 */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #1d9bf0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: #536471;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -274,7 +312,7 @@
                 <h3>What's happening</h3>
                 
                 <!-- 캐러셀 래퍼 -->
-                <div class="news-carousel" style="position: relative; height: 320px; overflow: hidden;">
+                <div class="news-carousel" style="position: relative; height: 320px; overflow-y: auto; overflow-x: hidden;">
                          
                     <!-- 뉴스 컨테이너 -->
                     <div id="news-slides">
@@ -363,7 +401,7 @@
                 </div>
 
                 <!-- 기간 선택 버튼들 -->
-                <div style="display: flex; gap: 16px; margin-bottom: 15px; padding: 8px 12px; justify-content: center;">
+                <div id="period-buttons" style="display: flex; gap: 16px; margin-bottom: 15px; padding: 8px 12px; justify-content: center;">
                     <button class="period-btn active" data-period="1d" onclick="changePeriod('1d')" 
                         style="background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #1d9bf0; border-bottom: 2px solid #1d9bf0; padding: 4px 0;">
                         1일
@@ -450,10 +488,20 @@
                 <div id="exchange-content" class="finance-content" style="display: none;">
                     <!-- 선택된 환율 상단 표시 -->
                     <div id="selected-exchange" style="padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #1d9bf0;">
-                        <div style="font-size: 16px; font-weight: bold; color: #0f1419;" id="selected-exchange-name">USD/KRW</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #0f1419;" id="selected-exchange-name">
+                            {% if exchange_rates %}{{ exchange_rates.0.name }}{% else %}USD/KRW{% endif %}
+                        </div>
                         <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                            <span style="font-size: 18px; font-weight: bold; color: #0f1419;" id="selected-exchange-rate">1,340</span>
-                            <span style="font-size: 14px; font-weight: 600;" id="selected-exchange-change">▲ 5원 (+0.37%)</span>
+                            <span style="font-size: 18px; font-weight: bold; color: #0f1419;" id="selected-exchange-rate">
+                                {% if exchange_rates %}{{ exchange_rates.0.current_rate }}원{% else %}1,340원{% endif %}
+                            </span>
+                            <span style="font-size: 14px; font-weight: 600;" id="selected-exchange-change">
+                                {% if exchange_rates %}
+                                    {% if exchange_rates.0.is_positive %}▲{% else %}▼{% endif %} {{ exchange_rates.0.change }}원 ({% if exchange_rates.0.change_percent >= 0 %}+{% endif %}{{ exchange_rates.0.change_percent }}%)
+                                {% else %}
+                                    ▲ 5원 (+0.37%)
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
 
@@ -464,7 +512,7 @@
                             data-change="{% if rate.is_positive %}▲{% else %}▼{% endif %} {{ rate.change }}원 ({% if rate.change_percent >= 0 %}+{% endif %}{{ rate.change_percent }}%)"
                             data-positive="{{ rate.is_positive }}"
                             style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer;"
-                            onclick="showChart('{{ rate.symbol }}', '{{ rate.name }}', 'exchange'); selectExchange(this);"
+                            onclick="selectExchange(this);"
                             onmouseover="if(!this.classList.contains('selected')) this.style.backgroundColor='rgba(29, 155, 240, 0.05)'" 
                             onmouseout="if(!this.classList.contains('selected')) this.style.backgroundColor='transparent'">
                             <div>
@@ -492,6 +540,85 @@
             </div>
 
             <script>
+            // 캐시 유틸리티 함수들
+            const FinanceCache = {
+                // 캐시 만료 시간 (5분)
+                CACHE_DURATION: 5 * 60 * 1000,
+                
+                // 캐시 키 생성
+                getCacheKey: function(type, params) {
+                    return `finance_cache_${type}_${JSON.stringify(params)}`;
+                },
+                
+                // 캐시에서 데이터 가져오기
+                get: function(type, params) {
+                    try {
+                        const key = this.getCacheKey(type, params);
+                        const cached = localStorage.getItem(key);
+                        
+                        if (!cached) return null;
+                        
+                        const data = JSON.parse(cached);
+                        const now = Date.now();
+                        
+                        // 만료 확인
+                        if (now > data.expires) {
+                            localStorage.removeItem(key);
+                            return null;
+                        }
+                        
+                        console.log(`캐시 히트: ${type}`, params);
+                        return data.value;
+                        
+                    } catch (error) {
+                        console.warn('캐시 읽기 오류:', error);
+                        return null;
+                    }
+                },
+                
+                // 캐시에 데이터 저장
+                set: function(type, params, value) {
+                    try {
+                        const key = this.getCacheKey(type, params);
+                        const data = {
+                            value: value,
+                            expires: Date.now() + this.CACHE_DURATION,
+                            timestamp: Date.now()
+                        };
+                        
+                        localStorage.setItem(key, JSON.stringify(data));
+                        console.log(`캐시 저장: ${type}`, params);
+                        
+                    } catch (error) {
+                        console.warn('캐시 저장 오류:', error);
+                        // localStorage 용량 초과시 오래된 캐시 정리
+                        this.cleanup();
+                    }
+                },
+                
+                // 오래된 캐시 정리
+                cleanup: function() {
+                    try {
+                        const keys = Object.keys(localStorage);
+                        const financeKeys = keys.filter(key => key.startsWith('finance_cache_'));
+                        
+                        // 타임스탬프 기준으로 정렬하여 가장 오래된 것부터 삭제
+                        financeKeys.forEach(key => {
+                            try {
+                                const data = JSON.parse(localStorage.getItem(key));
+                                if (Date.now() > data.expires) {
+                                    localStorage.removeItem(key);
+                                }
+                            } catch (e) {
+                                localStorage.removeItem(key);
+                            }
+                        });
+                        
+                    } catch (error) {
+                        console.warn('캐시 정리 오류:', error);
+                    }
+                }
+            };
             // 금융 탭 전환 함수
             function switchFinanceTab(tabName) {
                 // 모든 탭 버튼 비활성화
@@ -519,6 +646,27 @@
                 if (activeContent) {
                     activeContent.style.display = 'block';
                 }
+                // 환율 탭일 때만 기간 버튼 숨기기 - ID 사용
+                const periodButtons = document.getElementById('period-buttons');
+                if (tabName === 'exchange') {
+                    if (periodButtons) periodButtons.style.display = 'none';
+                } else {
+                    if (periodButtons) periodButtons.style.display = 'flex';
+                }
+                const chartWidget = document.getElementById('chart-widget');
+                if (tabName === 'exchange') {
+                    if (chartWidget) chartWidget.style.display = 'none';
+                } else {
+                    if (chartWidget) chartWidget.style.display = 'block';
+                }
+                // 탭 전환시 해당 탭의 첫 번째 항목 차트 자동 표시
+                setTimeout(() => {
+                    if (tabName === 'indices') {
+                        showChart('^KS11', 'KOSPI', 'index');
+                    } else if (tabName === 'stocks') {
+                        showChart('TSLA', '테슬라', 'us_stock');
+                    }
+                }, 100);
             }
 
             // 환율 선택 함수
@@ -569,22 +717,52 @@
                 });
                 
                 // 로딩 표시
-                document.getElementById('chart-title').textContent = name + ' - 로딩 중...';
+                document.getElementById('chart-title').innerHTML = 
+                    '<span class="loading-spinner"></span><span class="loading-text">' + name + ' 데이터 로딩 중...</span>';
                 document.getElementById('chart-widget').style.display = 'block';
                 
                 // AJAX로 차트 데이터 가져오기
+                const cacheParams = {symbol, type: dataType, period: actualPeriod};
+                const cachedData = FinanceCache.get('chart', cacheParams);
+                
+                if (cachedData) {
+                    // 캐시에서 데이터 사용
+                    createChart(cachedData, name);
+                    markSelectedItem(symbol, dataType);
+                    return;
+                }
+                
+                // 캐시에 없으면 AJAX로 차트 데이터 가져오기
                 fetch(`/home/chart-data/?symbol=${symbol}&type=${dataType}&period=${actualPeriod}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`서버 오류: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         if (data.success) {
+                            // 성공시 캐시에 저장
+                            FinanceCache.set('chart', cacheParams, data.chart_data);
                             createChart(data.chart_data, name);
                         } else {
                             document.getElementById('chart-title').textContent = name + ' - 데이터 오류';
+                            document.getElementById('chart-title').style.color = '#e74c3c';
+                            setTimeout(() => {
+                                document.getElementById('chart-title').style.color = '#0f1419';
+                            }, 3000);
                         }
                     })
                     .catch(error => {
                         console.error('차트 데이터 오류:', error);
-                        document.getElementById('chart-title').textContent = name + ' - 네트워크 오류';
+                        document.getElementById('chart-title').textContent = name + ' - 연결 실패 (3초 후 재시도)';
+                        document.getElementById('chart-title').style.color = '#e74c3c';
+                        
+                        // 3초 후 자동 재시도
+                        setTimeout(() => {
+                            document.getElementById('chart-title').textContent = name + ' - 재시도 중...';
+                            showChart(symbol, name, dataType, period);
+                        }, 3000);
                     });
                 
                 // 선택된 항목 표시
@@ -607,12 +785,21 @@
                 if (currentChart) {
                     currentChart.destroy();
                 }
-                
+                let processedLabels = chartData.labels.map(label => {
+                    if (typeof label === 'string') {
+                        return label;
+                    } else if (label && typeof label === 'object') {
+                        // Date 객체거나 다른 객체면 문자열로 변환
+                        return String(label).substring(0, 10);
+                    } else {
+                        return String(label);
+                    }
+                });
                 // 새 차트 생성
                 currentChart = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: chartData.labels,
+                        labels: processedLabels,
                         datasets: [{
                             label: name,
                             data: chartData.data,
@@ -653,7 +840,8 @@
                 });
                 
                 // 제목 업데이트
-                document.getElementById('chart-title').textContent = name + ' 차트';
+                document.getElementById('chart-title').innerHTML = name + ' 차트';
+                document.getElementById('chart-title').style.color = '#0f1419';
             }
 
             // 차트 숨기기
@@ -685,7 +873,13 @@
                     alert('환율 데이터는 1달까지만 지원합니다.');
                     return;
                 }
-                
+                if (currentTab === 'stocks') {
+                    const selectedItem = document.querySelector('.finance-item.chart-selected');
+                    if (selectedItem && selectedItem.dataset.type === 'kr_stock' && ['5d', '1mo', '6mo', '1y', '5y'].includes(period)) {
+                        alert('한국 주식은 1일 데이터만 제공됩니다.');
+                        return;
+                    }
+                }
                 currentPeriod = period;
                 
                 // 기간 버튼 스타일 변경
@@ -708,16 +902,30 @@
                 updateFinancialData(period);
             }
 
-            // 현재 차트 다시 로드
+            // 현재 차트 다시 로드 - 종목명 전달 수정
             function reloadCurrentChart() {
                 // 선택된 항목 찾기
                 const selectedItem = document.querySelector('.finance-item.chart-selected');
                 if (selectedItem) {
                     const symbol = selectedItem.dataset.symbol;
-                    const name = selectedItem.textContent.split(' ')[0]; // 첫 번째 단어가 이름
                     
-                    // 현재 탭에 따라 데이터 타입 결정
+                    // 종목명 정확히 추출
+                    let name;
                     const currentTab = document.querySelector('.finance-tab.active').dataset.tab;
+                    
+                    if (currentTab === 'stocks' && selectedItem.dataset.name) {
+                        // 주식탭: data-name 사용
+                        name = selectedItem.dataset.name;
+                    } else if (currentTab === 'exchange' && selectedItem.dataset.name) {
+                        // 환율탭: data-name 사용
+                        name = selectedItem.dataset.name;
+                    } else {
+                        // 지수탭: HTML에서 직접 추출
+                        const nameElement = selectedItem.querySelector('div div:first-child');
+                        name = nameElement ? nameElement.textContent.trim() : symbol;
+                    }
+                    
+                    // 데이터 타입 결정
                     let dataType = 'index';
                     if (currentTab === 'stocks') {
                         dataType = selectedItem.dataset.type || 'us_stock';
@@ -728,11 +936,32 @@
                     showChart(symbol, name, dataType);
                 }
             }
-            // 주식 차트 전용 함수
             function showStockChart(element) {
                 const symbol = element.dataset.symbol;
                 const name = element.dataset.name;
                 const type = element.dataset.type;
+                
+                // 한국 주식이면 기간을 1일로 강제 변경
+                if (type === 'kr_stock') {
+                    if (currentPeriod !== '1d') {
+                        // 기간 버튼을 1일로 변경
+                        document.querySelectorAll('.period-btn').forEach(btn => {
+                            btn.style.color = '#536471';
+                            btn.style.borderBottomColor = 'transparent';
+                            btn.classList.remove('active');
+                        });
+                        
+                        const dayBtn = document.querySelector('[data-period="1d"]');
+                        if (dayBtn) {
+                            dayBtn.style.color = '#1d9bf0';
+                            dayBtn.style.borderBottomColor = '#1d9bf0';
+                            dayBtn.classList.add('active');
+                        }
+                        
+                        currentPeriod = '1d';
+                    }
+                }
+                
                 showChart(symbol, name, type);
             }
                     // 금융 데이터 업데이트 함수
@@ -746,17 +975,27 @@
                         let selectedType = null;
                         
                         if (selectedItem) {
-                            selectedSymbol = selectedItem.dataset.symbol;
-                            selectedName = selectedItem.textContent.split(' ')[0];
-                            
-                            if (currentTab === 'indices') {
-                                selectedType = 'index';
-                            } else if (currentTab === 'stocks') {
-                                selectedType = selectedItem.dataset.type || 'us_stock';
-                            } else if (currentTab === 'exchange') {
-                                selectedType = 'exchange';
+                                selectedSymbol = selectedItem.dataset.symbol;
+                                
+                                // 종목명 정확히 추출
+                                if (currentTab === 'stocks' && selectedItem.dataset.name) {
+                                    selectedName = selectedItem.dataset.name;
+                                } else if (currentTab === 'exchange' && selectedItem.dataset.name) {
+                                    selectedName = selectedItem.dataset.name;
+                                } else {
+                                    // 지수의 경우 HTML에서 추출
+                                    const nameElement = selectedItem.querySelector('div div:first-child');
+                                    selectedName = nameElement ? nameElement.textContent.trim() : selectedSymbol;
+                                }
+                                
+                                if (currentTab === 'indices') {
+                                    selectedType = 'index';
+                                } else if (currentTab === 'stocks') {
+                                    selectedType = selectedItem.dataset.type || 'us_stock';
+                                } else if (currentTab === 'exchange') {
+                                    selectedType = 'exchange';
+                                }
                             }
-                        }
                         
                         fetch(`/home/financial-data/?period=${period}&tab=${currentTab}`)
                             .then(response => response.json())

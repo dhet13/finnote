@@ -44,14 +44,14 @@
             <!-- 액션 버튼들 -->
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; gap: 16px;">
-                    <a href="{% url 'home:create_trading' %}" style="display: inline-block; padding: 8px; border-radius: 50%; transition: background-color 0.2s; margin-right: 12px; text-decoration: none;" 
+                    <button type="button" id="trading-journal-btn" onclick="openTradingJournal()" style="display: inline-block; padding: 8px; border-radius: 50%; transition: background-color 0.2s; margin-right: 12px; background: none; border: none; cursor: pointer;" 
                     onmouseover="this.style.backgroundColor='rgba(29, 155, 240, 0.1)'" 
                     onmouseout="this.style.backgroundColor='transparent'"
                     title="매매일지 작성">
                         <span class="material-symbols-outlined" style="color: #1d9bf0; font-size: 20px;">assessment</span>
-                    </a>
+                    </button>
 
-                    <button type="button" onclick="document.getElementById('image-input').click()" style="display: inline-block; padding: 8px; border-radius: 50%; transition: background-color 0.2s; background: none; border: none; cursor: pointer;"
+                    <button type="button" id="image-upload-btn" onclick="document.getElementById('image-input').click()" style="display: inline-block; padding: 8px; border-radius: 50%; transition: background-color 0.2s; background: none; border: none; cursor: pointer;"
                     onmouseover="this.style.backgroundColor='rgba(29, 155, 240, 0.1)'" 
                     onmouseout="this.style.backgroundColor='transparent'"
                     title="이미지 첨부">
@@ -158,6 +158,208 @@
 </div>
 
 <script>
+// 매매일지 인터페이스 추상화 레이어
+const TradingJournalInterface = {
+    // 설정 (팀원과 합의된 부분)
+    config: {
+        modalUrl: '/journals/compose/?modal=1',
+        modalWidth: 800,
+        modalHeight: 600
+    },
+    
+    // 모달 열기
+    openModal: function(callback) {
+        this.resultCallback = callback;
+        
+        // 모달 오버레이 생성
+        const overlay = document.createElement('div');
+        overlay.id = 'trading-modal-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        // 모달 컨테이너
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            background: white;
+            border-radius: 8px;
+            width: ${this.config.modalWidth}px;
+            height: ${this.config.modalHeight}px;
+            max-width: 95vw;
+            max-height: 95vh;
+            overflow: hidden;
+            position: relative;
+        `;
+        
+        // iframe으로 매매일지 로드
+        const iframe = document.createElement('iframe');
+        iframe.src = this.config.modalUrl;
+        iframe.style.cssText = `
+            width: 100%;
+            height: 100%;
+            border: none;
+        `;
+        
+        // 닫기 버튼
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1;
+            color: #666;
+        `;
+        closeBtn.onclick = () => this.closeModal();
+        
+        modal.appendChild(iframe);
+        modal.appendChild(closeBtn);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // ESC 키로 닫기
+        this.keyHandler = (e) => {
+            if (e.key === 'Escape') this.closeModal();
+        };
+        document.addEventListener('keydown', this.keyHandler);
+        
+        console.log('매매일지 모달 열림');
+    },
+    
+    // 모달 닫기
+    closeModal: function() {
+        const overlay = document.getElementById('trading-modal-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+        if (this.keyHandler) {
+            document.removeEventListener('keydown', this.keyHandler);
+        }
+        console.log('매매일지 모달 닫힘');
+    },
+    
+    // 완료 결과 처리 (팀원 시스템에서 호출)
+    onComplete: function(result) {
+        if (this.resultCallback) {
+            this.resultCallback(result);
+        }
+        this.closeModal();
+    },
+    
+    // 팀원과의 인터페이스 (postMessage 수신)
+    setupMessageListener: function() {
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'trading-journal-complete') {
+                this.onComplete(event.data.payload);
+            }
+        });
+    }
+};
+// 포스트 상태 관리
+const PostStateManager = {
+    currentState: 'none', // 'none', 'image', 'trading'
+    
+    setState: function(newState) {
+        this.currentState = newState;
+        this.updateUI();
+    },
+    
+    updateUI: function() {
+        const tradingBtn = document.getElementById('trading-journal-btn');
+        const imageBtn = document.getElementById('image-upload-btn');
+        const postBtn = document.getElementById('post-button');
+        
+        if (this.currentState === 'trading') {
+            // 매매일지 선택됨
+            tradingBtn.style.opacity = '1';
+            imageBtn.style.opacity = '0.3';
+            imageBtn.style.pointerEvents = 'none';
+            this.showPrivacyToggle();
+        } else if (this.currentState === 'image') {
+            // 이미지 선택됨  
+            imageBtn.style.opacity = '1';
+            tradingBtn.style.opacity = '0.3';
+            tradingBtn.style.pointerEvents = 'none';
+            this.hidePrivacyToggle();
+        } else {
+            // 아무것도 선택 안됨
+            tradingBtn.style.opacity = '1';
+            tradingBtn.style.pointerEvents = 'auto';
+            imageBtn.style.opacity = '1';
+            imageBtn.style.pointerEvents = 'auto';
+            this.hidePrivacyToggle();
+        }
+        
+        this.updatePostButton();
+    },
+    
+    updatePostButton: function() {
+        const textarea = document.getElementById('post-content');
+        const postBtn = document.getElementById('post-button');
+        const hasContent = textarea.value.trim().length > 0;
+        const hasAttachment = this.currentState !== 'none';
+        
+        if (hasContent || hasAttachment) {
+            postBtn.disabled = false;
+            postBtn.style.opacity = '1';
+        } else {
+            postBtn.disabled = true;
+            postBtn.style.opacity = '0.5';
+        }
+    },
+    
+    showPrivacyToggle: function() {
+        let toggle = document.getElementById('privacy-toggle');
+        if (!toggle) {
+            toggle = document.createElement('div');
+            toggle.id = 'privacy-toggle';
+            toggle.innerHTML = `
+                <label style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px;">
+                    <input type="checkbox" id="private-post" style="margin: 0;">
+                    <span>나만보기</span>
+                </label>
+            `;
+            const form = document.querySelector('form[action*="create_simple_post"]');
+            form.insertBefore(toggle, form.lastElementChild);
+        }
+        toggle.style.display = 'block';
+    },
+    
+    hidePrivacyToggle: function() {
+        const toggle = document.getElementById('privacy-toggle');
+        if (toggle) {
+            toggle.style.display = 'none';
+        }
+    }
+};
+
+// 매매일지 열기 함수
+function openTradingJournal() {
+    TradingJournalInterface.openModal(function(result) {
+        // 매매일지 완료시 콜백
+        console.log('매매일지 완료:', result);
+        PostStateManager.setState('trading');
+        // TODO: 매매일지 카드 표시
+    });
+}
+// 페이지 로드시 메시지 리스너 설정
+document.addEventListener('DOMContentLoaded', function() {
+    TradingJournalInterface.setupMessageListener();
+});
+
 // 탭 전환 기능
 function switchTab(tabType) {
     // 모든 탭 비활성화
@@ -176,18 +378,7 @@ function switchTab(tabType) {
 
 // 포스트 버튼 활성화/비활성화
 function togglePostButton() {
-    const textarea = document.getElementById('post-content');
-    const button = document.getElementById('post-button');
-    
-    if (textarea.value.trim().length > 0) {
-        button.disabled = false;
-        button.style.opacity = '1';
-        button.style.cursor = 'pointer';
-    } else {
-        button.disabled = true;
-        button.style.opacity = '0.5';
-        button.style.cursor = 'not-allowed';
-    }
+    PostStateManager.updatePostButton(); 
 }
 
 // 이미지 미리보기
@@ -201,6 +392,7 @@ function previewImage(input) {
         reader.onload = function(e) {
             img.src = e.target.result;
             preview.style.display = 'block';
+            PostStateManager.setState('image');
         }
         
         reader.readAsDataURL(input.files[0]);
@@ -211,6 +403,7 @@ function previewImage(input) {
 function removeImage() {
     document.getElementById('image-input').value = '';
     document.getElementById('image-preview').style.display = 'none';
+    PostStateManager.setState('none');
 }
 
 // 필터 상태 관리
