@@ -1,10 +1,13 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}FinTech SNS{% endblock %}</title>
-
+    
+    <link rel="stylesheet" href="{% static 'tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
@@ -60,11 +63,7 @@
             border-right: 1px solid #eff3f4;
             margin-top: 60px;
             height: calc(100vh - 60px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #536471;
-            font-size: 14px;
+            padding: 20px;
         }
 
         /* 메인 피드 */
@@ -291,13 +290,81 @@
 <body>
     <!-- 헤더 placeholder -->
     <div class="header-placeholder">
-        헤더 영역 
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 1200px;">
+            <div style="font-weight: bold; font-size: 20px;">
+                <a href="{% url 'home' %}" style="text-decoration: none; color: #0f1419;">Home</a>
+            </div>
+            <div style="text-align: center;">
+                <input type="text" placeholder="Search" style="width: 400px; height: 40px; border-radius: 20px; border: 1px solid #eff3f4; padding: 0 16px;">
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'user_profile:user_profile' %}" style="text-decoration: none; color: #0f1419;">Profile</a>
+                    <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" style="background: none; border: none; cursor: pointer; color: #0f1419;">Logout</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}" style="text-decoration: none; color: #0f1419;">Login</a>
+                    <a href="{% url 'signup' %}" style="text-decoration: none; color: #0f1419;">Sign Up</a>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
     <div class="main-container">
         <!-- 좌측 사이드바 placeholder -->
         <div class="left-sidebar-placeholder">
-            좌측 사이드바<br>
+            <div style="font-size: 30px; margin-bottom: 20px;">
+                🦁
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item active" data-target="home">
+                        <span class="icon">
+                            <img src="{% static 'icon/home.svg' %}" alt="홈">
+                        </span>
+                        <span class="text">홈</span>
+                    </li>
+                    <li class="nav-item" data-target="dashboard">
+                        <span class="icon">
+                            <img src="{% static 'icon/dashboard.svg' %}" alt="대시보드">
+                        </span>
+                        <span class="text">대시 보드</span>
+                    </li>
+                    <li class="nav-item" data-target="trading journal">
+                        <span class="icon">
+                            <img src="{% static 'icon/journal.svg' %}" alt="매매일지">
+                        </span>
+                        <span class="text">매매 일지</span>
+                    </li>
+                    <li class="nav-item" data-target="bookmarks">
+                        <span class="icon">
+                            <img src="{% static 'icon/bookmarks.svg' %}" alt="북마크">
+                        </span>
+                        <span class="text">북마크</span>
+                    </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item" data-target="profile">
+                        <a href="{% url 'user_profile:profile' my_ID=request.user.my_ID %}">
+                        <span class="icon">
+                            <img src="{% static 'icon/profile.svg' %}" alt="프로필">
+                        </span>
+                        <span class="text">프로필</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item" data-target="profile">
+                        <a href="{% url 'login' %}">
+                        <span class="icon">
+                            <img src="{% static 'icon/profile.svg' %}" alt="프로필">
+                        </span>
+                        <span class="text">프로필</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
         </div>
 
         <!-- 메인 피드 -->
