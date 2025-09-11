@@ -6,6 +6,37 @@
     border-radius: 8px;
 }
 
+/* 대시보드 헤더 스타일 - 가로 배치 */
+.dashboard-header {
+    display: flex !important;
+    align-items: baseline !important; /* 텍스트 베이스라인 맞춤 */
+    gap: 12px !important; /* 제목과 부제목 사이 간격 */
+}
+
+.dashboard-header .dashboard-title,
+.dashboard-header h1.dashboard-title,
+h1.dashboard-title {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #0f1419 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+    display: inline !important; /* 인라인으로 변경 */
+}
+
+.dashboard-header .dashboard-subtitle,
+.dashboard-header p.dashboard-subtitle,
+p.dashboard-subtitle {
+    font-size: 12px !important;
+    color: #536471 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.4 !important;
+    display: inline !important; /* 인라인으로 변경 */
+    
+}
+
 /* 탭 메뉴 스타일 */
 .dashboard-tabs .nav-pills .nav-link {
     color: #536471;
@@ -40,47 +71,55 @@
 .stats-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr); /* 3개의 카드를 동일한 너비로 배치 */
-    gap: 24px; /* 카드 사이의 간격 */
-    margin-bottom: 32px;
+    gap: 2px; /* 카드 사이의 간격 최소화 */
+    margin-bottom: 20px; /* 하단 간격 줄임 */
+    width: 580px; /* 고정 너비로 강제 제한 (여유분 20px) */
+    max-width: 580px; /* 최대 너비도 580px로 제한 */
 }
 
 /* 개별 통계 카드 스타일 */
 .stat-card {
     background-color: #ffffff;
     border: 1px solid #e1e8ed;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+    border-radius: 4px; /* 둥근 모서리 더욱 줄임 */
+    padding: 4px; /* 패딩 극도로 줄임 */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03); /* 그림자 최소화 */
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    min-width: 0; /* 카드가 축소될 수 있도록 */
+    overflow: hidden; /* 내용이 넘치지 않도록 */
+    max-width: 180px; /* 카드 최대 너비를 더 줄임 */
+    width: 100%; /* 그리드 내에서 가득 채우기 */
+    box-sizing: border-box; /* padding과 border를 width에 포함 */
 }
 
 .stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px); /* 호버 효과 줄임 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06); /* 호버 그림자 줄임 */
 }
 
 .stat-card-title {
-    font-size: 14px;
+    font-size: 13px; /* 제목 크기 극도로 줄임 */
     color: #536471; /* 옅은 회색 글자 */
-    margin-bottom: 8px;
+    margin-bottom: 10px; /* 간격 극도로 줄임 */
     font-weight: 500;
 }
 
 .stat-value {
-    font-size: 32px;
+    font-size: 18px; /* 값 크기 극도로 줄임 */
     font-weight: 700;
     color: #0f1419; /* 진한 검정색 글자 */
+    line-height: 0.8; /* 줄간격 극도로 줄임 */
 }
 
 /* 수익률 표시 스타일 */
 .stat-change {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 12px; /* 수익률 글자 크기 더욱 줄임 */
+    font-weight: 100;
     display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
-    border-radius: 16px;
-    margin-top: 8px;
+    padding: 1px 3px; /* 패딩 더욱 줄임 */
+    border-radius: 3px; /* 둥근 모서리 더욱 줄임 */
+    margin-top: 1px; /* 간격 더욱 줄임 */
 }
 
 .stat-change.positive {
@@ -110,4 +149,96 @@
     font-size: 24px;
     font-weight: 700;
     margin-bottom: 24px;
+}
+
+/* 카드뷰 기간 선택 버튼 스타일 (일간/주간) */
+.card-period-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.card-period-btn {
+    background-color: #f7f9fa;
+    border: 1px solid #e1e8ed;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #536471;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.card-period-btn:hover {
+    background-color: #e1e8ed;
+    color: #0f1419;
+}
+
+.card-period-btn.active {
+    background-color: #1d9bf0;
+    border-color: #1d9bf0;
+    color: #ffffff;
+}
+
+.card-period-btn.active:hover {
+    background-color: #1a8cd8;
+    border-color: #1a8cd8;
+}
+
+/* 메인 차트 기간 선택 버튼 스타일 (1D/1W/1M/3M/6M/1Y) */
+.main-period-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.main-period-btn {
+    background-color: #f7f9fa;
+    border: 1px solid #e1e8ed;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #536471;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.main-period-btn:hover {
+    background-color: #e1e8ed;
+    color: #0f1419;
+}
+
+.main-period-btn.active {
+    background-color: #1d9bf0;
+    border-color: #1d9bf0;
+    color: #ffffff;
+}
+
+.main-period-btn.active:hover {
+    background-color: #1a8cd8;
+    border-color: #1a8cd8;
+}
+
+/* 기간 선택 드롭다운 스타일 */
+.period-range-select {
+    background-color: #f7f9fa;
+    border: 1px solid #e1e8ed;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #536471;
+    cursor: pointer;
+    min-width: 80px;
+}
+
+.period-range-select:hover {
+    background-color: #e1e8ed;
+    color: #0f1419;
+}
+
+.period-range-select:focus {
+    outline: none;
+    border-color: #1d9bf0;
+    background-color: #ffffff;
 }

@@ -61,5 +61,8 @@ LEFT JOIN journals_repropertyinfo rp ON rd.property_info_id = rp.property_info_i
 SQL_DROP = "DROP VIEW IF EXISTS asset_logs_unified;"
 
 class Migration(migrations.Migration):
-    dependencies = [("dashboard", "0006_add_hold_poly_check")]
+    dependencies = [
+        ("dashboard", "0006_add_hold_poly_check"),
+        ("journals", "0001_initial")
+    ]
     operations = [migrations.RunSQL(SQL_CREATE, reverse_sql=SQL_DROP)]
