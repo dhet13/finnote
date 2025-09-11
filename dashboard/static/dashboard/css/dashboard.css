@@ -9,8 +9,10 @@
 /* 대시보드 헤더 스타일 - 가로 배치 */
 .dashboard-header {
     display: flex !important;
-    align-items: baseline !important; /* 텍스트 베이스라인 맞춤 */
-    gap: 12px !important; /* 제목과 부제목 사이 간격 */
+    align-items: baseline !important;
+    gap: 0px !important;
+    margin-bottom: 0px !important;
+    padding: 0px 0 !important;
 }
 
 .dashboard-header .dashboard-title,

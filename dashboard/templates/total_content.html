@@ -1,13 +1,4 @@
-{% extends "dashboard/base.html" %}
 {% load static %}
-
-{% block title %}총 자산 현황{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'dashboard/css/dashboard.css' %}">
-{% endblock %}
-
-{% block content %}
 
 <!-- 카드뷰 헤더와 기간 선택 버튼 (일간/주간) -->
 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 32px; margin-bottom: 16px;">
@@ -78,8 +69,4 @@
     </div>
 </div>
 
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'dashboard/js/dashboard.js' %}"></script>
-{% endblock %}
+<!-- JavaScript는 base.html에서 로드되고 AJAX 콜백에서 초기화됩니다 -->
