@@ -2,13 +2,330 @@
 {% load static %}
 
 {% block feed %}
+<style>
+:root {
+    --primary-color: #3b82f6; /* Blue */
+    --primary-text-color: #ffffff;
+    --buy-color-alt: #fae8e8; /* Light Red BG */
+    --buy-color: #ef4444; /* Red */
+    --sell-color: #16a34a; /* Green */
+    --sell-color-alt: #e8f5e9; /* Light Green BG */
+    --border-color: #e5e7eb;
+    --background-color: #f9fafb;
+    --card-background-color: #ffffff;
+    --text-color-primary: #111827;
+    --text-color-secondary: #6b7280;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.compose-card {
+    font-family: var(--font-family);
+    background-color: var(--card-background-color);
+    padding: 24px 32px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    max-width: 600px; /* Reverted to 600px */
+    margin: 2rem auto;
+}
+
+.form-section {
+    margin-bottom: 24px;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-color-primary);
+}
+
+.input-group-icon {
+    position: relative;
+}
+
+.input-group-icon .icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-color-secondary);
+    font-size: 20px;
+}
+
+.input-group-icon .form-control {
+    padding-left: 48px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--background-color);
+    font-size: 1rem;
+    color: var(--text-color-primary);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box; /* Added for better sizing */
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.price-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* Force 4 columns */
+    gap: 12px;
+}
+
+/* Make percentage inputs smaller */
+#target-percent, #stop-percent {
+    max-width: 60px; /* Adjust as needed */
+}
+
+/* Ensure other inputs don't get too wide */
+#target-price, #stop-price {
+    max-width: 150px; /* Adjust as needed */
+}
+
+@media (min-width: 640px) {
+    .price-grid {
+        grid-template-columns: repeat(4, 1fr); /* Keep 4 columns */
+    }
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    margin-bottom: 8px;
+}
+
+.trade-side-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.btn {
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+
+.btn-buy {
+    background-color: var(--card-background-color);
+    border-color: var(--buy-color);
+    color: var(--buy-color);
+}
+
+.btn-buy.active, .btn-buy:hover {
+    background-color: var(--buy-color);
+    color: var(--primary-text-color);
+}
+
+.btn-sell {
+    background-color: var(--card-background-color); /* Changed to white background */
+    border-color: var(--sell-color); /* Green border */
+    color: var(--sell-color); /* Green text */
+}
+
+.btn-sell.active, .btn-sell:hover {
+    background-color: #15803d; /* Darker Green */
+    color: var(--primary-text-color); /* White text */
+}
+
+.holdings-grid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.holding-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.holding-item.shares {
+    background-color: #eef2ff; /* Light Blue */
+    color: #4338ca; /* Indigo */
+}
+
+.holding-item.pnl {
+    background-color: var(--sell-color-alt);
+    color: var(--sell-color);
+}
+
+.trade-input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Adjusted for trade inputs */
+    gap: 16px;
+    background-color: var(--background-color);
+    padding: 16px;
+    border-radius: 12px;
+}
+
+@media (min-width: 768px) {
+    .trade-input-grid {
+        grid-template-columns: 1fr 1fr 1fr; /* Keep original for larger screens if preferred */
+    }
+}
+
+.stepper-input {
+    position: relative;
+}
+
+.stepper-input .form-control {
+    padding-right: 50px;
+}
+
+.stepper-btn {
+    position: absolute;
+    right: 1px;
+    height: calc(50% - 1px);
+    width: 40px;
+    border: none;
+    background: transparent;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+}
+
+.stepper-up {
+    top: 1px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stepper-down {
+    bottom: 1px;
+}
+
+.trade-end-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-actions {
+    text-align: center;
+    margin-top: 32px;
+}
+
+.btn-submit {
+    background-color: var(--primary-color);
+    color: var(--primary-text-color);
+    padding: 12px 48px;
+    border-radius: 999px;
+}
+
+.search-results-container {
+    margin-top: 4px;
+    border-radius: 8px;
+    background-color: var(--card-background-color);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: absolute;
+    width: calc(100% - 64px); /* Adjust based on parent padding */
+    z-index: 10;
+}
+
+.search-result-item {
+    padding: 12px 16px;
+    cursor: pointer;
+}
+
+.search-result-item:hover {
+    background-color: var(--background-color);
+}
+
+.hidden {
+    display: none !important;
+}
+
+#selected-stock-card {
+    background-color: var(--background-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.stock-card-display {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stock-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: var(--primary-text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.2rem;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+}
+
+.stock-info {
+    flex-grow: 1;
+}
+
+.stock-ticker {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-color-primary);
+}
+
+.stock-name {
+    font-size: 0.875rem;
+    color: var(--text-color-secondary);
+}
+
+.stock-price-info {
+    text-align: right;
+}
+
+.stock-price {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-color-primary);
+}
+
+.stock-change.positive {
+    color: var(--sell-color);
+}
+
+.stock-change.negative {
+    color: var(--buy-color);
+}
+
+.stock-sparkline {
+    width: 100px;
+    height: 40px;
+    flex-shrink: 0;
+}
+</style>
+
     <div style="padding: 20px;">
         <h1>매매일지 작성</h1>
-        {% include '_compose_form.html' %}
+        {% include '_stock_journal_form_content.html' %}
     </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'js/compose.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/compose.js' %}" defer></script>
 {% endblock %}
-

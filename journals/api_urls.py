@@ -5,6 +5,8 @@ from . import views
 app_name = 'journals_api'
 
 urlpatterns = [
+    path('stock/search/', views.stock_search_api, name='stock_search'),
+    path('stock/portfolio-summary/', views.portfolio_summary_api, name='portfolio_summary'),
     path('stock/<str:ticker>/card-details/', views.stock_card_details_api, name='stock_card_details'),
     path('stock/quote/', views.stock_quote_api, name='stock_quote'),
     path('stock/<str:ticker>/history/', views.stock_history_api, name='stock_history'),
