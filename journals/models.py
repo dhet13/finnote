@@ -59,7 +59,7 @@ class StockJournal(models.Model):
         """Recalculates all aggregate fields for the journal based on its trades."""
         trades = self.trades.all()
 
-        # Calculate total buy/sell quantities and values
+        # Calculate total buy/sell quantities and gross values (ignoring fees/taxes as per user)
         buy_data = trades.filter(side=StockTrade.Side.BUY).aggregate(
             total_qty=Coalesce(Sum('quantity'), Decimal(0)),
             total_value=Coalesce(Sum(F('quantity') * F('price_per_share')), Decimal(0))
@@ -72,7 +72,7 @@ class StockJournal(models.Model):
         total_buy_qty = buy_data['total_qty']
         total_sell_qty = sell_data['total_qty']
 
-        # Calculate average prices
+        # Calculate average prices (based on gross values)
         avg_buy_price = buy_data['total_value'] / total_buy_qty if total_buy_qty > 0 else None
         avg_sell_price = sell_data['total_value'] / total_sell_qty if total_sell_qty > 0 else None
 
@@ -84,15 +84,17 @@ class StockJournal(models.Model):
         if net_qty == 0 and total_buy_qty > 0:
             new_status = self.Status.COMPLETED
 
-        # Calculate realized PnL and Return Rate
+        # Calculate realized PnL and Return Rate for sold shares
         realized_pnl = None
         return_rate = None
-        if new_status == self.Status.COMPLETED:
-            if avg_buy_price is not None and avg_sell_price is not None:
-                # This calculation is simplified. It assumes all bought shares are sold.
-                realized_pnl = (avg_sell_price - avg_buy_price) * total_buy_qty
-                if buy_data['total_value'] > 0:
-                    return_rate = (realized_pnl / buy_data['total_value']) * 100
+        if total_sell_qty > 0 and avg_buy_price is not None:
+            # Cost basis for the shares that were sold
+            cost_of_sold_shares = avg_buy_price * total_sell_qty
+            # Realized PnL is the net from selling minus the cost basis of what was sold
+            realized_pnl = sell_data['total_value'] - cost_of_sold_shares
+            
+            if cost_of_sold_shares > 0:
+                return_rate = (realized_pnl / cost_of_sold_shares) * 100
 
         # Use a direct update to prevent save signal recursion
         StockJournal.objects.filter(pk=self.pk).update(

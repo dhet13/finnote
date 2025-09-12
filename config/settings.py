@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'home',
     'finote',
     'media',
+    'journals',
 ]
 
 MIDDLEWARE = [

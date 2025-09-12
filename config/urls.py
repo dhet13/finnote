@@ -22,7 +22,10 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('home.urls')),
-
+    # 1. 매매일지 작성 페이지 등 일반 페이지를 위한 URL 설정
+    path('journals/', include('journals.urls')),
+    # 2. 주식 검색, 폼 제출 등 API를 위한 URL 설정
+    path('api/', include('journals.api_urls')),
 ]
 
 if settings.DEBUG:

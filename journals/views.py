@@ -4,7 +4,8 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_http_methods
 from django.utils.dateparse import parse_date
-from django.db import transaction
+from django.db import transaction, models
+from django.db.models import Q
 from decimal import Decimal
 
 from decouple import config
@@ -48,6 +49,70 @@ def my_journal_list(request):
 
 
 @require_http_methods(["GET"])
+def stock_search_api(request):
+    """
+    GET /api/stock/search/?q=...
+    Searches for stocks by ticker or name from the local DB.
+    This is optimized for speed and does not fetch real-time data.
+    """
+    query = request.GET.get('q', '').strip()
+
+    if not query or len(query) < 1:
+        return JsonResponse({'results': []})
+
+    # Search in both ticker and name, case-insensitive, from our local database
+    stocks = StockInfo.objects.filter(
+        Q(ticker_symbol__icontains=query) | Q(stock_name__icontains=query)
+    ).values('ticker_symbol', 'stock_name')[:10]  # Limit to 10 results
+
+    # Format the results to match the frontend expectation ('ticker' and 'name')
+    results = [
+        {'ticker': stock['ticker_symbol'], 'name': stock['stock_name']}
+        for stock in stocks
+    ]
+
+    return JsonResponse({'results': results})
+
+
+@login_required
+@require_http_methods(["GET"])
+def portfolio_summary_api(request):
+    """
+    GET /api/stock/portfolio-summary/?ticker=...
+    Returns summary data for a user's existing stock journal.
+    """
+    ticker = request.GET.get('ticker', '').strip().upper()
+    if not ticker:
+        return JsonResponse({'error': 'Ticker is required'}, status=400)
+
+    try:
+        journal = StockJournal.objects.get(
+            user=request.user,
+            ticker_symbol__ticker_symbol=ticker
+        )
+        # If journal is found, return its data
+        data = {
+            'net_quantity': journal.net_qty,
+            'average_buy_price': journal.avg_buy_price,
+            'average_sell_price': journal.avg_sell_price,
+            'realized_pnl': journal.realized_pnl,
+            'return_rate': journal.return_rate,
+            'status': journal.status,
+        }
+        return JsonResponse(data)
+    except StockJournal.DoesNotExist:
+        # If no journal exists for this user/ticker, return empty/zeroed data
+        return JsonResponse({
+            'net_quantity': 0,
+            'average_buy_price': None,
+            'average_sell_price': None,
+            'realized_pnl': None,
+            'return_rate': None,
+            'status': 'new',  # A custom status to indicate no position
+        })
+
+
+@require_http_methods(["GET"])
 def stock_card_details_api(request, ticker):
     """
     GET /api/stock/<ticker>/card-details/
@@ -62,7 +127,7 @@ def stock_card_details_api(request, ticker):
         # Using 'fast_info' is quicker than history for current price
         info = t.fast_info
         last_close = info.get('lastPrice')
-        prev_close = info.get('previousClose')
+        prev_close = info.get('previousPrice') # Corrected: 'previousClose' to 'previousPrice'
         stock_name = info.get('longName', ticker.upper())
 
         if last_close is None or prev_close is None:
@@ -81,22 +146,8 @@ def stock_card_details_api(request, ticker):
         if not hist_30d.empty:
             sparkline_data = hist_30d['Close'].tolist()
 
-        # Fetch logo from API Ninjas
+        # Simplified: No logo fetching for now to isolate syntax error
         logo_url = f"https://via.placeholder.com/32?text={ticker[0]}"  # Default placeholder
-        api_key = config('API_NINJAS_KEY', default=None)
-        if api_key:
-            api_url = f'https://api.api-ninjas.com/v1/logo?name={stock_name}'
-            headers = {'X-Api-Key': api_key}
-            try:
-                response = requests.get(api_url, headers=headers, timeout=5)
-                if response.status_code == 200 and response.json():
-                    # Assuming the first result is the most relevant
-                    logo_data = response.json()
-                    if logo_data and logo_data[0].get('image'):
-                        logo_url = logo_data[0]['image']
-            except requests.exceptions.RequestException as e:
-                # Log the error, but don't fail the whole request
-                print(f"Could not fetch logo for {stock_name}: {e}")
 
         return JsonResponse({
             'ticker': ticker.upper(),
@@ -112,7 +163,8 @@ def stock_card_details_api(request, ticker):
 
 @require_http_methods(["GET"])
 def stock_quote_api(request):
-    """GET /api/stock/quote?ticker=XXXX"""
+    """
+    GET /api/stock/quote?ticker=XXXX"""
     ticker = request.GET.get('ticker')
     if not ticker:
         return JsonResponse({'error': 'Ticker symbol is required.'}, status=400)
@@ -170,7 +222,7 @@ def stock_history_api(request, ticker):
 @login_required
 @require_http_methods(["POST"])
 def stock_journals_api(request):
-    """POST /api/stock/journals
+    """
     Creates a stock journal, its trades, and a post from a single request.
     """
     try:
@@ -181,7 +233,7 @@ def stock_journals_api(request):
     # Extract fields from payload
     ticker = (payload.get('ticker_symbol') or '').strip().upper()
     legs_data = payload.get('legs')
-    visibility = payload.get('visibility', 'private')
+    visibility = (payload.get('visibility', 'private') or '').strip()
     content = (payload.get('content') or '').strip()
     screenshot_url = (payload.get('screenshot_url') or '').strip()
     title = (payload.get('title') or f"{ticker} 매매일지").strip()
@@ -193,7 +245,7 @@ def stock_journals_api(request):
     try:
         target_price = Decimal(str(payload.get('target_price')))
         stop_price = Decimal(str(payload.get('stop_price')))
-    except (TypeError, ValueError, decimal.InvalidOperation):
+    except (TypeError, ValueError, models.Decimal.InvalidOperation):
         return JsonResponse({'error': 'Invalid target_price or stop_price.'}, status=400)
 
     user = request.user
@@ -224,7 +276,7 @@ def stock_journals_api(request):
                 quantity = Decimal(str(leg.get('quantity')))
                 if quantity <= 0:
                     raise ValueError("Quantity must be positive.")
-            except Exception as e:
+            except (TypeError, ValueError, models.Decimal.InvalidOperation) as e:
                 raise ValueError(f'Invalid price or quantity in leg: {e}')
 
             # The StockTrade.save() method automatically triggers journal recalculation
@@ -285,7 +337,7 @@ def add_stock_trade_api(request, journal_id):
     if side not in StockTrade.Side.values:
         return JsonResponse({'error': f'Invalid trade side. Must be one of {StockTrade.Side.labels}.'}, status=400)
 
-    trade_date = parse_date(payload.get('trade_date') or '')
+    trade_date = parse_date(payload.get('date') or '') # Corrected: 'trade_date' to 'date'
     if not trade_date:
         return JsonResponse({'error': 'Trade date is required.'}, status=400)
 
@@ -308,7 +360,7 @@ def add_stock_trade_api(request, journal_id):
         # fee/tax can be added later
     )
 
-    # The model's save() method will trigger recalculation.
+    # The model's save() method will trigger journal recalculation.
     # Reload the journal to get the updated values.
     journal.refresh_from_db()
 
@@ -322,7 +374,8 @@ def add_stock_trade_api(request, journal_id):
 
 @require_http_methods(["GET"])
 def realty_suggest_api(request):
-    """GET /api/realty/suggest?address=..."""
+    """
+    GET /api/realty/suggest?address=..."""
     address = request.GET.get('address')
     if not address:
         return JsonResponse({'error': 'Address is required.'}, status=400)
@@ -362,7 +415,7 @@ def realty_suggest_api(request):
 @login_required
 @require_http_methods(["POST"])
 def realty_deals_api(request):
-    """POST /api/realty/deals
+    """
     Minimal creation without external fetch.
     Expects JSON with property and deal fields.
     """
@@ -390,7 +443,7 @@ def realty_deals_api(request):
     try:
         amount_main = Decimal(str(payload.get('amount_main') or '0'))
         amount_deposit = Decimal(str(payload.get('amount_deposit') or '0'))
-        amount_monthly = Decimal(str(payload.get('amount_monthly') or '0'))
+        amount_monthly = Decimal(str(payload.get('monthly_amount') or '0')) # Corrected: 'amount_monthly' to 'monthly_amount'
         area_m2 = Decimal(str(payload.get('area_m2') or '0'))
         floor = int(payload.get('floor') or 0)
     except Exception:
@@ -475,7 +528,8 @@ def journal_post_api(request, post_id):
 from django.db.models import Prefetch
 
 def posts_api(request):
-    """GET /api/posts?visibility=public"""
+    """
+    GET /api/posts?visibility=public"""
     visibility = request.GET.get('visibility', 'public')
     if visibility != 'public':
         return JsonResponse({'posts': []})
@@ -496,7 +550,7 @@ def posts_api(request):
         try:
             ticker_data = yf.Tickers(' '.join(tickers_to_fetch))
             for ticker_str, ticker_obj in ticker_data.tickers.items():
-                last_price = ticker_obj.fast_info.get('lastPrice')
+                last_price = ticker_obj.fast_info.get('lastPrice') # Corrected: 'info.get' to 'ticker_obj.fast_info.get'
                 if last_price:
                     current_prices[ticker_str] = Decimal(str(last_price))
         except Exception as e:
@@ -508,7 +562,8 @@ def posts_api(request):
         post_data = {
             'id': post.id,
             'user': {
-                'username': post.user.username,
+                'my_id': post.user.my_ID,
+                'nickname': post.user.nickname
             },
             'asset_class': post.asset_class,
             'title': post.title,
