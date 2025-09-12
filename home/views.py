@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import JournalPost, Like, Comment
+from .models import JournalPost, Like, Comment, Bookmark, Share
 import feedparser
 from datetime import datetime
 import requests
@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 import yfinance as yf
 import FinanceDataReader as fdr
 from django.views.decorators.http import require_http_methods
+import json
 
 
 
@@ -97,7 +98,7 @@ def create_simple_post(request):
             return JsonResponse({
                 'success': True,
                 'post': {
-                    'username': post.user.username,
+                    'my_ID': post.user.my_ID,
                     'content': post.content,
                     'asset_class': post.asset_class,
                     'asset_class_display': post.get_asset_class_display(),
@@ -169,8 +170,16 @@ def create_image_post(request):
     return render(request, 'home/create_image.html')
 
 def home_view(request):
-    """홈화면 피드"""
     posts = JournalPost.objects.select_related('user').prefetch_related('likes', 'comments')[:20]
+    
+    # 사용자 좋아요 상태 추가
+    if request.user.is_authenticated:
+        for post in posts:
+            post.is_liked_by_user = Like.objects.filter(user=request.user, journal=post).exists()
+    else:
+        for post in posts:
+            post.is_liked_by_user = False
+            post.is_shared_by_user = False 
     
     context = {
         'posts': posts,
@@ -698,3 +707,121 @@ def toggle_like(request, post_id):
         'liked': liked,
         'likes_count': likes_count
     })
+@login_required
+@require_http_methods(["POST"])
+def toggle_bookmark(request, post_id):
+    """북마크 토글 API"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    
+    bookmark, created = Bookmark.objects.get_or_create(
+        journal=post,
+        user=request.user
+    )
+    
+    if not created:
+        # 이미 북마크가 있으면 제거
+        bookmark.delete()
+        bookmarked = False
+    else:
+        # 새로 북마크 추가
+        bookmarked = True
+    
+    # 전체 북마크 수 계산
+    bookmarks_count = post.bookmarks.count()
+    
+    return JsonResponse({
+        'bookmarked': bookmarked,
+        'bookmarks_count': bookmarks_count
+    })
+@login_required
+@require_http_methods(["POST"])
+def toggle_share(request, post_id):
+    """공유 토글 API"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    
+    share, created = Share.objects.get_or_create(
+        journal=post,
+        user=request.user
+    )
+    
+    if not created:
+        # 이미 공유가 있으면 제거
+        share.delete()
+        shared = False
+    else:
+        # 새로 공유 추가
+        shared = True
+    
+    # 전체 공유 수 계산
+    shares_count = post.shares.count()
+    
+    return JsonResponse({
+        'shared': shared,
+        'shares_count': shares_count
+    })
+@login_required
+@require_http_methods(["POST"])
+def create_comment(request, post_id):
+    """댓글 작성 API"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    
+    try:
+        data = json.loads(request.body)
+        content = data.get('content', '').strip()
+        parent_id = data.get('parent_id')  # 대댓글용
+        
+        if not content:
+            return JsonResponse({'error': '댓글 내용을 입력해주세요.'}, status=400)
+        
+        # 부모 댓글 확인 (대댓글인 경우)
+        parent = None
+        if parent_id:
+            parent = get_object_or_404(Comment, id=parent_id, journal=post)
+        
+        comment = Comment.objects.create(
+            journal=post,
+            user=request.user,
+            parent=parent,
+            content=content
+        )
+        
+        return JsonResponse({
+            'comment_id': comment.id,
+            'my_ID': comment.user.my_ID,
+            'content': comment.content,
+            'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
+            'comments_count': post.comments.count()
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': '잘못된 요청입니다.'}, status=400)
+
+@require_http_methods(["GET"])
+def get_comments(request, post_id):
+    """댓글 목록 조회 API"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    comments = Comment.objects.filter(journal=post, parent=None).select_related('user').order_by('created_at')
+    
+    comments_data = []
+    for comment in comments:
+        # 대댓글도 가져오기
+        replies = Comment.objects.filter(parent=comment).select_related('user').order_by('created_at')
+        replies_data = [
+            {
+                'id': reply.id,
+                'my_ID': reply.user.my_ID,
+                'content': reply.content,
+                'created_at': reply.created_at.strftime('%Y-%m-%d %H:%M')
+            }
+            for reply in replies
+        ]
+        
+        comments_data.append({
+            'id': comment.id,
+            'my_ID': comment.user.my_ID,
+            'content': comment.content,
+            'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
+            'replies': replies_data
+        })
+    
+    return JsonResponse({'comments': comments_data})
