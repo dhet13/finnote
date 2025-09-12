@@ -2,13 +2,16 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import JournalPost, Like, Comment
+from .models import JournalPost, Like, Comment, Bookmark, Share
 import feedparser
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 import yfinance as yf
 import FinanceDataReader as fdr
+from django.views.decorators.http import require_http_methods
+import json
+
 
 
 def get_finance_news():
@@ -44,35 +47,6 @@ def get_finance_news():
                 # 1. RSS에서 이미지 확인 (연합뉴스)
                 if hasattr(entry, 'media_content') and entry.media_content:
                     image_url = entry.media_content[0].get('url')
-
-                # 2. RSS에 이미지가 없으면 웹스크래핑 시도 (한경, 인베스팅)
-                elif 'hankyung' in entry.link or 'investing' in entry.link:
-                    try:
-                        response = requests.get(entry.link, timeout=3, headers={
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        })
-                        soup = BeautifulSoup(response.text, 'html.parser')
-                        
-                        # og:image 메타태그 찾기
-                        og_image = soup.find('meta', property='og:image')
-                        if og_image and og_image.get('content'):
-                            image_url = og_image.get('content')
-                            
-                        # og:image가 없으면 첫 번째 img 태그 찾기
-                        if not image_url:
-                            first_img = soup.find('img', src=True)
-                            if first_img and first_img.get('src'):
-                                img_src = first_img.get('src')
-                                # 상대경로면 절대경로로 변환
-                                if img_src.startswith('/'):
-                                    from urllib.parse import urljoin
-                                    image_url = urljoin(entry.link, img_src)
-                                elif img_src.startswith('http'):
-                                    image_url = img_src
-                                    
-                    except Exception as e:
-                        print(f"웹스크래핑 실패 ({entry.title[:20]}...): {e}")
-                        image_url = None
                 # 뉴스 소스 식별
                 news_source = 'default'
                 if 'hankyung' in entry.link:
@@ -124,7 +98,7 @@ def create_simple_post(request):
             return JsonResponse({
                 'success': True,
                 'post': {
-                    'username': post.user.username,
+                    'my_ID': post.user.my_ID,
                     'content': post.content,
                     'asset_class': post.asset_class,
                     'asset_class_display': post.get_asset_class_display(),
@@ -196,8 +170,16 @@ def create_image_post(request):
     return render(request, 'home/create_image.html')
 
 def home_view(request):
-    """홈화면 피드"""
     posts = JournalPost.objects.select_related('user').prefetch_related('likes', 'comments')[:20]
+    
+    # 사용자 좋아요 상태 추가
+    if request.user.is_authenticated:
+        for post in posts:
+            post.is_liked_by_user = Like.objects.filter(user=request.user, journal=post).exists()
+    else:
+        for post in posts:
+            post.is_liked_by_user = False
+            post.is_shared_by_user = False 
     
     context = {
         'posts': posts,
@@ -231,20 +213,20 @@ def test_view(request):
     })
 
 def get_stock_indices(period='1d'):
-    """주요 지수 데이터 가져오기 (기간별)"""
+    """주요 지수 데이터 가져오기 (기간별) - 에러 처리 강화"""
     try:
         indices = {
-            'KOSPI': '^KS11',      # 코스피
-            'KOSDAQ': '^KQ11',     # 코스닥  
-            'NASDAQ': '^IXIC',     # 나스닥
-            'S&P500': '^GSPC'      # S&P 500
+            'KOSPI': '^KS11',      
+            'KOSDAQ': '^KQ11',     
+            'NASDAQ': '^IXIC',     
+            'S&P500': '^GSPC'      
         }
         
-        # 기간에 따른 데이터 범위 설정 - 항상 비교를 위해 더 많은 데이터 요청
+        # 기간에 따른 데이터 범위 설정
         if period == '1d':
-            data_period = '5d'  # 1일 비교를 위해 5일 데이터 요청
+            data_period = '5d'
         elif period == '5d':
-            data_period = '1mo'  # 1주 비교를 위해 1달 데이터 요청
+            data_period = '1mo'
         else:
             data_period = period
         
@@ -252,56 +234,69 @@ def get_stock_indices(period='1d'):
         for name, symbol in indices.items():
             try:
                 ticker = yf.Ticker(symbol)
-                hist = ticker.history(period=data_period)
                 
-                if len(hist) >= 1:  # 1개 이상이면 처리
-                    current_price = hist['Close'].iloc[-1]
-                    
-                    # 기간별 비교 기준점 설정
-                    if period == '1d':
-                        if len(hist) >= 2:
-                            prev_price = hist['Close'].iloc[-2]  # 전일 종가
-                        else:
-                            prev_price = current_price  # 데이터 부족시 변동 없음
-                    elif period == '5d':
-                        if len(hist) >= 5:
-                            prev_price = hist['Close'].iloc[-5]  # 5일 전 종가
-                        else:
-                            prev_price = hist['Close'].iloc[0]  # 가장 오래된 데이터
-                    else:
-                        prev_price = hist['Close'].iloc[0]  # 시작점 대비
-                    
-                    change = current_price - prev_price
-                    change_percent = (change / prev_price) * 100 if prev_price != 0 else 0
-                    
-                    index_data.append({
-                        'name': name,
-                        'symbol': symbol,
-                        'current_price': round(current_price, 2),
-                        'change': round(change, 2),
-                        'change_percent': round(change_percent, 2),
-                        'is_positive': bool(change >= 0),
-                        'period': period
-                    })
+                # 한국 지수는 추가 처리
+                if symbol in ['^KS11', '^KQ11']:
+                    # 더 긴 기간으로 데이터 요청 (휴장일 대비)
+                    hist = ticker.history(period='1mo')
                 else:
-                    # 데이터가 부족한 경우 기본값
-                    index_data.append({
-                        'name': name,
-                        'symbol': symbol,
-                        'current_price': 0,
-                        'change': 0,
-                        'change_percent': 0,
-                        'is_positive': True,
-                        'period': period
-                    })
+                    hist = ticker.history(period=data_period)
+                
+                # 데이터 검증 강화
+                if len(hist) < 1:
+                    print(f"데이터 부족: {name}")
+                    continue
+                    
+                current_price = hist['Close'].iloc[-1]
+                
+                # 비교 기준점 설정 (더 안전하게)
+                if period == '1d':
+                    if len(hist) >= 2:
+                        prev_price = hist['Close'].iloc[-2]
+                    else:
+                        # 데이터가 1개밖에 없으면 변동 없음으로 처리
+                        prev_price = current_price
+                        print(f"Warning: {name} 비교 데이터 부족, 변동 없음으로 처리")
+                elif period == '5d':
+                    if len(hist) >= 5:
+                        prev_price = hist['Close'].iloc[-5]
+                    else:
+                        prev_price = hist['Close'].iloc[0]
+                else:
+                    prev_price = hist['Close'].iloc[0]
+                
+                change = current_price - prev_price
+                change_percent = (change / prev_price) * 100 if prev_price != 0 else 0
+                
+                index_data.append({
+                    'name': name,
+                    'symbol': symbol,
+                    'current_price': round(current_price, 2),
+                    'change': round(change, 2),
+                    'change_percent': round(change_percent, 2),
+                    'is_positive': bool(change >= 0),
+                    'period': period
+                })
+                
             except Exception as e:
                 print(f"지수 데이터 오류 ({name}): {e}")
-                continue
+                # 오류 발생시 기본값으로 처리 (서비스 중단 방지)
+                index_data.append({
+                    'name': name,
+                    'symbol': symbol,
+                    'current_price': 0,
+                    'change': 0,
+                    'change_percent': 0,
+                    'is_positive': True,
+                    'period': period,
+                    'error': True  # 에러 플래그
+                })
                 
         return index_data
         
     except Exception as e:
         print(f"지수 데이터 전체 오류: {e}")
+        # 전체 오류시 빈 리스트 대신 기본 구조 반환
         return []
 
 def get_individual_stocks(period='1d'):
@@ -493,12 +488,17 @@ def get_chart_data(symbol, data_type='stock', period='1d'):
             
             if len(hist) > 0:
                 # 기간별 X축 라벨 포맷 설정
-                if period in ['1d', '5d']:
-                    labels = [dt.strftime('%H:%M') for dt in hist.index]
-                elif period in ['1mo', '6mo']:
-                    labels = [dt.strftime('%m/%d') for dt in hist.index]
-                else:
-                    labels = [dt.strftime('%Y/%m') for dt in hist.index]
+                labels = []
+                for dt in hist.index:
+                    py_dt = dt.to_pydatetime()
+                    if period == '1d':
+                        labels.append(py_dt.strftime('%H:%M'))      # 1일: 시간
+                    elif period in ['5d', '1mo']:
+                        labels.append(py_dt.strftime('%m/%d'))      # 1주/1달: 월/일
+                    elif period in ['6mo', '1y']:
+                        labels.append(py_dt.strftime('%Y/%m'))      # 6개월/1년: 년/월
+                    else:  # 5y
+                        labels.append(py_dt.strftime('%Y'))         # 5년: 년도만
                     
                 chart_data = {
                     'labels': labels,
@@ -513,13 +513,17 @@ def get_chart_data(symbol, data_type='stock', period='1d'):
             hist = ticker.history(period=period, interval="5m" if period == '1d' else "1d")
             
             if len(hist) > 0:
-                # 기간별 X축 라벨 포맷 설정
-                if period in ['1d', '5d']:
-                    labels = [dt.strftime('%H:%M') for dt in hist.index]
-                elif period in ['1mo', '6mo']:
-                    labels = [dt.strftime('%m/%d') for dt in hist.index]
-                else:
-                    labels = [dt.strftime('%Y/%m') for dt in hist.index]
+                labels = []
+                for dt in hist.index:
+                    py_dt = dt.to_pydatetime()
+                    if period == '1d':
+                        labels.append(py_dt.strftime('%H:%M'))      # 1일: 시간
+                    elif period in ['5d', '1mo']:
+                        labels.append(py_dt.strftime('%m/%d'))      # 1주/1달: 월/일
+                    elif period in ['6mo', '1y']:
+                        labels.append(py_dt.strftime('%Y/%m'))      # 6개월/1년: 년/월
+                    else:  # 5y
+                        labels.append(py_dt.strftime('%Y'))         # 5년: 년도만
                     
                 chart_data = {
                     'labels': labels,
@@ -536,8 +540,11 @@ def get_chart_data(symbol, data_type='stock', period='1d'):
             df = fdr.DataReader(symbol, start_date, end_date)
             
             if len(df) > 0:
-                # 최근 20일 데이터만 사용
-                df_recent = df.tail(20)
+                # 기간별 데이터 조정
+                if period == '1d':
+                    df_recent = df.tail(5)   # 1일이면 5일치만
+                else:
+                    df_recent = df.tail(20)  # 나머지는 20일치
                 # 기간별 X축 라벨 포맷 설정
                 if period in ['1d', '5d']:
                     labels = [dt.strftime('%m/%d') for dt in df_recent.index]
@@ -673,3 +680,148 @@ def get_financial_data(request):
             })
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+@login_required
+@require_http_methods(["POST"])
+def toggle_like(request, post_id):
+    """좋아요 토글 API"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    
+    like, created = Like.objects.get_or_create(
+        journal=post,
+        user=request.user
+    )
+    
+    if not created:
+        # 이미 좋아요가 있으면 제거
+        like.delete()
+        liked = False
+    else:
+        # 새로 좋아요 추가
+        liked = True
+    
+    # 전체 좋아요 수 계산
+    likes_count = post.likes.count()
+    
+    return JsonResponse({
+        'liked': liked,
+        'likes_count': likes_count
+    })
+@login_required
+@require_http_methods(["POST"])
+def toggle_bookmark(request, post_id):
+    """북마크 토글 API"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    
+    bookmark, created = Bookmark.objects.get_or_create(
+        journal=post,
+        user=request.user
+    )
+    
+    if not created:
+        # 이미 북마크가 있으면 제거
+        bookmark.delete()
+        bookmarked = False
+    else:
+        # 새로 북마크 추가
+        bookmarked = True
+    
+    # 전체 북마크 수 계산
+    bookmarks_count = post.bookmarks.count()
+    
+    return JsonResponse({
+        'bookmarked': bookmarked,
+        'bookmarks_count': bookmarks_count
+    })
+@login_required
+@require_http_methods(["POST"])
+def toggle_share(request, post_id):
+    """공유 토글 API"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    
+    share, created = Share.objects.get_or_create(
+        journal=post,
+        user=request.user
+    )
+    
+    if not created:
+        # 이미 공유가 있으면 제거
+        share.delete()
+        shared = False
+    else:
+        # 새로 공유 추가
+        shared = True
+    
+    # 전체 공유 수 계산
+    shares_count = post.shares.count()
+    
+    return JsonResponse({
+        'shared': shared,
+        'shares_count': shares_count
+    })
+@login_required
+@require_http_methods(["POST"])
+def create_comment(request, post_id):
+    """댓글 작성 API"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    
+    try:
+        data = json.loads(request.body)
+        content = data.get('content', '').strip()
+        parent_id = data.get('parent_id')  # 대댓글용
+        
+        if not content:
+            return JsonResponse({'error': '댓글 내용을 입력해주세요.'}, status=400)
+        
+        # 부모 댓글 확인 (대댓글인 경우)
+        parent = None
+        if parent_id:
+            parent = get_object_or_404(Comment, id=parent_id, journal=post)
+        
+        comment = Comment.objects.create(
+            journal=post,
+            user=request.user,
+            parent=parent,
+            content=content
+        )
+        
+        return JsonResponse({
+            'comment_id': comment.id,
+            'my_ID': comment.user.my_ID,
+            'content': comment.content,
+            'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
+            'comments_count': post.comments.count()
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': '잘못된 요청입니다.'}, status=400)
+
+@require_http_methods(["GET"])
+def get_comments(request, post_id):
+    """댓글 목록 조회 API"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    comments = Comment.objects.filter(journal=post, parent=None).select_related('user').order_by('created_at')
+    
+    comments_data = []
+    for comment in comments:
+        # 대댓글도 가져오기
+        replies = Comment.objects.filter(parent=comment).select_related('user').order_by('created_at')
+        replies_data = [
+            {
+                'id': reply.id,
+                'my_ID': reply.user.my_ID,
+                'content': reply.content,
+                'created_at': reply.created_at.strftime('%Y-%m-%d %H:%M')
+            }
+            for reply in replies
+        ]
+        
+        comments_data.append({
+            'id': comment.id,
+            'my_ID': comment.user.my_ID,
+            'content': comment.content,
+            'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
+            'replies': replies_data
+        })
+    
+    return JsonResponse({'comments': comments_data})
