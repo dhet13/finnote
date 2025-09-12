@@ -272,3 +272,66 @@ p.dashboard-subtitle {
     border-color: #1d9bf0;
     background-color: #ffffff;
 }
+
+/* Chart.js 툴팁 z-index 강제 설정 - 모든 가능한 선택자 */
+.chartjs-tooltip,
+div[role="tooltip"],
+.chart-tooltip,
+[class*="tooltip"],
+[id*="tooltip"],
+div[style*="position: absolute"],
+div[style*="background-color: rgba(0, 0, 0"],
+div[style*="background: rgba(0, 0, 0"] {
+    z-index: 999999 !important;
+    position: fixed !important;
+    transform: translateY(-120px) !important;
+    transition: all 0.3s ease !important;
+    pointer-events: none !important;
+}
+
+/* Chart.js v3+ 툴팁 선택자 */
+.chartjs-tooltip-element,
+.chart-tooltip-element {
+    z-index: 999999 !important;
+    position: fixed !important;
+    transform: translateY(-120px) !important;
+}
+
+/* 미니 차트 컨테이너 상대 위치 설정 */
+.mini-chart {
+    position: relative !important;
+    z-index: 1;
+    overflow: visible !important;  /* 툴팁이 잘리지 않도록 */
+}
+
+.mini-chart canvas {
+    position: relative !important;
+    z-index: 2;
+}
+
+/* 통계 카드 z-index 조정 */
+.stat-card, .stats-row {
+    position: relative;
+    z-index: 1;
+    overflow: visible !important;
+}
+
+/* 카드 컨테이너들의 z-index 낮춤 */
+.dashboard-content,
+#dashboard-content {
+    position: relative;
+    z-index: 1;
+    overflow: visible !important;
+}
+
+/* 모든 상위 컨테이너 overflow 설정 */
+.dashboard-container,
+.dashboard-tabs,
+body {
+    overflow: visible !important;
+}
+
+/* 특별히 카드 영역의 overflow 강제 설정 */
+div[style*="overflow: hidden"] {
+    overflow: visible !important;
+}

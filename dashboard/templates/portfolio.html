@@ -8,6 +8,9 @@
 /* 포트폴리오 페이지 전용 스타일 */
 .portfolio-content {
     padding: 24px 0;
+    height: 100%; /* 부모 컨테이너 높이 상속 */
+    min-height: calc(100vh - 200px); /* 최소 높이 보장 */
+    overflow: visible; /* 스크롤을 상위 요소에서 처리 */
 }
 
 /* portfolio-chart 스타일은 dashboard_portfolio.css에서 관리 */
@@ -22,14 +25,15 @@
 
 {% block content %}
 
-    <!-- 자산 타입 선택 버튼 (주식/부동산) -->
-    <div class="asset-type-buttons">
-        <button class="asset-type-btn active" data-type="stock">
-            주식
-        </button>
-        <button class="asset-type-btn" data-type="real_estate">
-            부동산
-        </button>
+<!-- 포트폴리오 전체 콘텐츠 -->
+<div class="portfolio-main-content">
+    <!-- 자산 타입 선택 버튼 (주식/부동산) - 자산 현황 페이지와 동일한 위치와 스타일 -->
+    <div style="display: flex;justify-content: space-between;align-items: center;margin-top: 20px;margin-bottom: 16px;">
+        <div></div> <!-- 왼쪽 빈 공간 -->
+        <div class="asset-type-buttons">
+            <button class="asset-type-btn active" data-type="stock">주식</button>
+            <button class="asset-type-btn" data-type="real_estate">부동산</button>
+        </div>
     </div>
 
     <!-- 주식 포트폴리오 콘텐츠 -->
@@ -119,66 +123,107 @@
 <!-- JavaScript는 base.html에서 로드됨 -->
 <script>
 // 포트폴리오 페이지 전용 JavaScript
-let currentAssetType = 'stock';
-let stockSectorChart = null;
-let realEstateChart = null;
+// currentAssetType, stockSectorChart, realEstateChart는 dashboard.js에서 정의됨
+
+// 포트폴리오 페이지 즉시 초기화 함수 (AJAX 로딩 시에도 작동)
+function initializePortfolioPage() {
+    console.log('포트폴리오 페이지 즉시 초기화 시작');
+    
+    // 주식/부동산 버튼 즉시 초기화
+    if (typeof initializeAssetTypeButtons === 'function') {
+        console.log('주식/부동산 버튼 초기화');
+        initializeAssetTypeButtons();
+    }
+    
+    // 포트폴리오 콘텐츠 초기화
+    if (typeof initializeStockPortfolio === 'function') {
+        initializeStockPortfolio();
+    }
+    if (typeof initializeRealEstatePortfolio === 'function') {
+        initializeRealEstatePortfolio();
+    }
+    
+    // 차트 초기화
+    if (typeof initializeTotalPage === 'function') {
+        initializeTotalPage();
+    }
+    
+    console.log('포트폴리오 페이지 초기화 완료');
+}
+
+// 페이지 로드 시 즉시 실행
+initializePortfolioPage();
 
 document.addEventListener('DOMContentLoaded', function() {
-    initializeAssetTypeButtons();
-    initializeStockPortfolio();
-    initializeRealEstatePortfolio();
+    // 약간의 지연을 두고 초기화 (DOM이 완전히 로드된 후)
+    setTimeout(() => {
+        // 포트폴리오 페이지 초기화
+        initializeAssetTypeButtons();
+        initializeStockPortfolio();
+        initializeRealEstatePortfolio();
+        
+        // 선그래프 및 수익률 버튼 초기화 (portfolio_performance_charts.js에서 정의)
+        if (typeof initializeStockPerformanceChart === 'function') {
+            initializeStockPerformanceChart();
+        }
+        if (typeof initializePropertyPerformanceChart === 'function') {
+            initializePropertyPerformanceChart();
+        }
+        if (typeof initializeSectorReturnButtons === 'function') {
+            initializeSectorReturnButtons();
+        }
+        if (typeof initializePropertyReturnButtons === 'function') {
+            initializePropertyReturnButtons();
+        }
+        
+        // 차트 초기화도 함께 실행
+        if (typeof initializeTotalPage === 'function') {
+            initializeTotalPage();
+        }
+    }, 100);
     
-    // 선그래프 및 수익률 버튼 초기화 (portfolio_performance_charts.js에서 정의)
-    if (typeof initializeStockPerformanceChart === 'function') {
-        initializeStockPerformanceChart();
-    }
-    if (typeof initializePropertyPerformanceChart === 'function') {
-        initializePropertyPerformanceChart();
-    }
-    if (typeof initializeSectorReturnButtons === 'function') {
-        initializeSectorReturnButtons();
-    }
-    if (typeof initializePropertyReturnButtons === 'function') {
-        initializePropertyReturnButtons();
-    }
+    // 추가 지연 후 차트 재초기화 (DOM 완전 로드 보장)
+    setTimeout(() => {
+        // 기존 차트들 제거 (안전한 체크)
+        if (typeof stockSectorChart !== 'undefined' && stockSectorChart) {
+            stockSectorChart.destroy();
+            stockSectorChart = null;
+        }
+        if (typeof realEstateChart !== 'undefined' && realEstateChart) {
+            realEstateChart.destroy();
+            realEstateChart = null;
+        }
+        
+        if (typeof initializeStockPerformanceChart === 'function') {
+            initializeStockPerformanceChart();
+        }
+        if (typeof initializePropertyPerformanceChart === 'function') {
+            initializePropertyPerformanceChart();
+        }
+        
+        // 메인 차트들도 재초기화
+        if (typeof initializeTotalPage === 'function') {
+            initializeTotalPage();
+        }
+    }, 100);
 });
 
-function initializeAssetTypeButtons() {
-    const buttons = document.querySelectorAll('.asset-type-btn');
-    
-    buttons.forEach(button => {
-        button.addEventListener('click', function() {
-            const assetType = this.getAttribute('data-type');
-            switchAssetType(assetType);
-        });
-    });
-}
-
-function switchAssetType(assetType) {
-    currentAssetType = assetType;
-    
-    // 버튼 스타일 변경 (CSS 클래스 사용)
-    document.querySelectorAll('.asset-type-btn').forEach(btn => {
-        if (btn.getAttribute('data-type') === assetType) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
-    
-    // 콘텐츠 전환
-    if (assetType === 'stock') {
-        document.getElementById('stockPortfolio').style.display = 'block';
-        document.getElementById('realEstatePortfolio').style.display = 'none';
-    } else {
-        document.getElementById('stockPortfolio').style.display = 'none';
-        document.getElementById('realEstatePortfolio').style.display = 'block';
-    }
-}
+// initializeAssetTypeButtons와 switchAssetType 함수는 dashboard.js로 이동됨
 
 function initializeStockPortfolio() {
+    // 기존 차트 제거 (안전한 체크)
+    if (typeof stockSectorChart !== 'undefined' && stockSectorChart) {
+        stockSectorChart.destroy();
+        stockSectorChart = null;
+    }
+    
     // 주식 섹터별 원형 차트
     const stockCtx = document.getElementById('stockSectorPieChart').getContext('2d');
+    
+    // stockSectorChart 변수가 정의되지 않았다면 전역으로 선언
+    if (typeof stockSectorChart === 'undefined') {
+        window.stockSectorChart = null;
+    }
     
     stockSectorChart = new Chart(stockCtx, {
         type: 'pie',
@@ -229,17 +274,26 @@ function initializeStockPortfolio() {
         plugins: [ChartDataLabels]
     });
     
-    // 섹터별 카드뷰 생성 (새로운 함수 사용)
+    // 섹터별 카드뷰 생성 - 외부 JS 파일 함수 사용
     if (typeof updateSectorCards === 'function') {
         updateSectorCards();
-    } else {
-        createSectorCards();
     }
 }
 
 function initializeRealEstatePortfolio() {
+    // 기존 차트 제거 (안전한 체크)
+    if (typeof realEstateChart !== 'undefined' && realEstateChart) {
+        realEstateChart.destroy();
+        realEstateChart = null;
+    }
+    
     // 부동산 물건별 원형 차트
     const realEstateCtx = document.getElementById('realEstatePieChart').getContext('2d');
+    
+    // realEstateChart 변수가 정의되지 않았다면 전역으로 선언
+    if (typeof realEstateChart === 'undefined') {
+        window.realEstateChart = null;
+    }
     
     realEstateChart = new Chart(realEstateCtx, {
         type: 'pie',
@@ -290,15 +344,14 @@ function initializeRealEstatePortfolio() {
         plugins: [ChartDataLabels]
     });
     
-    // 물건별 카드뷰 생성 (새로운 함수 사용)
+    // 물건별 카드뷰 생성 - 외부 JS 파일 함수 사용
     if (typeof updatePropertyCards === 'function') {
         updatePropertyCards();
-    } else {
-        createPropertyCards();
     }
 }
 
-function createSectorCards() {
+// createSectorCards 함수는 외부 JS 파일에서 정의됨
+function createSectorCards_REMOVED() {
     const sectorData = [
         {
             sector: '기술주',
@@ -370,7 +423,8 @@ function createSectorCards() {
     });
 }
 
-function createPropertyCards() {
+// createPropertyCards 함수는 외부 JS 파일에서 정의됨  
+function createPropertyCards_REMOVED() {
     const propertyData = [
         {
             propertyType: '아파트',
@@ -423,7 +477,7 @@ function createPropertyCards() {
                         <div style="font-weight: 600; color: #0f1419;">${property.value}</div>
                         <div style="font-size: 12px; color: ${returnColor};">${property.return}</div>
                     </div>
-                </div>
+    </div>
             `;
         }).join('');
         
@@ -439,4 +493,6 @@ function createPropertyCards() {
     });
 }
 </script>
+
+</div> <!-- portfolio-main-content 닫기 -->
 {% endblock %}

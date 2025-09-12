@@ -1,95 +1,32 @@
-{% load static %}
+{% extends 'dashboard/base.html' %}
 
-<!-- 자산 타입 선택 버튼 (주식/부동산) -->
-<div class="asset-type-buttons">
-    <button class="asset-type-btn active" data-type="stock">
-        주식
-    </button>
-    <button class="asset-type-btn" data-type="real_estate">
-        부동산
-    </button>
-</div>
+{% block title %}포트폴리오{% endblock %}
 
-<!-- 주식 포트폴리오 콘텐츠 -->
-<div id="stockPortfolio" class="portfolio-content">
-    <!-- 섹터별 자산 배분 원형 차트 -->
-    <div class="portfolio-chart-container">
-        <h3>섹터별 자산 배분 현황</h3>
-        <div class="portfolio-chart">
-            <canvas id="stockSectorPieChart"></canvas>
-        </div>
-    </div>
-
-    <!-- 주식 자산 전체 추이 차트 -->
-    <div class="stock-performance-chart-container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 style="color: #0f1419; font-size: 18px; font-weight: 600; margin: 0;">주식 자산 추이</h3>
-            <div class="stock-period-buttons" style="display: flex; gap: 8px;">
-                <button class="stock-period-btn active" data-period="1D">1D</button>
-                <button class="stock-period-btn" data-period="1W">1W</button>
-                <button class="stock-period-btn" data-period="1M">1M</button>
-                <button class="stock-period-btn" data-period="1Y">1Y</button>
+{% block content %}
+<div class="portfolio-content">
+    <div class="portfolio-header">
+        <h1>포트폴리오</h1>
+        <div class="portfolio-summary">
+            <div class="summary-card">
+                <h3>총 자산</h3>
+                <p class="amount">₩1,250,000,000</p>
+            </div>
+            <div class="summary-card">
+                <h3>오늘 수익</h3>
+                <p class="amount positive">+₩2,500,000</p>
+            </div>
+            <div class="summary-card">
+                <h3>총 수익률</h3>
+                <p class="amount positive">+12.5%</p>
             </div>
         </div>
-        <div style="height: 200px; background: white; border-radius: 8px; padding: 16px;">
-            <canvas id="stockPerformanceChart"></canvas>
-        </div>
     </div>
-
-    <!-- 섹터별 카드뷰와 수익률 -->
-    <div class="sector-cards-container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3>섹터별 보유 종목</h3>
-            <div class="sector-return-buttons" style="display: flex; gap: 8px;">
-                <button class="sector-return-btn active" data-period="daily">일간 수익률</button>
-                <button class="sector-return-btn" data-period="weekly">주간 수익률</button>
-            </div>
-        </div>
-        <div class="sector-cards-grid">
-            <!-- JavaScript로 동적 생성 -->
+    
+    <div class="portfolio-charts">
+        <div class="chart-container">
+            <h3>포트폴리오 성과</h3>
+            <canvas id="portfolioChart"></canvas>
         </div>
     </div>
 </div>
-
-<!-- 부동산 포트폴리오 콘텐츠 -->
-<div id="realEstatePortfolio" class="portfolio-content" style="display: none;">
-    <!-- 물건별 자산 배분 원형 차트 -->
-    <div class="portfolio-chart-container">
-        <h3>물건별 자산 배분 현황</h3>
-        <div class="portfolio-chart">
-            <canvas id="realEstatePieChart"></canvas>
-        </div>
-    </div>
-
-    <!-- 부동산 자산 전체 추이 차트 -->
-    <div class="property-performance-chart-container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 style="color: #0f1419; font-size: 18px; font-weight: 600; margin: 0;">부동산 자산 추이</h3>
-            <div class="property-period-buttons" style="display: flex; gap: 8px;">
-                <button class="property-period-btn active" data-period="1D">1D</button>
-                <button class="property-period-btn" data-period="1W">1W</button>
-                <button class="property-period-btn" data-period="1M">1M</button>
-                <button class="property-period-btn" data-period="1Y">1Y</button>
-            </div>
-        </div>
-        <div style="height: 200px; background: white; border-radius: 8px; padding: 16px;">
-            <canvas id="propertyPerformanceChart"></canvas>
-        </div>
-    </div>
-
-    <!-- 물건별 카드뷰와 수익률 -->
-    <div class="property-cards-container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3>물건별 보유 부동산</h3>
-            <div class="property-return-buttons" style="display: flex; gap: 8px;">
-                <button class="property-return-btn active" data-period="daily">일간 수익률</button>
-                <button class="property-return-btn" data-period="weekly">주간 수익률</button>
-            </div>
-        </div>
-        <div class="property-cards-grid">
-            <!-- JavaScript로 동적 생성 -->
-        </div>
-    </div>
-</div>
-
-<!-- JavaScript는 base.html에서 로드되고 AJAX 콜백에서 초기화됩니다 -->
+{% endblock %}

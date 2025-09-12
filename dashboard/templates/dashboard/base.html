@@ -7,6 +7,8 @@
     <!-- 대시보드 CSS -->
     <link rel="stylesheet" href="{% static 'dashboard/css/dashboard.css' %}">
     <link rel="stylesheet" href="{% static 'dashboard/css/dashboard_portfolio.css' %}">
+    <link rel="stylesheet" href="{% static 'dashboard/css/dashboard_total.css' %}">
+    <link rel="stylesheet" href="{% static 'dashboard/css/dashboard_base.css' %}">
     
     <!-- Chart.js 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -40,14 +42,14 @@
             <ul class="nav nav-pills">
                 <li class="nav-item">
                     <a class="nav-link {% if request.resolver_match.url_name == 'page_total' %}active{% endif %}" 
-                       href="#" data-tab="total" data-url="{% url 'dashboard:content_total' %}"
+                       href="#" data-tab="total" data-url="{% url 'dashboard:page_total' %}"
                        style="text-decoration: none; {% if request.resolver_match.url_name == 'page_total' %}color: #1d9bf0; font-weight: 600;{% else %}color: #536471; font-weight: 500;{% endif %} padding: 12px 0; display: block; position: relative;">
                        자산 현황
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if request.resolver_match.url_name == 'page_portfolio' %}active{% endif %}" 
-                       href="#" data-tab="portfolio" data-url="{% url 'dashboard:content_portfolio' %}"
+                       href="#" data-tab="portfolio" data-url="{% url 'dashboard:page_portfolio' %}"
                        style="text-decoration: none; {% if request.resolver_match.url_name == 'page_portfolio' %}color: #1d9bf0; font-weight: 600;{% else %}color: #536471; font-weight: 500;{% endif %} padding: 12px 0; display: block; position: relative;">
                        포트폴리오
                     </a>
@@ -70,35 +72,52 @@
     <style>
         /* 대시보드는 templates/base.html의 기본 3컬럼 레이아웃 사용 */
         .feed {
-            max-width: var(--feed-max-width) !important;
-            width: 100% !important;
+            max-width: var(--feed-max-width);
+            width: 100%;
+            height: 100vh; /* 전체 화면 높이 */
+            overflow: hidden; /* 스크롤을 콘텐츠 영역에서만 처리 */
+        }
+        
+        /* 오른쪽 사이드바가 보이도록 보장 */
+        .right-sidebar {
+            display: block !important;
+            width: var(--right-column-width) !important;
+        }
+        
+        /* 컨테이너 그리드 레이아웃 보장 */
+        .container {
+            display: grid !important;
+            grid-template-columns: var(--left-column-width) minmax(0, var(--feed-max-width)) var(--right-column-width) !important;
         }
         
         /* 대시보드 레이아웃 */
         .main-dashboard {
             display: flex;
             flex-direction: column;
-            min-height: calc(100vh - 60px); /* 헤더 높이 제외 */
-            overflow: hidden;
+            height: 100vh; /* 전체 화면 높이 */
+            overflow: hidden; /* 스크롤을 피드 영역에서만 처리 */
         }
         
         .dashboard-header {
             flex-shrink: 0;
             padding: 20px;
             border-bottom: 1px solid #eff3f4;
+            height: 30px;
         }
         
         .dashboard-tabs {
-            flex-shrink: 0;
-            padding: 0 20px;
+            margin: 0px 0 !important;
+            padding: 0px 10px !important;
             border-bottom: 1px solid #eff3f4;
         }
         
         #dashboard-content {
             flex: 1;
-            overflow-y: auto;
-            padding: 10px;              /* 패딩 줄임 */
-            max-height: 70vh;           /* 최대 높이 제한 */
+            padding: 20px;
+            overflow: visible; /* 스크롤을 하위 요소에서 처리 */
+            height: calc(100vh - 200px) !important; /* 헤더 + 탭 + 여백 제외 */
+            min-height: 400px !important; /* 최소 높이 보장 */
+            max-height: calc(100vh - 200px) !important; /* 최대 높이 제한 */
         }
         
         /* CSS는 외부 파일에서 로드됨 */
@@ -126,6 +145,31 @@
         const tabLinks = document.querySelectorAll('.nav-link[data-tab]');
         const contentArea = document.getElementById('dashboard-content');
         
+        // 초기 로딩 시 현재 활성 탭에 따라 차트 초기화
+        setTimeout(() => {
+            const activeTab = document.querySelector('.nav-link.active');
+            if (activeTab) {
+                const tabName = activeTab.getAttribute('data-tab');
+                if (tabName === 'total' && typeof initializeTotalPage === 'function') {
+                    initializeTotalPage();
+                } else if (tabName === 'portfolio') {
+                    if (typeof initializeAssetTypeButtons === 'function') {
+                        initializeAssetTypeButtons();
+                    }
+                    if (typeof initializeStockPortfolio === 'function') {
+                        initializeStockPortfolio();
+                    }
+                    if (typeof initializeRealEstatePortfolio === 'function') {
+                        initializeRealEstatePortfolio();
+                    }
+                    // 포트폴리오 페이지에서도 차트 초기화
+                    if (typeof initializeTotalPage === 'function') {
+                        initializeTotalPage();
+                    }
+                }
+            }
+        }, 300); // 지연 시간을 300ms로 증가
+        
         tabLinks.forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -151,7 +195,35 @@
                 fetch(url)
                     .then(response => response.text())
                     .then(html => {
-                        contentArea.innerHTML = html;
+                        console.log('AJAX 응답 받음, HTML 길이:', html.length);
+                        
+                        // HTML에서 콘텐츠 영역만 추출
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        
+                        // 콘텐츠 영역 찾기
+                        let contentElement = null;
+                        
+                        // 자산 현황 페이지
+                        if (tabName === 'total') {
+                            contentElement = doc.querySelector('.total-content');
+                        }
+                        // 포트폴리오 페이지
+                        else if (tabName === 'portfolio') {
+                            contentElement = doc.querySelector('.portfolio-main-content');
+                        }
+                        
+                        console.log('찾은 콘텐츠 요소:', !!contentElement);
+                        console.log('콘텐츠 요소 클래스:', contentElement?.className);
+                        
+                        if (contentElement) {
+                            contentArea.innerHTML = contentElement.outerHTML;
+                        } else {
+                            console.log('콘텐츠 영역을 찾을 수 없어 전체 HTML 사용');
+                            contentArea.innerHTML = html;
+                        }
+                        
+                        console.log('contentArea에 HTML 삽입 완료, 길이:', contentArea.innerHTML.length);
                         
                         // URL 업데이트 (히스토리 API)
                         const newUrl = tabName === 'total' ? 
@@ -159,15 +231,45 @@
                             '{% url "dashboard:page_portfolio" %}';
                         history.pushState({tab: tabName}, '', newUrl);
                         
-                        // 페이지별 초기화
+                        // 페이지별 초기화 (지연 시간 증가)
                         setTimeout(() => {
+                            // 기존 차트들 정리
+                            if (typeof totalBarChart !== 'undefined' && totalBarChart) {
+                                totalBarChart.destroy();
+                                totalBarChart = null;
+                            }
+                            if (typeof dayLineChart !== 'undefined' && dayLineChart) {
+                                dayLineChart.destroy();
+                                dayLineChart = null;
+                            }
+                            if (typeof monthAreaChart !== 'undefined' && monthAreaChart) {
+                                monthAreaChart.destroy();
+                                monthAreaChart = null;
+                            }
+                            if (typeof mainPortfolioChart !== 'undefined' && mainPortfolioChart) {
+                                mainPortfolioChart.destroy();
+                                mainPortfolioChart = null;
+                            }
+                            
                             if (tabName === 'total') {
                                 if (typeof initializeTotalPage === 'function') {
                                     initializeTotalPage();
                                 }
                             } else if (tabName === 'portfolio') {
-                                if (typeof initializeAssetTypeButtons === 'function') {
-                                    initializeAssetTypeButtons();
+                                console.log('포트폴리오 페이지 초기화 시작');
+                                
+                                // 포트폴리오 페이지 즉시 초기화 함수 호출
+                                if (typeof initializePortfolioPage === 'function') {
+                                    console.log('initializePortfolioPage 함수 호출');
+                                    initializePortfolioPage();
+                                } else {
+                                    console.log('initializePortfolioPage 함수가 없어 개별 함수 호출');
+                                    if (typeof initializeAssetTypeButtons === 'function') {
+                                        console.log('initializeAssetTypeButtons 함수 호출');
+                                        initializeAssetTypeButtons();
+                                    } else {
+                                        console.error('initializeAssetTypeButtons 함수가 정의되지 않음');
+                                    }
                                 }
                                 if (typeof initializeStockPortfolio === 'function') {
                                     initializeStockPortfolio();
@@ -187,8 +289,12 @@
                                 if (typeof initializePropertyReturnButtons === 'function') {
                                     initializePropertyReturnButtons();
                                 }
+                                // 포트폴리오 페이지에서도 차트 초기화
+                                if (typeof initializeTotalPage === 'function') {
+                                    initializeTotalPage();
+                                }
                             }
-                        }, 100);
+                        }, 200); // 지연 시간을 200ms로 조정 (재시도 로직이 있으므로)
                     })
                     .catch(error => {
                         console.error('Error loading content:', error);

@@ -4,13 +4,16 @@
 {% block title %}총 자산 현황{% endblock %}
 
 {% block extra_css %}
-<!-- CSS는 base.html에서 로드됨 -->
+<link rel="stylesheet" href="{% static 'dashboard/css/dashboard_total.css' %}">
 {% endblock %}
 
 {% block content %}
 
+<!-- 자산 현황 콘텐츠 컨테이너 -->
+<div class="total-content">
+
 <!-- 카드뷰 헤더와 기간 선택 버튼 (일간/주간) -->
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 32px; margin-bottom: 16px;">
+<div style="display: flex;justify-content: space-between;align-items: center;margin-top: 0px;margin-bottom: 16px;">
     <div></div> <!-- 왼쪽 빈 공간 -->
     <div class="card-period-buttons">
         <button class="card-period-btn active" data-card-period="daily">일간</button>
@@ -30,23 +33,23 @@
         </div>
     </div>
 
-    <!-- 일일 손익 카드 -->
-    <div class="stat-card" style="background: #f7f9fa; padding: 4px; border-radius: 4px; min-width: 0; overflow: hidden; max-width: 180px; width: 100%; box-sizing: border-box;">
-        <div class="stat-card-title" style="font-size: 8px; font-weight: 500; color: #536471; margin-bottom: 4px;">일일 손익</div>
-        <div class="stat-value" id="daily-pnl-value" style="font-size: 12px; font-weight: 700; color: #0f1419; margin-bottom: 2px; line-height: 1;">-1.23k</div>
-        <div class="stat-change" id="daily-pnl-change" style="font-size: 9px; font-weight: 500; color: #f91880; background: rgba(249, 24, 128, 0.1); padding: 1px 4px; border-radius: 2px; display: inline-block; margin-top: 4px;">-1.2%</div>
+    <!-- 주식 자산 카드 -->
+    <div class="stat-card" id="stock-asset-card" style="background: #f7f9fa; padding: 4px; border-radius: 4px; min-width: 0; overflow: hidden; max-width: 180px; width: 100%; box-sizing: border-box;">
+        <div class="stat-card-title" style="font-size: 8px; font-weight: 500; color: #536471; margin-bottom: 4px;">주식 자산</div>
+        <div class="stat-value" id="stock-asset-value" style="font-size: 12px; font-weight: 700; color: #0f1419; margin-bottom: 2px; line-height: 1;">82.15k</div>
+        <div class="stat-change" id="stock-asset-change" style="font-size: 9px; font-weight: 500; color: #17bf63; background: rgba(23, 191, 99, 0.1); padding: 1px 4px; border-radius: 2px; display: inline-block; margin-top: 4px;">+3.2%</div>
         <div class="mini-chart" style="margin-top: 8px; height: 25px;">
-            <canvas id="dayLineChart" width="100" height="25"></canvas>
+            <canvas id="stockAssetChart" width="100" height="25"></canvas>
         </div>
     </div>
 
-    <!-- 월 손익 카드 -->
-    <div class="stat-card" style="background: #f7f9fa; padding: 4px; border-radius: 4px; min-width: 0; overflow: hidden; max-width: 180px; width: 100%; box-sizing: border-box;">
-        <div class="stat-card-title" style="font-size: 8px; font-weight: 500; color: #536471; margin-bottom: 4px;">월 손익</div>
-        <div class="stat-value" id="monthly-pnl-value" style="font-size: 12px; font-weight: 700; color: #0f1419; margin-bottom: 2px; line-height: 1;">+5.67k</div>
-        <div class="stat-change" id="monthly-pnl-change" style="font-size: 9px; font-weight: 500; color: #17bf63; background: rgba(23, 191, 99, 0.1); padding: 1px 4px; border-radius: 2px; display: inline-block; margin-top: 4px;">+4.8%</div>
+    <!-- 부동산 자산 카드 -->
+    <div class="stat-card" id="property-asset-card" style="background: #f7f9fa; padding: 4px; border-radius: 4px; min-width: 0; overflow: hidden; max-width: 180px; width: 100%; box-sizing: border-box;">
+        <div class="stat-card-title" style="font-size: 8px; font-weight: 500; color: #536471; margin-bottom: 4px;">부동산 자산</div>
+        <div class="stat-value" id="property-asset-value" style="font-size: 12px; font-weight: 700; color: #0f1419; margin-bottom: 2px; line-height: 1;">35.19k</div>
+        <div class="stat-change" id="property-asset-change" style="font-size: 9px; font-weight: 500; color: #17bf63; background: rgba(23, 191, 99, 0.1); padding: 1px 4px; border-radius: 2px; display: inline-block; margin-top: 4px;">+1.8%</div>
         <div class="mini-chart" style="margin-top: 8px; height: 25px;">
-            <canvas id="monthAreaChart" width="100" height="25"></canvas>
+            <canvas id="propertyAssetChart" width="100" height="25"></canvas>
         </div>
     </div>
 </div>
@@ -78,8 +81,21 @@
     </div>
 </div>
 
+</div> <!-- total-content 컨테이너 닫기 -->
+
 {% endblock %}
 
 {% block extra_js %}
 <!-- JavaScript는 base.html에서 로드됨 -->
+<script>
+// 페이지 로드 시 즉시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    // 약간의 지연을 두고 초기화 (DOM이 완전히 로드된 후)
+    setTimeout(() => {
+        if (typeof initializeTotalPage === 'function') {
+            initializeTotalPage();
+        }
+    }, 100);
+});
+</script>
 {% endblock %}

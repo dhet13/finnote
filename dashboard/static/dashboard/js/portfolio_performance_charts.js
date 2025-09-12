@@ -1,5 +1,23 @@
 // 포트폴리오 수익률 차트 관련 함수들
 
+// 날짜 라벨 생성 함수
+function generateDailyLabels(count) {
+    const labels = [];
+    const now = new Date();
+    
+    for (let i = count - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        
+        // MM/DD 형식으로 표시
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        labels.push(`${month}/${day}`);
+    }
+    
+    return labels;
+}
+
 // 포트폴리오 차트 변수들
 let stockPerformanceChart = null;
 let propertyPerformanceChart = null;
@@ -7,6 +25,39 @@ let propertyPerformanceChart = null;
 // 현재 선택된 섹터별 수익률 기간
 let currentSectorReturnPeriod = 'daily';
 let currentPropertyReturnPeriod = 'daily';
+
+// 동적 주식 데이터 관리
+let dynamicStockData = {
+    '기술주': [
+        { name: '삼성전자', weight: '35%', value: '45,000원', dailyReturn: '+1.2%', weeklyReturn: '+5.4%' },
+        { name: 'SK하이닉스', weight: '25%', value: '89,000원', dailyReturn: '+3.1%', weeklyReturn: '+12.3%' },
+        { name: '네이버', weight: '20%', value: '180,000원', dailyReturn: '-0.5%', weeklyReturn: '+2.9%' }
+    ],
+    '금융주': [
+        { name: '삼성생명', weight: '40%', value: '75,000원', dailyReturn: '+1.5%', weeklyReturn: '+4.8%' },
+        { name: 'KB금융', weight: '35%', value: '52,000원', dailyReturn: '-2.2%', weeklyReturn: '+7.1%' },
+        { name: '신한지주', weight: '25%', value: '38,000원', dailyReturn: '+1.6%', weeklyReturn: '+6.9%' }
+    ],
+    '헬스케어': [
+        { name: '셀트리온', weight: '50%', value: '165,000원', dailyReturn: '+4.2%', weeklyReturn: '+15.8%' },
+        { name: '유한양행', weight: '30%', value: '85,000원', dailyReturn: '+2.1%', weeklyReturn: '+8.3%' },
+        { name: '종근당', weight: '20%', value: '120,000원', dailyReturn: '+2.8%', weeklyReturn: '+9.7%' }
+    ]
+};
+
+// 섹터별 수익률 데이터
+let sectorReturnData = {
+    daily: {
+        '기술주': '+2.3%',
+        '금융주': '-0.8%',
+        '헬스케어': '+3.1%'
+    },
+    weekly: {
+        '기술주': '+8.7%',
+        '금융주': '+6.2%',
+        '헬스케어': '+11.5%'
+    }
+};
 
 // 주식 자산 전체 추이 차트 초기화
 function initializeStockPerformanceChart() {
@@ -329,6 +380,56 @@ function updatePropertyPerformanceChart(period) {
 }
 
 // 섹터별 카드 업데이트 (수익률 표시 포함)
+// 새로운 주식 추가 함수
+function addNewStock(sector, stockData) {
+    // 섹터가 존재하지 않으면 생성
+    if (!dynamicStockData[sector]) {
+        dynamicStockData[sector] = [];
+    }
+    
+    // 중복 주식명 체크
+    const existingStock = dynamicStockData[sector].find(stock => stock.name === stockData.name);
+    if (existingStock) {
+        console.log(`주식 "${stockData.name}"이 이미 "${sector}" 섹터에 존재합니다.`);
+        return false;
+    }
+    
+    // 새로운 주식 추가
+    dynamicStockData[sector].push(stockData);
+    
+    // 섹터 카드 업데이트
+    updateSectorCards();
+    
+    console.log(`새로운 주식 "${stockData.name}"이 "${sector}" 섹터에 추가되었습니다.`);
+    return true;
+}
+
+// 주식 제거 함수
+function removeStock(sector, stockName) {
+    if (!dynamicStockData[sector]) return false;
+    
+    const stockIndex = dynamicStockData[sector].findIndex(stock => stock.name === stockName);
+    if (stockIndex === -1) return false;
+    
+    dynamicStockData[sector].splice(stockIndex, 1);
+    updateSectorCards();
+    
+    console.log(`주식 "${stockName}"이 "${sector}" 섹터에서 제거되었습니다.`);
+    return true;
+}
+
+// 섹터별 색상 매핑
+const sectorColors = {
+    '기술주': '#4f46e5',
+    '금융주': '#059669', 
+    '헬스케어': '#dc2626',
+    '에너지': '#f59e0b',
+    '소비재': '#8b5cf6',
+    '산업재': '#06b6d4',
+    '통신': '#ef4444',
+    '유틸리티': '#10b981'
+};
+
 function updateSectorCards() {
     const container = document.querySelector('.sector-cards-grid');
     if (!container) return;
@@ -339,94 +440,166 @@ function updateSectorCards() {
     const isDaily = currentSectorReturnPeriod === 'daily';
     const returnSuffix = isDaily ? '일간' : '주간';
     
-    // 섹터별 수익률 데이터 (일간/주간 구분)
-    const sectorReturnData = {
-        daily: {
-            '기술주': { sector: '+2.3%', stocks: { '삼성전자': '+1.2%', 'SK하이닉스': '+3.1%', '네이버': '-0.5%' }},
-            '금융주': { sector: '-0.8%', stocks: { '삼성생명': '+1.5%', 'KB금융': '-2.2%', '신한지주': '+1.6%' }},
-            '헬스케어': { sector: '+3.1%', stocks: { '셀트리온': '+4.2%', '유한양행': '+2.1%', '종근당': '+2.8%' }}
-        },
-        weekly: {
-            '기술주': { sector: '+8.7%', stocks: { '삼성전자': '+5.4%', 'SK하이닉스': '+12.3%', '네이버': '+2.9%' }},
-            '금융주': { sector: '+6.2%', stocks: { '삼성생명': '+4.8%', 'KB금융': '+7.1%', '신한지주': '+6.9%' }},
-            '헬스케어': { sector: '+11.5%', stocks: { '셀트리온': '+15.8%', '유한양행': '+8.3%', '종근당': '+9.7%' }}
-        }
-    };
-
-    const currentData = sectorReturnData[currentSectorReturnPeriod];
-    
-    const sectorData = [
-        {
-            sector: '기술주',
-            color: '#4f46e5',
-            return: currentData['기술주'].sector,
-            stocks: [
-                { name: '삼성전자', weight: '35%', value: '45,000원', return: currentData['기술주'].stocks['삼성전자'] },
-                { name: 'SK하이닉스', weight: '25%', value: '89,000원', return: currentData['기술주'].stocks['SK하이닉스'] },
-                { name: '네이버', weight: '20%', value: '180,000원', return: currentData['기술주'].stocks['네이버'] }
-            ]
-        },
-        {
-            sector: '금융주',
-            color: '#059669',
-            return: currentData['금융주'].sector,
-            stocks: [
-                { name: '삼성생명', weight: '40%', value: '75,000원', return: currentData['금융주'].stocks['삼성생명'] },
-                { name: 'KB금융', weight: '35%', value: '52,000원', return: currentData['금융주'].stocks['KB금융'] },
-                { name: '신한지주', weight: '25%', value: '38,000원', return: currentData['금융주'].stocks['신한지주'] }
-            ]
-        },
-        {
-            sector: '헬스케어',
-            color: '#dc2626',
-            return: currentData['헬스케어'].sector,
-            stocks: [
-                { name: '셀트리온', weight: '50%', value: '165,000원', return: currentData['헬스케어'].stocks['셀트리온'] },
-                { name: '유한양행', weight: '30%', value: '85,000원', return: currentData['헬스케어'].stocks['유한양행'] },
-                { name: '종근당', weight: '20%', value: '120,000원', return: currentData['헬스케어'].stocks['종근당'] }
-            ]
-        }
-    ];
-
-    sectorData.forEach(sectorGroup => {
-        const stocksHTML = sectorGroup.stocks.map(stock => {
+    // 동적 데이터를 기반으로 섹터 카드 생성
+    Object.keys(dynamicStockData).forEach(sector => {
+        const stocks = dynamicStockData[sector];
+        if (stocks.length === 0) return; // 빈 섹터는 건너뛰기
+        
+        // 섹터별 색상 (기본값 설정)
+        const sectorColor = sectorColors[sector] || '#6b7280';
+        
+        // 섹터별 수익률 가져오기
+        const sectorReturn = sectorReturnData[currentSectorReturnPeriod][sector] || '0.0%';
+        
+        const stocksHTML = stocks.map(stock => {
+            // 현재 기간에 맞는 수익률 선택
+            const currentReturn = isDaily ? stock.dailyReturn : stock.weeklyReturn;
+            
             // 수익률에 따른 클래스 결정
-            const returnValue = parseFloat(stock.return.replace('%', ''));
+            const returnValue = parseFloat(currentReturn.replace('%', ''));
             let returnClass = 'neutral';
             if (returnValue > 0) returnClass = 'positive';
             else if (returnValue < 0) returnClass = 'negative';
             
             return `
-                <div class="portfolio-item">
+                <div class="portfolio-item stock-item" data-stock="${encodeURIComponent(stock.name)}">
                     <div class="portfolio-item-name">${stock.name}</div>
                     <div class="portfolio-item-right">
                         <div class="portfolio-item-weight">${stock.weight}</div>
                         <div class="portfolio-item-value">${stock.value}</div>
-                        <div class="portfolio-item-return ${returnClass}">${stock.return}</div>
+                        <div class="portfolio-item-return ${returnClass}">${currentReturn}</div>
                     </div>
                 </div>
             `;
         }).join('');
 
         // 섹터 수익률에 따른 색상 클래스 결정
-        const sectorReturnValue = parseFloat(sectorGroup.return.replace('%', ''));
+        const sectorReturnValue = parseFloat(sectorReturn.replace('%', ''));
         let sectorReturnClass = 'neutral';
         if (sectorReturnValue > 0) sectorReturnClass = 'positive';
         else if (sectorReturnValue < 0) sectorReturnClass = 'negative';
 
         const card = document.createElement('div');
-        card.className = 'portfolio-card';
+        card.className = 'sector-group';
         card.innerHTML = `
-            <div class="portfolio-card-title">
-                <span class="sector-indicator" style="background: ${sectorGroup.color};"></span>
-                ${sectorGroup.sector} (<span class="portfolio-item-return ${sectorReturnClass}">${returnSuffix} ${sectorGroup.return}</span>)
+            <div class="sector-group-title">
+                <span class="sector-indicator" style="background: ${sectorColor};"></span>
+                ${sector} (<span class="portfolio-item-return ${sectorReturnClass}">${returnSuffix} ${sectorReturn}</span>)
             </div>
-            <div class="portfolio-card-content">${stocksHTML}</div>
+            <div class="sector-group-content">${stocksHTML}</div>
         `;
         
         container.appendChild(card);
     });
+    
+    // 주식 클릭 리스너 재등록
+    addStockClickListeners();
 }
+
+// 주식 클릭 리스너 추가 함수
+function addStockClickListeners() {
+    const stockItems = document.querySelectorAll('.stock-item[data-stock]');
+    const propertyItems = document.querySelectorAll('.property-item[data-property]');
+    
+    // 주식 카드 클릭 리스너
+    stockItems.forEach(item => {
+        // 기존 이벤트 리스너 제거 (중복 방지)
+        item.removeEventListener('click', handleStockClick);
+        
+        // 새로운 이벤트 리스너 추가
+        item.addEventListener('click', handleStockClick);
+        
+        // 커서 포인터 스타일 추가
+        item.style.cursor = 'pointer';
+    });
+    
+    // 부동산 카드 클릭 리스너
+    propertyItems.forEach(item => {
+        // 기존 이벤트 리스너 제거 (중복 방지)
+        item.removeEventListener('click', handlePropertyClick);
+        
+        // 새로운 이벤트 리스너 추가
+        item.addEventListener('click', handlePropertyClick);
+        
+        // 커서 포인터 스타일 추가
+        item.style.cursor = 'pointer';
+    });
+}
+
+// 주식 클릭 핸들러
+function handleStockClick(event) {
+    const stockName = decodeURIComponent(this.getAttribute('data-stock'));
+    navigateToStockDetail(stockName);
+}
+
+// 부동산 클릭 핸들러
+function handlePropertyClick(event) {
+    const propertyName = decodeURIComponent(this.getAttribute('data-property'));
+    navigateToPropertyDetail(propertyName);
+}
+
+// 주식 상세 페이지로 이동
+function navigateToStockDetail(stockName) {
+    const encodedStockName = encodeURIComponent(stockName);
+    const url = `/dashboard/stock/${encodedStockName}/`;
+    
+    console.log(`주식 "${stockName}" 상세 페이지로 이동: ${url}`);
+    window.location.href = url;
+}
+
+// 부동산 상세 페이지로 이동
+function navigateToPropertyDetail(propertyName) {
+    const encodedPropertyName = encodeURIComponent(propertyName);
+    const url = `/dashboard/property/${encodedPropertyName}/`;
+    
+    console.log(`부동산 "${propertyName}" 상세 페이지로 이동: ${url}`);
+    // 현재는 주식 상세 페이지로 임시 이동 (부동산 상세 페이지 미구현)
+    window.location.href = `/dashboard/stock/${encodedPropertyName}/`;
+}
+
+// 새로운 섹터 추가 함수
+function addNewSector(sectorName, sectorReturn = { daily: '0.0%', weekly: '0.0%' }) {
+    // 섹터별 수익률 데이터에 추가
+    sectorReturnData.daily[sectorName] = sectorReturn.daily;
+    sectorReturnData.weekly[sectorName] = sectorReturn.weekly;
+    
+    // 동적 주식 데이터에 빈 배열로 초기화
+    if (!dynamicStockData[sectorName]) {
+        dynamicStockData[sectorName] = [];
+    }
+    
+    console.log(`새로운 섹터 "${sectorName}"이 추가되었습니다.`);
+    return true;
+}
+
+// 테스트용 주식 추가 함수 (콘솔에서 사용 가능)
+window.testAddStock = function() {
+    // 기존 섹터에 새로운 주식 추가 예시
+    addNewStock('기술주', {
+        name: 'LG전자',
+        weight: '15%',
+        value: '95,000원',
+        dailyReturn: '+1.8%',
+        weeklyReturn: '+6.2%'
+    });
+    
+    // 새로운 섹터 생성 후 주식 추가 예시
+    addNewSector('에너지', { daily: '+1.5%', weekly: '+4.2%' });
+    addNewStock('에너지', {
+        name: 'SK이노베이션',
+        weight: '60%',
+        value: '180,000원',
+        dailyReturn: '+2.1%',
+        weeklyReturn: '+5.8%'
+    });
+    addNewStock('에너지', {
+        name: 'S-Oil',
+        weight: '40%',
+        value: '85,000원',
+        dailyReturn: '+0.9%',
+        weeklyReturn: '+2.6%'
+    });
+};
 
 // 물건별 카드 업데이트 (수익률 표시 포함)
 function updatePropertyCards() {
@@ -497,7 +670,7 @@ function updatePropertyCards() {
             else if (returnValue < 0) returnClass = 'negative';
             
             return `
-                <div class="portfolio-item">
+                <div class="portfolio-item property-item" data-property="${encodeURIComponent(property.name)}">
                     <div class="portfolio-item-name">${property.name}</div>
                     <div class="portfolio-item-right">
                         <div class="portfolio-item-weight">${property.weight}</div>
@@ -515,13 +688,13 @@ function updatePropertyCards() {
         else if (propertyReturnValue < 0) propertyReturnClass = 'negative';
 
         const card = document.createElement('div');
-        card.className = 'portfolio-card';
+        card.className = 'property-group';
         card.innerHTML = `
-            <div class="portfolio-card-title">
+            <div class="property-group-title">
                 <span class="sector-indicator" style="background: ${propertyGroup.color};"></span>
                 ${propertyGroup.propertyType} (<span class="portfolio-item-return ${propertyReturnClass}">${returnSuffix} ${propertyGroup.return}</span>)
             </div>
-            <div class="portfolio-card-content">${propertiesHTML}</div>
+            <div class="property-group-content">${propertiesHTML}</div>
         `;
         
         container.appendChild(card);
