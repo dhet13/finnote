@@ -1,0 +1,129 @@
+/* 자산 현황 페이지 전용 스타일 */
+
+/* 자산 현황 콘텐츠 영역 */
+.total-content {
+    display: block !important;
+    height: 100% !important; /* 부모 컨테이너 높이 상속 */
+    min-height: calc(100vh - 200px) !important; /* 최소 높이 보장 */
+    overflow-y: auto !important; /* 스크롤 활성화 강제 */
+    overflow-x: hidden !important; /* 가로 스크롤 방지 */
+    max-height: calc(100vh - 200px) !important; /* 최대 높이 제한 */
+    padding: 20px 0;
+}
+
+/* 자산 현황 페이지 숨김 처리 */
+.total-content[style*="display: none"] {
+    display: none !important;
+}
+
+/* 카드뷰 헤더 */
+.card-period-buttons {
+    display: flex !important;
+    gap: 8px !important;
+}
+
+.card-period-btn {
+    padding: 8px 16px !important;
+    border: 1px solid #e1e8ed !important;
+    background: white !important;
+    color: #536471 !important;
+    border-radius: 20px !important;
+    cursor: pointer !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
+    transition: all 0.2s ease !important;
+}
+
+.card-period-btn.active {
+    background: #1d9bf0 !important;
+    color: white !important;
+    border-color: #1d9bf0 !important;
+}
+
+.card-period-btn:hover:not(.active) {
+    background: #f7f9fa !important;
+    border-color: #cfd9de !important;
+}
+
+.card-period-btn.active:hover {
+    background: #1a8cd8 !important;
+}
+
+/* 자산 카드 그리드 */
+.asset-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.asset-card {
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.asset-card h3 {
+    margin: 0 0 16px 0;
+    color: #0f1419;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.asset-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f1419;
+    margin-bottom: 8px;
+}
+
+.asset-change {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.asset-change.positive {
+    color: #00ba7c;
+}
+
+.asset-change.negative {
+    color: #f4212e;
+}
+
+/* 차트 컨테이너 */
+.chart-container {
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container h3 {
+    margin: 0 0 20px 0;
+    color: #0f1419;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .asset-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .total-content {
+        padding: 16px 0;
+    }
+    
+    .asset-card {
+        padding: 20px;
+    }
+    
+    .chart-container {
+        padding: 20px;
+    }
+}

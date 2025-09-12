@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard - FinTech SNS{% endblock %}
+
+{% block scripts %}
+    <!-- 대시보드 CSS -->
+    <link rel="stylesheet" href="{% static 'dashboard/css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'dashboard/css/dashboard_portfolio.css' %}">
+    <link rel="stylesheet" href="{% static 'dashboard/css/dashboard_total.css' %}">
+    <link rel="stylesheet" href="{% static 'dashboard/css/dashboard_base.css' %}">
+    
+    <!-- Chart.js 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js DataLabels 플러그인 -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <!-- 대시보드 JavaScript -->
+    <script src="{% static 'dashboard/js/dashboard.js' %}"></script>
+    <script src="{% static 'dashboard/js/portfolio_performance_charts.js' %}"></script>
+{% endblock %}
+
+{% block left %}
+<!-- templates/base.html의 기본 왼쪽 사이드바 사용 -->
+{{ block.super }}
+{% endblock %}
+
+{% block right %}
+<!-- templates/base.html의 기본 오른쪽 사이드바 사용 -->
+{{ block.super }}
+{% endblock %}
+
+{% block feed %}
+    <div class="main-dashboard">
+        <!-- 공통 대시보드 헤더 -->
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">대시 보드</h1>
+            <p class="dashboard-subtitle">투자 자산의 현재 상황을 한눈에 확인하세요</p>
+        </div>
+
+        <!-- 공통 탭 메뉴 -->
+        <div class="dashboard-tabs">
+            <ul class="nav nav-pills">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'page_total' %}active{% endif %}" 
+                       href="#" data-tab="total" data-url="{% url 'dashboard:page_total' %}"
+                       style="text-decoration: none; {% if request.resolver_match.url_name == 'page_total' %}color: #1d9bf0; font-weight: 600;{% else %}color: #536471; font-weight: 500;{% endif %} padding: 12px 0; display: block; position: relative;">
+                       자산 현황
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'page_portfolio' %}active{% endif %}" 
+                       href="#" data-tab="portfolio" data-url="{% url 'dashboard:page_portfolio' %}"
+                       style="text-decoration: none; {% if request.resolver_match.url_name == 'page_portfolio' %}color: #1d9bf0; font-weight: 600;{% else %}color: #536471; font-weight: 500;{% endif %} padding: 12px 0; display: block; position: relative;">
+                       포트폴리오
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 동적 콘텐츠 영역 -->
+        <div id="dashboard-content">
+            {% block content %}
+            <!-- 페이지별 콘텐츠가 여기에 들어갑니다 -->
+            <div style="text-align: center; padding: 40px; color: #536471;">
+                콘텐츠를 로딩 중입니다...
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- 대시보드 전용 CSS -->
+    <style>
+        /* 대시보드는 templates/base.html의 기본 3컬럼 레이아웃 사용 */
+        .feed {
+            max-width: var(--feed-max-width);
+            width: 100%;
+            height: 100vh; /* 전체 화면 높이 */
+            overflow: hidden; /* 스크롤을 콘텐츠 영역에서만 처리 */
+        }
+        
+        /* 오른쪽 사이드바가 보이도록 보장 */
+        .right-sidebar {
+            display: block !important;
+            width: var(--right-column-width) !important;
+        }
+        
+        /* 컨테이너 그리드 레이아웃 보장 */
+        .container {
+            display: grid !important;
+            grid-template-columns: var(--left-column-width) minmax(0, var(--feed-max-width)) var(--right-column-width) !important;
+        }
+        
+        /* 대시보드 레이아웃 */
+        .main-dashboard {
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* 전체 화면 높이 */
+            overflow: hidden; /* 스크롤을 피드 영역에서만 처리 */
+        }
+        
+        .dashboard-header {
+            flex-shrink: 0;
+            padding: 20px;
+            border-bottom: 1px solid #eff3f4;
+            height: 30px;
+        }
+        
+        .dashboard-tabs {
+            margin: 0px 0 !important;
+            padding: 0px 10px !important;
+            border-bottom: 1px solid #eff3f4;
+        }
+        
+        #dashboard-content {
+            flex: 1;
+            padding: 20px;
+            overflow: visible; /* 스크롤을 하위 요소에서 처리 */
+            height: calc(100vh - 200px) !important; /* 헤더 + 탭 + 여백 제외 */
+            min-height: 400px !important; /* 최소 높이 보장 */
+            max-height: calc(100vh - 200px) !important; /* 최대 높이 제한 */
+        }
+        
+        /* CSS는 외부 파일에서 로드됨 */
+        
+        /* 탭 스타일 */
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #1d9bf0;
+            border-radius: 0;
+        }
+        
+        {% block extra_css %}{% endblock %}
+    </style>
+    
+    {% block extra_js %}{% endblock %}
+
+    <!-- AJAX 탭 네비게이션 스크립트 -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabLinks = document.querySelectorAll('.nav-link[data-tab]');
+        const contentArea = document.getElementById('dashboard-content');
+        
+        // 초기 로딩 시 현재 활성 탭에 따라 차트 초기화
+        setTimeout(() => {
+            const activeTab = document.querySelector('.nav-link.active');
+            if (activeTab) {
+                const tabName = activeTab.getAttribute('data-tab');
+                if (tabName === 'total' && typeof initializeTotalPage === 'function') {
+                    initializeTotalPage();
+                } else if (tabName === 'portfolio') {
+                    if (typeof initializeAssetTypeButtons === 'function') {
+                        initializeAssetTypeButtons();
+                    }
+                    if (typeof initializeStockPortfolio === 'function') {
+                        initializeStockPortfolio();
+                    }
+                    if (typeof initializeRealEstatePortfolio === 'function') {
+                        initializeRealEstatePortfolio();
+                    }
+                    // 포트폴리오 페이지에서도 차트 초기화
+                    if (typeof initializeTotalPage === 'function') {
+                        initializeTotalPage();
+                    }
+                }
+            }
+        }, 300); // 지연 시간을 300ms로 증가
+        
+        tabLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const tabName = this.getAttribute('data-tab');
+                const url = this.getAttribute('data-url');
+                
+                // 탭 활성화 상태 변경
+                tabLinks.forEach(tab => {
+                    tab.style.color = '#536471';
+                    tab.style.fontWeight = '500';
+                    tab.classList.remove('active');
+                });
+                
+                this.style.color = '#1d9bf0';
+                this.style.fontWeight = '600';
+                this.classList.add('active');
+                
+                // 로딩 표시
+                contentArea.innerHTML = '<div style="text-align: center; padding: 40px; color: #536471;">로딩 중...</div>';
+                
+                // AJAX로 콘텐츠 로드
+                fetch(url)
+                    .then(response => response.text())
+                    .then(html => {
+                        console.log('AJAX 응답 받음, HTML 길이:', html.length);
+                        
+                        // HTML에서 콘텐츠 영역만 추출
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        
+                        // 콘텐츠 영역 찾기
+                        let contentElement = null;
+                        
+                        // 자산 현황 페이지
+                        if (tabName === 'total') {
+                            contentElement = doc.querySelector('.total-content');
+                        }
+                        // 포트폴리오 페이지
+                        else if (tabName === 'portfolio') {
+                            contentElement = doc.querySelector('.portfolio-main-content');
+                        }
+                        
+                        console.log('찾은 콘텐츠 요소:', !!contentElement);
+                        console.log('콘텐츠 요소 클래스:', contentElement?.className);
+                        
+                        if (contentElement) {
+                            contentArea.innerHTML = contentElement.outerHTML;
+                        } else {
+                            console.log('콘텐츠 영역을 찾을 수 없어 전체 HTML 사용');
+                            contentArea.innerHTML = html;
+                        }
+                        
+                        console.log('contentArea에 HTML 삽입 완료, 길이:', contentArea.innerHTML.length);
+                        
+                        // URL 업데이트 (히스토리 API)
+                        const newUrl = tabName === 'total' ? 
+                            '{% url "dashboard:page_total" %}' : 
+                            '{% url "dashboard:page_portfolio" %}';
+                        history.pushState({tab: tabName}, '', newUrl);
+                        
+                        // 페이지별 초기화 (지연 시간 증가)
+                        setTimeout(() => {
+                            // 기존 차트들 정리
+                            if (typeof totalBarChart !== 'undefined' && totalBarChart) {
+                                totalBarChart.destroy();
+                                totalBarChart = null;
+                            }
+                            if (typeof dayLineChart !== 'undefined' && dayLineChart) {
+                                dayLineChart.destroy();
+                                dayLineChart = null;
+                            }
+                            if (typeof monthAreaChart !== 'undefined' && monthAreaChart) {
+                                monthAreaChart.destroy();
+                                monthAreaChart = null;
+                            }
+                            if (typeof mainPortfolioChart !== 'undefined' && mainPortfolioChart) {
+                                mainPortfolioChart.destroy();
+                                mainPortfolioChart = null;
+                            }
+                            
+                            if (tabName === 'total') {
+                                if (typeof initializeTotalPage === 'function') {
+                                    initializeTotalPage();
+                                }
+                            } else if (tabName === 'portfolio') {
+                                console.log('포트폴리오 페이지 초기화 시작');
+                                
+                                // 포트폴리오 페이지 즉시 초기화 함수 호출
+                                if (typeof initializePortfolioPage === 'function') {
+                                    console.log('initializePortfolioPage 함수 호출');
+                                    initializePortfolioPage();
+                                } else {
+                                    console.log('initializePortfolioPage 함수가 없어 개별 함수 호출');
+                                    if (typeof initializeAssetTypeButtons === 'function') {
+                                        console.log('initializeAssetTypeButtons 함수 호출');
+                                        initializeAssetTypeButtons();
+                                    } else {
+                                        console.error('initializeAssetTypeButtons 함수가 정의되지 않음');
+                                    }
+                                }
+                                if (typeof initializeStockPortfolio === 'function') {
+                                    initializeStockPortfolio();
+                                }
+                                if (typeof initializeRealEstatePortfolio === 'function') {
+                                    initializeRealEstatePortfolio();
+                                }
+                                if (typeof initializeStockPerformanceChart === 'function') {
+                                    initializeStockPerformanceChart();
+                                }
+                                if (typeof initializePropertyPerformanceChart === 'function') {
+                                    initializePropertyPerformanceChart();
+                                }
+                                if (typeof initializeSectorReturnButtons === 'function') {
+                                    initializeSectorReturnButtons();
+                                }
+                                if (typeof initializePropertyReturnButtons === 'function') {
+                                    initializePropertyReturnButtons();
+                                }
+                                // 포트폴리오 페이지에서도 차트 초기화
+                                if (typeof initializeTotalPage === 'function') {
+                                    initializeTotalPage();
+                                }
+                            }
+                        }, 200); // 지연 시간을 200ms로 조정 (재시도 로직이 있으므로)
+                    })
+                    .catch(error => {
+                        console.error('Error loading content:', error);
+                        contentArea.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc2626;">콘텐츠를 불러오는데 실패했습니다.</div>';
+                    });
+            });
+        });
+
+        // 초기 페이지 로드 시 현재 활성 탭에 따른 초기화
+        const currentActiveTab = document.querySelector('.nav-link.active');
+        if (currentActiveTab) {
+            const tabName = currentActiveTab.getAttribute('data-tab');
+            if (tabName === 'total') {
+                setTimeout(() => {
+                    if (typeof initializeTotalPage === 'function') {
+                        initializeTotalPage();
+                    }
+                }, 100);
+            } else if (tabName === 'portfolio') {
+                setTimeout(() => {
+                    if (typeof initializeAssetTypeButtons === 'function') {
+                        initializeAssetTypeButtons();
+                    }
+                    if (typeof initializeStockPortfolio === 'function') {
+                        initializeStockPortfolio();
+                    }
+                    if (typeof initializeRealEstatePortfolio === 'function') {
+                        initializeRealEstatePortfolio();
+                    }
+                    if (typeof initializeStockPerformanceChart === 'function') {
+                        initializeStockPerformanceChart();
+                    }
+                    if (typeof initializePropertyPerformanceChart === 'function') {
+                        initializePropertyPerformanceChart();
+                    }
+                    if (typeof initializeSectorReturnButtons === 'function') {
+                        initializeSectorReturnButtons();
+                    }
+                    if (typeof initializePropertyReturnButtons === 'function') {
+                        initializePropertyReturnButtons();
+                    }
+                }, 100);
+            }
+        }
+
+        // 브라우저 뒤로가기/앞으로가기 지원
+        window.addEventListener('popstate', function(event) {
+            if (event.state && event.state.tab) {
+                const targetTab = document.querySelector(`[data-tab="${event.state.tab}"]`);
+                if (targetTab) {
+                    targetTab.click();
+                }
+            }
+        });
+    });
+    </script>
+{% endblock %}

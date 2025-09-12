@@ -1,63 +1,101 @@
-{% extends "common/home.html" %}
+{% extends "dashboard/base.html" %}
 {% load static %}
 
 {% block title %}총 자산 현황{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'dashboard/css/dashboard_total.css' %}">
+{% endblock %}
+
 {% block content %}
-    <div class="header">
-        대시보드
-     </div>
 
-    {# 2. 그 다음에 total.html만의 고유한 콘텐츠를 추가합니다. #}
-    <link rel="stylesheet" href="{% static 'dashboard/css/dashboard_total.css' %}">
+<!-- 자산 현황 콘텐츠 컨테이너 -->
+<div class="total-content">
 
-    <div class="dashboard-container">
-        <nav class="dashboard-tabs">
-            <ul class="nav nav-pills">
-                <li class="nav-item">
-                    <a class="nav-link active" href="{% url 'dashboard:page_total' %}">자산 현황</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'dashboard:page_portfolio' %}">포트폴리오</a>
-                </li>
-            </ul>
-        </nav>
+<!-- 카드뷰 헤더와 기간 선택 버튼 (일간/주간) -->
+<div style="display: flex;justify-content: space-between;align-items: center;margin-top: 0px;margin-bottom: 16px;">
+    <div></div> <!-- 왼쪽 빈 공간 -->
+    <div class="card-period-buttons">
+        <button class="card-period-btn active" data-card-period="daily">일간</button>
+        <button class="card-period-btn" data-card-period="weekly">주간</button>
+    </div>
+</div>
 
-        <div class="period-controls text-end mb-3">
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-primary active" data-interval="weekly">주간</button>
-                <button type="button" class="btn btn-outline-primary" data-interval="daily">일간</button>
-            </div>
+<!-- 통계 카드들 -->
+<div class="stats-row" style="display: flex; gap: 2px; justify-content: space-between; margin-bottom: 20px; max-width: 560px; width: 100%;">
+    <!-- 총 투자 자산 카드 -->
+    <div class="stat-card" style="background: #f7f9fa; padding: 4px; border-radius: 4px; min-width: 0; overflow: hidden; max-width: 180px; width: 100%; box-sizing: border-box;">
+        <div class="stat-card-title" style="font-size: 8px; font-weight: 500; color: #536471; margin-bottom: 4px;">총 투자 자산</div>
+        <div class="stat-value" id="total-asset-value" style="font-size: 12px; font-weight: 700; color: #0f1419; margin-bottom: 2px; line-height: 1;">117.34k</div>
+        <div class="stat-change" id="total-asset-change" style="font-size: 9px; font-weight: 500; color: #17bf63; background: rgba(23, 191, 99, 0.1); padding: 1px 4px; border-radius: 2px; display: inline-block; margin-top: 4px;">+2.5%</div>
+        <div class="mini-chart" style="margin-top: 8px; height: 25px;">
+            <canvas id="totalBarChart" width="100" height="25"></canvas>
         </div>
-
-        <section class="stats-row">
-            <div class="stat-card">
-                <h3 class="stat-card-title">총 투자 자산</h3>
-                <div class="stat-value" id="total-asset-value">로딩중...</div>
-            </div>
-            
-            <div class="stat-card">
-                <h3 class="stat-card-title">수익률</h3>
-                <div class="stat-change" id="asset-change-pct">...</div>
-            </div>
-            
-            <div class="stat-card">
-                <h3 class="stat-card-title">기간별 성과</h3>
-                <div class="stat-side-chart" style="height: 80px;">
-                    <canvas id="mini-bar-chart"></canvas>
-                </div>
-            </div>
-        </section>
-        
-
-        <h1>총 자산 투자 수익률</h1>
-        <section class="stats-row">
-            </section>
-        <section class="chart-container">
-            </section>
     </div>
 
-    
+    <!-- 주식 자산 카드 -->
+    <div class="stat-card" id="stock-asset-card" style="background: #f7f9fa; padding: 4px; border-radius: 4px; min-width: 0; overflow: hidden; max-width: 180px; width: 100%; box-sizing: border-box;">
+        <div class="stat-card-title" style="font-size: 8px; font-weight: 500; color: #536471; margin-bottom: 4px;">주식 자산</div>
+        <div class="stat-value" id="stock-asset-value" style="font-size: 12px; font-weight: 700; color: #0f1419; margin-bottom: 2px; line-height: 1;">82.15k</div>
+        <div class="stat-change" id="stock-asset-change" style="font-size: 9px; font-weight: 500; color: #17bf63; background: rgba(23, 191, 99, 0.1); padding: 1px 4px; border-radius: 2px; display: inline-block; margin-top: 4px;">+3.2%</div>
+        <div class="mini-chart" style="margin-top: 8px; height: 25px;">
+            <canvas id="stockAssetChart" width="100" height="25"></canvas>
+        </div>
+    </div>
 
-    <script src="{% static 'dashboard/js/dashboard.js' %}"></script>
+    <!-- 부동산 자산 카드 -->
+    <div class="stat-card" id="property-asset-card" style="background: #f7f9fa; padding: 4px; border-radius: 4px; min-width: 0; overflow: hidden; max-width: 180px; width: 100%; box-sizing: border-box;">
+        <div class="stat-card-title" style="font-size: 8px; font-weight: 500; color: #536471; margin-bottom: 4px;">부동산 자산</div>
+        <div class="stat-value" id="property-asset-value" style="font-size: 12px; font-weight: 700; color: #0f1419; margin-bottom: 2px; line-height: 1;">35.19k</div>
+        <div class="stat-change" id="property-asset-change" style="font-size: 9px; font-weight: 500; color: #17bf63; background: rgba(23, 191, 99, 0.1); padding: 1px 4px; border-radius: 2px; display: inline-block; margin-top: 4px;">+1.8%</div>
+        <div class="mini-chart" style="margin-top: 8px; height: 25px;">
+            <canvas id="propertyAssetChart" width="100" height="25"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- 총 투자 자산 수익률 섹션 -->
+<div style="background: #f7f9fa; padding: 24px; border-radius: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h3 style="color: #0f1419; font-size: 18px; font-weight: 600;">총 투자 자산 수익률</h3>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <!-- 메인 기간 선택 버튼 -->
+            <div class="main-period-buttons" style="display: flex; gap: 8px;">
+                <button class="main-period-btn active" data-main-period="1D">1D</button>
+                <button class="main-period-btn" data-main-period="1W">1W</button>
+                <button class="main-period-btn" data-main-period="1M">1M</button>
+                <button class="main-period-btn" data-main-period="1Y">1Y</button>
+            </div>
+            <!-- 기간 범위 선택 -->
+            <select class="period-selector" data-period-range="30">
+                <option value="30">30일</option>
+                <option value="60">60일</option>
+                <option value="90">90일</option>
+                <option value="180">180일</option>
+                <option value="365">365일</option>
+            </select>
+        </div>
+    </div>
+    <div style="height: 300px;">
+        <canvas id="mainPortfolioChart"></canvas>
+    </div>
+</div>
+
+</div> <!-- total-content 컨테이너 닫기 -->
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- JavaScript는 base.html에서 로드됨 -->
+<script>
+// 페이지 로드 시 즉시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    // 약간의 지연을 두고 초기화 (DOM이 완전히 로드된 후)
+    setTimeout(() => {
+        if (typeof initializeTotalPage === 'function') {
+            initializeTotalPage();
+        }
+    }, 100);
+});
+</script>
 {% endblock %}
