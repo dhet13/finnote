@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}부동산 자산 추가{% endblock %}
+
+{% block feed %}
+<div style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #fff; border-radius: 16px; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 24px; box-sizing: border-box;">
+    <h2 style="font-size: 24px; font-weight: bold; color: #14171a; margin-bottom: 24px;">부동산 자산 추가</h2>
+
+    <form id="real-estate-form">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 16px;">
+            <label for="address" style="display: block; font-weight: 600; margin-bottom: 8px;">주소</label>
+            <input type="text" id="address" name="address" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+            <div id="suggestions" style="border: 1px solid #ccc; border-top: none; display: none;"></div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label for="building-name" style="display: block; font-weight: 600; margin-bottom: 8px;">건물 이름</label>
+            <input type="text" id="building-name" name="building_name" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label for="property-type" style="display: block; font-weight: 600; margin-bottom: 8px;">부동산 종류</label>
+            <input type="text" id="property-type" name="property_type" value="아파트" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label for="deal-type" style="display: block; font-weight: 600; margin-bottom: 8px;">거래 종류</label>
+            <select id="deal-type" name="deal_type" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+                <option value="매매">매매</option>
+                <option value="전세">전세</option>
+                <option value="월세">월세</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label for="contract-date" style="display: block; font-weight: 600; margin-bottom: 8px;">계약일</label>
+            <input type="date" id="contract-date" name="contract_date" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label for="amount-main" style="display: block; font-weight: 600; margin-bottom: 8px;">매매가/전세가/보증금</label>
+            <input type="number" id="amount-main" name="amount_main" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label for="area-m2" style="display: block; font-weight: 600; margin-bottom: 8px;">전용면적(m²)</label>
+            <input type="number" id="area-m2" name="area_m2" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <label for="floor" style="display: block; font-weight: 600; margin-bottom: 8px;">층</label>
+            <input type="number" id="floor" name="floor" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+        </div>
+
+        <button type="submit" style="background-color: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; font-weight: 600;">자산 추가</button>
+    </form>
+</div>
+
+<script>
+    const addressInput = document.getElementById('address');
+    const suggestionsDiv = document.getElementById('suggestions');
+    let selectedAddress = null;
+
+    addressInput.addEventListener('input', async (e) => {
+        const address = e.target.value;
+        if (address.length < 2) {
+            suggestionsDiv.style.display = 'none';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/realty/suggest?address=${address}`);
+            const data = await response.json();
+            console.log('API Response:', data); // Log the response
+
+            suggestionsDiv.innerHTML = '';
+            if (data.suggestions && data.suggestions.length > 0) {
+                suggestionsDiv.style.display = 'block';
+                data.suggestions.forEach(suggestion => {
+                    const div = document.createElement('div');
+                    div.textContent = suggestion.address;
+                    div.style.padding = '12px';
+                    div.style.cursor = 'pointer';
+                    div.addEventListener('click', () => {
+                        addressInput.value = suggestion.address;
+                        selectedAddress = suggestion;
+                        suggestionsDiv.style.display = 'none';
+                        document.getElementById('building-name').value = suggestion.name.split(' ')[suggestion.name.split(' ').length -1]
+                    });
+                    suggestionsDiv.appendChild(div);
+                });
+            } else {
+                suggestionsDiv.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error fetching suggestions:', error); // Log any errors
+        }
+    });
+
+    document.getElementById('real-estate-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!selectedAddress) {
+            alert('주소를 선택해주세요.');
+            return;
+        }
+
+        const formData = new FormData(e.target);
+        const data = {
+            building_name: formData.get('building_name'),
+            address_base: selectedAddress.address,
+            property_type: formData.get('property_type'),
+            lawd_cd: selectedAddress.region_3depth_name.substring(0, 5),
+            dong: selectedAddress.region_3depth_name,
+            lat: selectedAddress.lat,
+            lng: selectedAddress.lng,
+            deal_type: formData.get('deal_type'),
+            contract_date: formData.get('contract_date'),
+            amount_main: formData.get('amount_main'),
+            area_m2: formData.get('area_m2'),
+            floor: formData.get('floor'),
+            title: `${formData.get('building_name')} ${formData.get('deal_type')} 계약`,
+            content: ''
+        };
+
+        const response = await fetch('/api/realty/deals', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+            window.location.href = "{% url 'user_profile:profile' my_ID=request.user.my_ID %}";
+        } else {
+            const errorData = await response.json();
+            alert('오류: ' + (errorData.error || '알 수 없는 오류'));
+        }
+    });
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

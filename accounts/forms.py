@@ -13,4 +13,8 @@ class ProfileForm(forms.ModelForm):
     class Meta:
         model = User
         # 사용자가 수정할 필드만 명시적으로 나열
-        fields = ['nickname', 'profile_picture', 'background_picture']
+        fields = ['nickname', 'profile_picture', 'background_picture','is_private']
+        # is_private : 공개/비공개 상태
+        widgets = {
+            'nickname': forms.TextInput(attrs={'class': 'form-control'}),
+        }
