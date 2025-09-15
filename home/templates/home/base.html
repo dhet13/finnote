@@ -285,6 +285,146 @@
             color: #536471;
             font-size: 14px;
         }
+        /* 새 포스트 페이드인 애니메이션 */
+        .post-card.fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* 모바일 터치 친화적 버튼 */
+        @media (max-width: 768px) {
+            #trading-journal-btn, #image-upload-btn {
+                padding: 12px !important;
+                min-width: 44px !important;
+                min-height: 44px !important;
+            }
+            
+            #post-button {
+                padding: 12px 24px !important;
+                font-size: 16px !important;
+                min-height: 44px !important;
+            }
+            
+            #post-content {
+                font-size: 16px !important;
+                min-height: 80px !important;
+            }
+        }
+        /* 좋아요 버튼 스타일 */
+        .material-symbols-outlined.liked {
+            color: #e91e63 !important;
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+        }
+        /* 북마크 버튼 스타일 추가 */
+        .material-symbols-outlined.bookmarked {
+            color: #1d9bf0 !important;
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+        }
+        .material-symbols-outlined {
+            color: #536471;
+        }
+        /* Toast 메시지 스타일 */
+        .toast {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: #e74c3c;
+        }
+
+        .toast.success {
+            background: #27ae60;
+        }
+
+        .toast.warning {
+            background: #f39c12;
+        }
+
+        /* 포스트 메뉴 드롭다운 */
+        .post-menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid #eff3f4;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            width: 180px; /* min-width에서 width로 변경 */
+            z-index: 1000;
+            display: none;
+        }
+
+        .post-menu-dropdown.show {
+            display: block;
+        }
+
+        .menu-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f7f9fa;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .menu-item:hover {
+            background-color: #f7f9fa;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item.danger {
+            color: #e74c3c;
+        }
+
+        .menu-item.danger:hover {
+            background-color: #fef2f2;
+        }
+        .post-menu-btn {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+            position: absolute;
+            top: 12px;   
+            right: 12px; 
+        }
+
+        .post-menu-btn:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        .post-menu-btn .material-symbols-outlined {
+            font-size: 20px;
+            color: #536471;
+        }
     </style>
 </head>
 <body>
