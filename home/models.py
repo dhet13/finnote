@@ -1,11 +1,23 @@
 from django.db import models
 from django.conf import settings
 
+class Tag(models.Model):
+    name = models.CharField(max_length=50, unique=True)  
+    is_default = models.BooleanField(default=False)  
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'tags'
+        ordering = ['-is_default', 'created_at']
+    
+    def __str__(self):
+        return f"#{self.name}"
+
 class JournalPost(models.Model):
 
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-
+    tags = models.ManyToManyField(Tag, blank=True, related_name='posts')
     ASSET_CLASS_CHOICES = [
         ('stock', '주식'),
         ('realestate', '부동산'),
@@ -33,6 +45,7 @@ class JournalPost(models.Model):
         ordering = ['-created_at']
         db_table = 'journal_posts'
 
+
 class Like(models.Model):
     journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='likes')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -50,6 +63,15 @@ class Bookmark(models.Model):
     class Meta:
         unique_together = ('journal', 'user')
         db_table = 'bookmarks_table'
+
+class Share(models.Model):
+    journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='shares')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('journal', 'user')
+        db_table = 'shares_table'
 
 class Comment(models.Model):
     journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='comments')

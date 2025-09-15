@@ -3,6 +3,7 @@
 {% block title %}홈 피드 - FinTech SNS{% endblock %}
 
 {% block content %}
+<div style="display: none;" id="auth-data" data-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"></div>
 
 
 <!-- 탭 영역 -->
@@ -44,14 +45,14 @@
             <!-- 액션 버튼들 -->
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; gap: 16px;">
-                    <a href="{% url 'home:create_trading' %}" style="display: inline-block; padding: 8px; border-radius: 50%; transition: background-color 0.2s; margin-right: 12px; text-decoration: none;" 
+                    <button type="button" id="trading-journal-btn" onclick="openTradingJournal()" style="display: inline-block; padding: 8px; border-radius: 50%; transition: background-color 0.2s; margin-right: 12px; background: none; border: none; cursor: pointer;" 
                     onmouseover="this.style.backgroundColor='rgba(29, 155, 240, 0.1)'" 
                     onmouseout="this.style.backgroundColor='transparent'"
                     title="매매일지 작성">
                         <span class="material-symbols-outlined" style="color: #1d9bf0; font-size: 20px;">assessment</span>
-                    </a>
+                    </button>
 
-                    <button type="button" onclick="document.getElementById('image-input').click()" style="display: inline-block; padding: 8px; border-radius: 50%; transition: background-color 0.2s; background: none; border: none; cursor: pointer;"
+                    <button type="button" id="image-upload-btn" onclick="document.getElementById('image-input').click()" style="display: inline-block; padding: 8px; border-radius: 50%; transition: background-color 0.2s; background: none; border: none; cursor: pointer;"
                     onmouseover="this.style.backgroundColor='rgba(29, 155, 240, 0.1)'" 
                     onmouseout="this.style.backgroundColor='transparent'"
                     title="이미지 첨부">
@@ -71,17 +72,30 @@
 
 <!-- 필터 버튼 -->
 <div style="padding: 12px 16px; border-bottom: 1px solid #eff3f4; background: #f7f9fa;">
-    <div style="display: flex; gap: 8px;">
-        <button onclick="toggleFilter('trading')" id="filter-trading" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;">
-            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">filter_list</span>
-            매매일지만 보기
+    <div style="display: flex; gap: 8px; align-items: center;">
+        <button onclick="toggleFilter('매매일지')" id="filter-매매일지" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;">
+            #매매일지
         </button>
-        <button onclick="toggleFilter('stock')" id="filter-stock" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;">
-            주식
+        <button onclick="toggleFilter('주식')" id="filter-주식" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;">
+            #주식
         </button>
-        <button onclick="toggleFilter('realestate')" id="filter-realestate" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;">
-            부동산
+        <button onclick="toggleFilter('부동산')" id="filter-부동산" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;">
+            #부동산
         </button>
+        
+        <!-- 추가 태그들이 여기 동적으로 생성됩니다 -->
+        <div id="custom-tags-container" style="display: flex; gap: 8px;"></div>
+        
+        <!-- 태그 추가 입력창 -->
+        <div style="display: flex; gap: 4px; align-items: center;">
+            <input type="text" id="tag-input" placeholder="태그 추가" maxlength="10" 
+                style="width: 80px; padding: 4px 8px; border: 1px solid #eff3f4; border-radius: 12px; font-size: 13px;"
+                onkeypress="handleTagInput(event)">
+            <button onclick="addCustomTag()" id="add-tag-btn" 
+                style="background: #1d9bf0; color: white; border: none; padding: 4px 8px; border-radius: 12px; font-size: 12px; cursor: pointer;">
+                추가
+            </button>
+        </div>
     </div>
 </div>
 
@@ -119,24 +133,41 @@
             {% endif %}
             
             <div class="action-buttons">
-                <div class="action-btn">
+                <div class="action-btn" data-action="comments" data-post-id="{{ post.id }}">
                     <span class="material-symbols-outlined">chat_bubble</span>
                     <span>{{ post.comments.count }}</span>
                 </div>
                 
-                <div class="action-btn">
-                    <span class="material-symbols-outlined">favorite</span>
-                    <span>{{ post.likes.count }}</span>
+                <div class="action-btn" data-action="like" data-post-id="{{ post.id }}" id="like-btn-{{ post.id }}">
+                    <span class="material-symbols-outlined" id="like-icon-{{ post.id }}">favorite_border</span>
+                    <span id="likes-count-{{ post.id }}">{{ post.likes.count }}</span>
                 </div>
                 
-                <div class="action-btn">
-                    <span class="material-symbols-outlined">bookmark</span>
+                <div class="action-btn" data-action="bookmark" data-post-id="{{ post.id }}">
+                    <span class="material-symbols-outlined">bookmark_border</span>
                     <span>{{ post.bookmarks.count }}</span>
                 </div>
                 
-                <div class="action-btn">
-                    <span class="material-symbols-outlined">share</span>
-                    <span>0</span>
+                <div class="action-btn" data-action="share" data-post-id="{{ post.id }}" id="share-btn-{{ post.id }}">
+                    <span class="material-symbols-outlined" id="share-icon-{{ post.id }}">share</span>
+                    <span id="shares-count-{{ post.id }}">{{ post.shares.count }}</span>
+                </div>
+            </div>
+            <!-- 댓글 섹션 추가 -->
+            <div class="comments-section" id="comments-{{ post.id }}" style="display: none; margin-top: 15px; border-top: 1px solid #eff3f4; padding-top: 15px;">
+                <!-- 댓글 작성 영역 -->
+                <div class="comment-write" style="display: flex; gap: 8px; margin-bottom: 15px;">
+                    <input type="text" id="comment-input-{{ post.id }}" placeholder="댓글을 입력하세요..." 
+                           style="flex: 1; padding: 8px 12px; border: 1px solid #eff3f4; border-radius: 20px; outline: none;">
+                    <button data-action="submit-comment" data-post-id="{{ post.id }}" 
+                            style="padding: 8px 16px; background: #1d9bf0; color: white; border: none; border-radius: 20px; cursor: pointer;">
+                        작성
+                    </button>
+                </div>
+                
+                <!-- 댓글 목록 -->
+                <div class="comments-list" id="comments-list-{{ post.id }}">
+                    <!-- 댓글들이 여기에 동적으로 추가됩니다 -->
                 </div>
             </div>
         </div>
@@ -158,6 +189,208 @@
 </div>
 
 <script>
+// 매매일지 인터페이스 추상화 레이어
+const TradingJournalInterface = {
+    // 설정 (팀원과 합의된 부분)
+    config: {
+        modalUrl: '/journals/compose/?modal=1',
+        modalWidth: 800,
+        modalHeight: 600
+    },
+    
+    // 모달 열기
+    openModal: function(callback) {
+        this.resultCallback = callback;
+        
+        // 모달 오버레이 생성
+        const overlay = document.createElement('div');
+        overlay.id = 'trading-modal-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        // 모달 컨테이너
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            background: white;
+            border-radius: 8px;
+            width: ${this.config.modalWidth}px;
+            height: ${this.config.modalHeight}px;
+            max-width: 95vw;
+            max-height: 95vh;
+            overflow: hidden;
+            position: relative;
+        `;
+        
+        // iframe으로 매매일지 로드
+        const iframe = document.createElement('iframe');
+        iframe.src = this.config.modalUrl;
+        iframe.style.cssText = `
+            width: 100%;
+            height: 100%;
+            border: none;
+        `;
+        
+        // 닫기 버튼
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1;
+            color: #666;
+        `;
+        closeBtn.onclick = () => this.closeModal();
+        
+        modal.appendChild(iframe);
+        modal.appendChild(closeBtn);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // ESC 키로 닫기
+        this.keyHandler = (e) => {
+            if (e.key === 'Escape') this.closeModal();
+        };
+        document.addEventListener('keydown', this.keyHandler);
+        
+        console.log('매매일지 모달 열림');
+    },
+    
+    // 모달 닫기
+    closeModal: function() {
+        const overlay = document.getElementById('trading-modal-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+        if (this.keyHandler) {
+            document.removeEventListener('keydown', this.keyHandler);
+        }
+        console.log('매매일지 모달 닫힘');
+    },
+    
+    // 완료 결과 처리 (팀원 시스템에서 호출)
+    onComplete: function(result) {
+        if (this.resultCallback) {
+            this.resultCallback(result);
+        }
+        this.closeModal();
+    },
+    
+    // 팀원과의 인터페이스 (postMessage 수신)
+    setupMessageListener: function() {
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'trading-journal-complete') {
+                this.onComplete(event.data.payload);
+            }
+        });
+    }
+};
+// 포스트 상태 관리
+const PostStateManager = {
+    currentState: 'none', // 'none', 'image', 'trading'
+    
+    setState: function(newState) {
+        this.currentState = newState;
+        this.updateUI();
+    },
+    
+    updateUI: function() {
+        const tradingBtn = document.getElementById('trading-journal-btn');
+        const imageBtn = document.getElementById('image-upload-btn');
+        const postBtn = document.getElementById('post-button');
+        
+        if (this.currentState === 'trading') {
+            // 매매일지 선택됨
+            tradingBtn.style.opacity = '1';
+            imageBtn.style.opacity = '0.3';
+            imageBtn.style.pointerEvents = 'none';
+            this.showPrivacyToggle();
+        } else if (this.currentState === 'image') {
+            // 이미지 선택됨  
+            imageBtn.style.opacity = '1';
+            tradingBtn.style.opacity = '0.3';
+            tradingBtn.style.pointerEvents = 'none';
+            this.hidePrivacyToggle();
+        } else {
+            // 아무것도 선택 안됨
+            tradingBtn.style.opacity = '1';
+            tradingBtn.style.pointerEvents = 'auto';
+            imageBtn.style.opacity = '1';
+            imageBtn.style.pointerEvents = 'auto';
+            this.hidePrivacyToggle();
+        }
+        
+        this.updatePostButton();
+    },
+    
+    updatePostButton: function() {
+        const textarea = document.getElementById('post-content');
+        const postBtn = document.getElementById('post-button');
+        const hasContent = textarea.value.trim().length > 0;
+        const hasAttachment = this.currentState !== 'none';
+        
+        if (hasContent || hasAttachment) {
+            postBtn.disabled = false;
+            postBtn.style.opacity = '1';
+        } else {
+            postBtn.disabled = true;
+            postBtn.style.opacity = '0.5';
+        }
+    },
+    
+    showPrivacyToggle: function() {
+        let toggle = document.getElementById('privacy-toggle');
+        if (!toggle) {
+            toggle = document.createElement('div');
+            toggle.id = 'privacy-toggle';
+            toggle.innerHTML = `
+                <label style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px;">
+                    <input type="checkbox" id="private-post" style="margin: 0;">
+                    <span>나만보기</span>
+                </label>
+            `;
+            const form = document.querySelector('form[action*="create_simple_post"]');
+            form.insertBefore(toggle, form.lastElementChild);
+        }
+        toggle.style.display = 'block';
+    },
+    
+    hidePrivacyToggle: function() {
+        const toggle = document.getElementById('privacy-toggle');
+        if (toggle) {
+            toggle.style.display = 'none';
+        }
+    }
+};
+
+// 매매일지 열기 함수
+function openTradingJournal() {
+    TradingJournalInterface.openModal(function(result) {
+        // 매매일지 완료시 콜백
+        console.log('매매일지 완료:', result);
+        PostStateManager.setState('trading');
+        // TODO: 매매일지 카드 표시
+    });
+}
+// 페이지 로드시 메시지 리스너 설정
+document.addEventListener('DOMContentLoaded', function() {
+    TradingJournalInterface.setupMessageListener();
+});
+
 // 탭 전환 기능
 function switchTab(tabType) {
     // 모든 탭 비활성화
@@ -176,18 +409,7 @@ function switchTab(tabType) {
 
 // 포스트 버튼 활성화/비활성화
 function togglePostButton() {
-    const textarea = document.getElementById('post-content');
-    const button = document.getElementById('post-button');
-    
-    if (textarea.value.trim().length > 0) {
-        button.disabled = false;
-        button.style.opacity = '1';
-        button.style.cursor = 'pointer';
-    } else {
-        button.disabled = true;
-        button.style.opacity = '0.5';
-        button.style.cursor = 'not-allowed';
-    }
+    PostStateManager.updatePostButton(); 
 }
 
 // 이미지 미리보기
@@ -201,6 +423,7 @@ function previewImage(input) {
         reader.onload = function(e) {
             img.src = e.target.result;
             preview.style.display = 'block';
+            PostStateManager.setState('image');
         }
         
         reader.readAsDataURL(input.files[0]);
@@ -211,47 +434,90 @@ function previewImage(input) {
 function removeImage() {
     document.getElementById('image-input').value = '';
     document.getElementById('image-preview').style.display = 'none';
+    PostStateManager.setState('none');
 }
 
 // 필터 상태 관리
 let activeFilters = [];
+let customTags = [];
+const MAX_CUSTOM_TAGS = 3;
 
-function toggleFilter(type) {
-    const button = document.getElementById(`filter-${type}`);
+function toggleFilter(tagName) {
+    const button = document.getElementById(`filter-${tagName}`);
     
-    // 필터 토글
-    if (activeFilters.includes(type)) {
-        // 비활성화
-        activeFilters = activeFilters.filter(f => f !== type);
+    if (activeFilters.includes(tagName)) {
+        activeFilters = activeFilters.filter(f => f !== tagName);
         button.style.background = '#ffffff';
         button.style.color = '#0f1419';
     } else {
-        // 활성화
-        activeFilters.push(type);
+        activeFilters.push(tagName);
         button.style.background = '#1d9bf0';
         button.style.color = '#ffffff';
     }
     
-    // 포스트 필터링
-    const posts = document.querySelectorAll('.post-card');
-    posts.forEach(post => {
-        if (activeFilters.length === 0) {
-            // 필터 없으면 모두 표시
-            post.style.display = 'block';
-        } else {
-            // 활성화된 필터 중 하나라도 맞으면 표시
-            const postType = post.dataset.postType;
-            
-            let shouldShow = false;
-            if (activeFilters.includes('trading') && postType === 'stock') shouldShow = true;
-            if (activeFilters.includes('stock') && postType === 'stock') shouldShow = true;
-            if (activeFilters.includes('realestate') && postType === 'realestate') shouldShow = true;
-            
-            post.style.display = shouldShow ? 'block' : 'none';
-        }
+    applyFilters();
+}
+function handleTagInput(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        addCustomTag();
+    }
+}
+
+function addCustomTag() {
+    const input = document.getElementById('tag-input');
+    const tagName = input.value.trim();
+    
+    if (!tagName) return;
+    if (customTags.length >= MAX_CUSTOM_TAGS) {
+        alert('최대 3개까지만 추가할 수 있습니다.');
+        return;
+    }
+    if (customTags.includes(tagName) || ['매매일지', '주식', '부동산'].includes(tagName)) {
+        alert('이미 존재하는 태그입니다.');
+        return;
+    }
+    
+    customTags.push(tagName);
+    renderCustomTags();
+    input.value = '';
+}
+
+function renderCustomTags() {
+    const container = document.getElementById('custom-tags-container');
+    container.innerHTML = '';
+    
+    customTags.forEach(tagName => {
+        const tagButton = document.createElement('button');
+        tagButton.innerHTML = `#${tagName} <span onclick="removeCustomTag('${tagName}')" style="margin-left: 4px;">×</span>`;
+        tagButton.id = `filter-${tagName}`;
+        tagButton.onclick = () => toggleFilter(tagName);
+        tagButton.style.cssText = 'background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;';
+        container.appendChild(tagButton);
     });
 }
 
+function removeCustomTag(tagName) {
+    customTags = customTags.filter(tag => tag !== tagName);
+    renderCustomTags();
+    
+    const index = activeFilters.indexOf(tagName);
+    if (index > -1) {
+        activeFilters.splice(index, 1);
+        applyFilters();
+    }
+}
+
+function applyFilters() {
+    const posts = document.querySelectorAll('.post-card');
+    posts.forEach(post => {
+        if (activeFilters.length === 0) {
+            post.style.display = 'block';
+        } else {
+            post.style.display = 'none';  // 임시로 숨김 (나중에 실제 태그 매칭 구현)
+        }
+    });
+}
 // 이미지 모달 열기
 function openImageModal(imageSrc) {
     const modal = document.getElementById('image-modal');
@@ -417,6 +683,532 @@ if (carousel) {
 }
 document.addEventListener('DOMContentLoaded', function() {
     showSlide(0);
+});
+// CSRF 토큰 가져오기 함수 
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+// 사용자 인증 확인 함수
+function isUserAuthenticated() {
+    const authData = document.getElementById('auth-data');
+    return authData.getAttribute('data-authenticated') === 'true';
+}
+
+// 좋아요 토글 함수
+function toggleLike(postId) {
+    if (!isUserAuthenticated()) {
+        alert('로그인이 필요합니다.');
+        return;
+    }
+
+    const likeBtn = document.getElementById('like-btn-' + postId);
+    const likeIcon = document.getElementById('like-icon-' + postId);
+    const likesCount = document.getElementById('likes-count-' + postId);
+    
+    const isCurrentlyLiked = likeIcon.textContent === 'favorite';
+    
+    // 낙관적 업데이트
+    likeIcon.textContent = isCurrentlyLiked ? 'favorite_border' : 'favorite';
+    likeIcon.style.color = isCurrentlyLiked ? '#536471' : '#e91e63';
+    
+    const currentCount = parseInt(likesCount.textContent);
+    likesCount.textContent = isCurrentlyLiked ? currentCount - 1 : currentCount + 1;
+    
+    // 서버 요청
+    fetch('/home/post/' + postId + '/like/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        likeIcon.textContent = data.liked ? 'favorite' : 'favorite_border';
+        likeIcon.style.color = data.liked ? '#e91e63' : '#536471';
+        likesCount.textContent = data.likes_count;
+    })
+    .catch(error => {
+        console.error('오류:', error);
+        likeIcon.textContent = isCurrentlyLiked ? 'favorite' : 'favorite_border';
+        likeIcon.style.color = isCurrentlyLiked ? '#e91e63' : '#536471';
+        likesCount.textContent = currentCount;
+        alert('오류가 발생했습니다.');
+    });
+}
+// 북마크 토글 함수
+function toggleBookmark(postId) {
+    if (!isUserAuthenticated()) {
+        alert('로그인이 필요합니다.');
+        return;
+    }
+
+    const bookmarkBtn = document.querySelector('[data-post-id="' + postId + '"][data-action="bookmark"]');
+    const bookmarkIcon = bookmarkBtn.querySelector('.material-symbols-outlined');
+    const bookmarksCount = bookmarkBtn.querySelector('span:last-child');
+    
+    const isCurrentlyBookmarked = bookmarkIcon.textContent === 'bookmark';
+    
+    // 낙관적 업데이트
+    bookmarkIcon.textContent = isCurrentlyBookmarked ? 'bookmark_border' : 'bookmark';
+    bookmarkIcon.style.color = isCurrentlyBookmarked ? '#536471' : '#1d9bf0';
+    
+    const currentCount = parseInt(bookmarksCount.textContent);
+    bookmarksCount.textContent = isCurrentlyBookmarked ? currentCount - 1 : currentCount + 1;
+    
+    // 서버 요청
+    fetch('/home/post/' + postId + '/bookmark/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        bookmarkIcon.textContent = data.bookmarked ? 'bookmark' : 'bookmark_border';
+        bookmarkIcon.style.color = data.bookmarked ? '#1d9bf0' : '#536471';
+        bookmarksCount.textContent = data.bookmarks_count;
+    })
+    .catch(error => {
+        console.error('오류:', error);
+        bookmarkIcon.textContent = isCurrentlyBookmarked ? 'bookmark' : 'bookmark_border';
+        bookmarkIcon.style.color = isCurrentlyBookmarked ? '#1d9bf0' : '#536471';
+        bookmarksCount.textContent = currentCount;
+        alert('북마크 처리 중 오류가 발생했습니다.');
+    });
+}   
+// 댓글 토글 함수 (댓글 섹션 열기/닫기)
+function toggleComments(postId) {
+    const commentsSection = document.getElementById('comments-' + postId);
+    
+    if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
+        commentsSection.style.display = 'block';
+        loadComments(postId);
+    } else {
+        commentsSection.style.display = 'none';
+    }
+}
+
+// 댓글 목록 로드
+function loadComments(postId) {
+    fetch('/home/post/' + postId + '/comments/')
+    .then(response => response.json())
+    .then(data => {
+        displayComments(postId, data.comments);
+    })
+    .catch(error => {
+        console.error('댓글 로드 오류:', error);
+    });
+}
+
+// 댓글 제출
+function submitComment(postId) {
+    if (!isUserAuthenticated()) {
+        alert('로그인이 필요합니다.');
+        return;
+    }
+    
+    const commentInput = document.getElementById('comment-input-' + postId);
+    const content = commentInput.value.trim();
+    
+    if (!content) {
+        alert('댓글 내용을 입력해주세요.');
+        return;
+    }
+    
+    fetch('/home/post/' + postId + '/comment/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
+        },
+        body: JSON.stringify({
+            content: content
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.comment_id) {
+            commentInput.value = '';
+            const commentsCountElement = document.querySelector(`[data-post-id="${postId}"][data-action="comments"] span:last-child`);
+            commentsCountElement.textContent = data.comments_count;
+            loadComments(postId);
+        } else {
+            alert(data.error || '댓글 작성 중 오류가 발생했습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('댓글 작성 오류:', error);
+        alert('댓글 작성 중 오류가 발생했습니다.');
+    });
+}
+
+// 댓글 표시
+function displayComments(postId, comments) {
+    const commentsList = document.getElementById('comments-list-' + postId);
+    
+    if (comments.length === 0) {
+        commentsList.innerHTML = '<div style="color: #536471; text-align: center; padding: 20px;">아직 댓글이 없습니다.</div>';
+        return;
+    }
+    
+    let commentsHTML = '';
+    comments.forEach(comment => {
+        commentsHTML += `
+            <div class="comment" style="margin-bottom: 12px; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-weight: bold; color: #0f1419;">${comment.username}</span>
+                    <span style="color: #536471; font-size: 12px;">${comment.created_at}</span>
+                </div>
+                <div style="color: #0f1419; line-height: 1.4;">${comment.content}</div>
+            </div>
+        `;
+    });
+    
+    commentsList.innerHTML = commentsHTML;
+}
+// 공유 기능
+function sharePost(postId) {
+    if (!isUserAuthenticated()) {
+        alert('로그인이 필요합니다.');
+        return;
+    }
+    
+    // 먼저 공유 카운트 증가 (사용자당 1회)
+    toggleShareCount(postId);
+    
+    // 그 다음 공유 도구 제공
+    const postUrl = window.location.origin + '/post/' + postId + '/';
+    showShareOptions(postUrl);
+}
+
+// 공유 카운트 토글 (사용자당 1회)
+function toggleShareCount(postId) {
+    fetch('/post/' + postId + '/share/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        const sharesCount = document.getElementById('shares-count-' + postId);
+        sharesCount.textContent = data.shares_count;
+        
+        // 공유 상태에 따라 아이콘 색상 변경
+        const shareIcon = document.getElementById('share-icon-' + postId);
+        shareIcon.style.color = data.shared ? '#1d9bf0' : '#536471';
+    })
+    .catch(error => {
+        console.error('공유 카운트 오류:', error);
+    });
+}
+
+// 공유 도구 모달 표시
+function showShareOptions(postUrl) {
+    const shareOptions = [
+        { name: 'KakaoTalk', icon: '💬', color: '#FEE500', textColor: '#3C1E1E', action: () => shareToKakao(postUrl) },
+        { name: 'Instagram', icon: '📷', color: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', textColor: '#ffffff', action: () => shareToInstagram(postUrl) },
+        { name: 'Twitter', icon: '🐦', color: '#1DA1F2', textColor: '#ffffff', action: () => shareToTwitter(postUrl) },
+        { name: 'URL 복사', icon: '🔗', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', textColor: '#ffffff', action: () => copyToClipboard(postUrl) }
+    ];
+    
+    let optionsHtml = `
+    <div style="padding: 32px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 20px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 24px; margin-bottom: 8px;">✨</div>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: #2d3748; letter-spacing: -0.5px;">공유하기</h3>
+            <p style="margin: 8px 0 0 0; color: #718096; font-size: 14px;">친구들과 이 포스트를 공유해보세요!</p>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+    `;
+    
+    shareOptions.forEach((option, index) => {
+        optionsHtml += `
+            <button onclick="handleShareOption(${index})" 
+                style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px 16px;
+                    background: ${option.color};
+                    color: ${option.textColor};
+                    border: none;
+                    border-radius: 16px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    position: relative;
+                    overflow: hidden;
+                "
+                onmouseover="
+                    this.style.transform='translateY(-2px) scale(1.02)';
+                    this.style.boxShadow='0 8px 25px rgba(0,0,0,0.25)';
+                "
+                onmouseout="
+                    this.style.transform='translateY(0) scale(1)';
+                    this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)';
+                "
+                onmousedown="this.style.transform='translateY(-1px) scale(0.98)'"
+                onmouseup="this.style.transform='translateY(-2px) scale(1.02)'"
+            >
+                <div style="font-size: 24px; margin-bottom: 8px;">${option.icon}</div>
+                <div style="font-size: 13px; font-weight: 600;">${option.name}</div>
+            </button>
+        `;
+    });
+    
+    optionsHtml += `
+        </div>
+        <button onclick="closeShareModal()" 
+            style="
+                width: 100%;
+                padding: 14px;
+                background: rgba(255,255,255,0.9);
+                color: #4a5568;
+                border: 2px solid rgba(255,255,255,0.3);
+                border-radius: 12px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                backdrop-filter: blur(10px);
+            "
+            onmouseover="
+                this.style.background='rgba(255,255,255,1)';
+                this.style.transform='translateY(-1px)';
+            "
+            onmouseout="
+                this.style.background='rgba(255,255,255,0.9)';
+                this.style.transform='translateY(0)';
+            "
+        >
+            닫기
+        </button>
+    </div>
+    `;
+    
+    // 공유 모달 생성
+    const shareModal = document.createElement('div');
+    shareModal.id = 'share-modal';
+    shareModal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    `;
+    
+    const shareContent = document.createElement('div');
+    shareContent.style.cssText = `
+        background: transparent;
+        border-radius: 20px;
+        max-width: 360px;
+        width: 90%;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-origin: center;
+    `;
+    shareContent.innerHTML = optionsHtml;
+    
+    shareModal.appendChild(shareContent);
+    
+    // CSS 애니메이션 추가
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes modalSlideIn {
+            from { 
+                transform: scale(0.7) translateY(20px);
+                opacity: 0;
+            }
+            to { 
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+        @keyframes modalSlideOut {
+            from { 
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+            to { 
+                transform: scale(0.7) translateY(-20px);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(shareModal);
+    
+    // 전역에서 접근 가능하도록 저장
+    window.currentShareOptions = shareOptions;
+    
+    // 모달 외부 클릭시 닫기 (애니메이션 포함)
+    shareModal.addEventListener('click', function(e) {
+        if (e.target === shareModal) {
+            closeShareModalWithAnimation();
+        }
+    });
+    
+    // ESC 키로 닫기
+    const handleEsc = (e) => {
+        if (e.key === 'Escape') {
+            closeShareModalWithAnimation();
+            document.removeEventListener('keydown', handleEsc);
+        }
+    };
+    document.addEventListener('keydown', handleEsc);
+}
+
+// 애니메이션과 함께 모달 닫기
+function closeShareModalWithAnimation() {
+    const modal = document.getElementById('share-modal');
+    const content = modal?.querySelector('div');
+    
+    if (modal && content) {
+        modal.style.animation = 'modalFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+        content.style.animation = 'modalSlideOut 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+        
+        setTimeout(() => {
+            closeShareModal();
+        }, 200);
+    }
+}
+
+// 기존 closeShareModal 함수 수정
+function closeShareModal() {
+    const modal = document.getElementById('share-modal');
+    if (modal) {
+        modal.remove();
+    }
+    window.currentShareOptions = null;
+}
+
+// 카카오톡 공유
+function shareToKakao(postUrl) {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+        // 모바일에서는 카카오톡 URL 스킴 사용
+        const kakaoUrl = `kakaotalk://send?text=${encodeURIComponent('FinTech SNS에서 흥미로운 포스트를 발견했습니다! ' + postUrl)}`;
+        window.location.href = kakaoUrl;
+        
+        // 카카오톡 앱이 없을 경우 대체 방법
+        setTimeout(() => {
+            copyToClipboard(postUrl);
+            alert('카카오톡 앱으로 연결할 수 없습니다. URL이 복사되었으니 카카오톡에서 직접 붙여넣기 하세요.');
+        }, 1000);
+    } else {
+        // 데스크탑에서는 URL 복사 후 안내
+        copyToClipboard(postUrl);
+        alert('URL이 복사되었습니다. 카카오톡에서 붙여넣기 하여 공유하세요.');
+    }
+    
+    closeShareModal();
+}
+
+// Instagram 공유
+function shareToInstagram(postUrl) {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+        // 모바일에서는 Instagram 앱으로 연결 시도
+        const instagramUrl = `instagram://library?AssetPath=${encodeURIComponent(postUrl)}`;
+        window.location.href = instagramUrl;
+        
+        setTimeout(() => {
+            copyToClipboard(postUrl);
+            alert('Instagram 앱으로 연결할 수 없습니다. URL이 복사되었으니 Instagram에서 직접 붙여넣기 하세요.');
+        }, 1000);
+    } else {
+        copyToClipboard(postUrl);
+        alert('URL이 복사되었습니다. Instagram 웹사이트나 앱에서 붙여넣기 하여 공유하세요.');
+    }
+    
+    closeShareModal();
+}
+
+// Twitter 공유
+function shareToTwitter(postUrl) {
+    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent('FinTech SNS에서 흥미로운 포스트를 발견했습니다!')}`;
+    window.open(twitterUrl, '_blank');
+    closeShareModal();
+}
+
+// URL 클립보드 복사
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('URL이 클립보드에 복사되었습니다!');
+        closeShareModal();
+    }).catch(err => {
+        console.error('복사 실패:', err);
+        alert('복사에 실패했습니다.');
+    });
+}
+
+// 공유 옵션 처리
+function handleShareOption(index) {
+    if (window.currentShareOptions && window.currentShareOptions[index]) {
+        window.currentShareOptions[index].action();
+    }
+}
+
+// 공유 모달 닫기
+function closeShareModal() {
+    const modal = document.getElementById('share-modal');
+    if (modal) {
+        modal.remove();
+    }
+    window.currentShareOptions = null;
+}
+// 이벤트 리스너 등록
+document.addEventListener('DOMContentLoaded', function() {
+    showSlide(0);  // 기존 함수 유지
+    
+    // 모든 action 버튼에 클릭 이벤트 추가
+    document.querySelectorAll('.action-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const action = this.getAttribute('data-action');
+            const postId = this.getAttribute('data-post-id');
+            
+            if (action === 'like') {
+                toggleLike(postId);
+            } else if (action === 'comments') {
+                toggleComments(postId);
+
+            } else if (action === 'bookmark') {
+                toggleBookmark(postId);
+
+            } else if (action === 'share') {
+                sharePost(postId);
+            }
+        });
+    });
+    // 댓글 작성 버튼들
+    document.querySelectorAll('[data-action="submit-comment"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const postId = this.getAttribute('data-post-id');
+            submitComment(postId);
+        });
+    });
 });
 </script>
 {% endblock %}

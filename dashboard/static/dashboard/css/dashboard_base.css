@@ -1,0 +1,76 @@
+/* 대시보드 기본 레이아웃 CSS */
+
+/* 메인 대시보드 컨테이너 */
+.main-dashboard {
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* 전체 화면 높이 */
+    overflow: hidden; /* 스크롤을 피드 영역에서만 처리 */
+}
+
+/* 대시보드 헤더 */
+.dashboard-header {
+    flex-shrink: 0;
+    padding: 20px;
+    border-bottom: 1px solid #eff3f4;
+    height: 30px;
+}
+
+/* 대시보드 탭 메뉴 */
+.dashboard-tabs {
+    margin: 0px 0 !important;
+    padding: 0px 10px !important;
+    border-bottom: 1px solid #eff3f4;
+    height: 60px; /* 원하는 높이로 조정 가능 */
+    display: flex;
+    align-items: center;
+}
+
+/* 대시보드 콘텐츠 영역 */
+#dashboard-content {
+    flex: 1;
+    padding: 20px;
+    overflow: visible; /* 스크롤을 하위 요소에서 처리 */
+    height: calc(100vh - 200px) !important;
+    min-height: 400px !important;
+    max-height: calc(100vh - 200px) !important;
+}
+
+/* 탭 네비게이션 */
+.nav {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-item {
+    margin-right: 32px;
+}
+
+.nav-link {
+    text-decoration: none;
+    padding: 12px 0;
+    display: block;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    color: #1d9bf0 !important;
+}
+
+.nav-link.active {
+    color: #1d9bf0 !important;
+    font-weight: 600 !important;
+}
+
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #1d9bf0;
+}

@@ -1,0 +1,204 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="stock-detail-container">
+    <!-- 주식 정보 헤더 -->
+    <div class="stock-detail-header">
+        <div class="stock-header-left">
+            <h1 class="stock-name">{{ stock_name }}</h1>
+            <p class="stock-subtitle">개별 주식 상세 정보</p>
+        </div>
+        <div class="stock-header-right">
+            <div class="stock-price">
+                <span class="current-price">준비 중</span>
+                <span class="price-change preparing">개발 중</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 개발 중 메시지 -->
+    <div class="development-notice">
+        <div class="notice-icon">🚧</div>
+        <div class="notice-content">
+            <h2>페이지 개발 중입니다</h2>
+            <p><strong>{{ stock_name }}</strong>의 상세 정보 페이지를 준비하고 있습니다.</p>
+            <p>곧 다음과 같은 기능들을 제공할 예정입니다:</p>
+            <ul>
+                <li>실시간 주가 정보</li>
+                <li>차트 및 기술적 분석</li>
+                <li>재무 정보</li>
+                <li>뉴스 및 공시</li>
+                <li>투자 의견 및 분석</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 뒤로 가기 버튼 -->
+    <div class="back-button-container">
+        <button onclick="history.back()" class="back-button">
+            ← 포트폴리오로 돌아가기
+        </button>
+    </div>
+</div>
+
+<style>
+.stock-detail-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.stock-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e1e8ed;
+}
+
+.stock-header-left {
+    flex: 1;
+}
+
+.stock-name {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f1419;
+    margin: 0 0 8px 0;
+}
+
+.stock-subtitle {
+    font-size: 16px;
+    color: #536471;
+    margin: 0;
+}
+
+.stock-header-right {
+    text-align: right;
+}
+
+.stock-price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.current-price {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f1419;
+}
+
+.price-change {
+    font-size: 14px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.price-change.preparing {
+    background-color: #f7f9fa;
+    color: #536471;
+}
+
+.development-notice {
+    background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.notice-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.notice-content h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #92400e;
+    margin: 0 0 16px 0;
+}
+
+.notice-content p {
+    font-size: 16px;
+    color: #a16207;
+    margin: 0 0 16px 0;
+    line-height: 1.5;
+}
+
+.notice-content ul {
+    text-align: left;
+    max-width: 400px;
+    margin: 0 auto;
+    color: #a16207;
+}
+
+.notice-content li {
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.back-button-container {
+    text-align: center;
+}
+
+.back-button {
+    background: #1d9bf0;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.back-button:hover {
+    background: #1a8cd8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(29, 155, 240, 0.3);
+}
+
+.back-button:active {
+    transform: translateY(0);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .stock-detail-header {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .stock-header-right {
+        text-align: left;
+    }
+    
+    .stock-price {
+        align-items: flex-start;
+    }
+    
+    .development-notice {
+        padding: 20px;
+    }
+    
+    .notice-content h2 {
+        font-size: 20px;
+    }
+    
+    .stock-name {
+        font-size: 24px;
+    }
+}
+</style>
+{% endblock %}

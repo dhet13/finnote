@@ -4,7 +4,8 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_http_methods
 from django.utils.dateparse import parse_date
-from django.db import transaction
+from django.db import transaction, models
+from django.db.models import Q
 from decimal import Decimal
 
 from decouple import config
@@ -48,6 +49,70 @@ def my_journal_list(request):
 
 
 @require_http_methods(["GET"])
+def stock_search_api(request):
+    """
+    GET /api/stock/search/?q=...
+    Searches for stocks by ticker or name from the local DB.
+    This is optimized for speed and does not fetch real-time data.
+    """
+    query = request.GET.get('q', '').strip()
+
+    if not query or len(query) < 1:
+        return JsonResponse({'results': []})
+
+    # Search in both ticker and name, case-insensitive, from our local database
+    stocks = StockInfo.objects.filter(
+        Q(ticker_symbol__icontains=query) | Q(stock_name__icontains=query)
+    ).values('ticker_symbol', 'stock_name')[:10]  # Limit to 10 results
+
+    # Format the results to match the frontend expectation ('ticker' and 'name')
+    results = [
+        {'ticker': stock['ticker_symbol'], 'name': stock['stock_name']}
+        for stock in stocks
+    ]
+
+    return JsonResponse({'results': results})
+
+
+@login_required
+@require_http_methods(["GET"])
+def portfolio_summary_api(request):
+    """
+    GET /api/stock/portfolio-summary/?ticker=...
+    Returns summary data for a user's existing stock journal.
+    """
+    ticker = request.GET.get('ticker', '').strip().upper()
+    if not ticker:
+        return JsonResponse({'error': 'Ticker is required'}, status=400)
+
+    try:
+        journal = StockJournal.objects.get(
+            user=request.user,
+            ticker_symbol__ticker_symbol=ticker
+        )
+        # If journal is found, return its data
+        data = {
+            'net_quantity': journal.net_qty,
+            'average_buy_price': journal.avg_buy_price,
+            'average_sell_price': journal.avg_sell_price,
+            'realized_pnl': journal.realized_pnl,
+            'return_rate': journal.return_rate,
+            'status': journal.status,
+        }
+        return JsonResponse(data)
+    except StockJournal.DoesNotExist:
+        # If no journal exists for this user/ticker, return empty/zeroed data
+        return JsonResponse({
+            'net_quantity': 0,
+            'average_buy_price': None,
+            'average_sell_price': None,
+            'realized_pnl': None,
+            'return_rate': None,
+            'status': 'new',  # A custom status to indicate no position
+        })
+
+
+@require_http_methods(["GET"])
 def stock_card_details_api(request, ticker):
     """
     GET /api/stock/<ticker>/card-details/
@@ -62,7 +127,7 @@ def stock_card_details_api(request, ticker):
         # Using 'fast_info' is quicker than history for current price
         info = t.fast_info
         last_close = info.get('lastPrice')
-        prev_close = info.get('previousClose')
+        prev_close = info.get('previousPrice') # Corrected: 'previousClose' to 'previousPrice'
         stock_name = info.get('longName', ticker.upper())
 
         if last_close is None or prev_close is None:
@@ -81,22 +146,8 @@ def stock_card_details_api(request, ticker):
         if not hist_30d.empty:
             sparkline_data = hist_30d['Close'].tolist()
 
-        # Fetch logo from API Ninjas
+        # Simplified: No logo fetching for now to isolate syntax error
         logo_url = f"https://via.placeholder.com/32?text={ticker[0]}"  # Default placeholder
-        api_key = config('API_NINJAS_KEY', default=None)
-        if api_key:
-            api_url = f'https://api.api-ninjas.com/v1/logo?name={stock_name}'
-            headers = {'X-Api-Key': api_key}
-            try:
-                response = requests.get(api_url, headers=headers, timeout=5)
-                if response.status_code == 200 and response.json():
-                    # Assuming the first result is the most relevant
-                    logo_data = response.json()
-                    if logo_data and logo_data[0].get('image'):
-                        logo_url = logo_data[0]['image']
-            except requests.exceptions.RequestException as e:
-                # Log the error, but don't fail the whole request
-                print(f"Could not fetch logo for {stock_name}: {e}")
 
         return JsonResponse({
             'ticker': ticker.upper(),
@@ -112,7 +163,8 @@ def stock_card_details_api(request, ticker):
 
 @require_http_methods(["GET"])
 def stock_quote_api(request):
-    """GET /api/stock/quote?ticker=XXXX"""
+    """
+    GET /api/stock/quote?ticker=XXXX"""
     ticker = request.GET.get('ticker')
     if not ticker:
         return JsonResponse({'error': 'Ticker symbol is required.'}, status=400)
@@ -167,59 +219,104 @@ def stock_history_api(request, ticker):
         return JsonResponse({'error': f'Failed to fetch historical data: {e}'}, status=502)
 
 
+@login_required
 @require_http_methods(["POST"])
 def stock_journals_api(request):
-    """POST /api/stock/journals
-    Expects JSON: { title, content, ticker, target_price, stop_price }
+    """
+    Creates a stock journal, its trades, and a post from a single request.
     """
     try:
         payload = json.loads(request.body or '{}')
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON body.'}, status=400)
 
-    title = (payload.get('title') or '').strip()
+    # Extract fields from payload
+    ticker = (payload.get('ticker_symbol') or '').strip().upper()
+    legs_data = payload.get('legs')
+    visibility = (payload.get('visibility', 'private') or '').strip()
     content = (payload.get('content') or '').strip()
-    ticker = (payload.get('ticker') or '').strip().upper()
+    screenshot_url = (payload.get('screenshot_url') or '').strip()
+    title = (payload.get('title') or f"{ticker} 매매일지").strip()
+
+    # Validate required fields
+    if not ticker or not legs_data or not isinstance(legs_data, list):
+        return JsonResponse({'error': 'ticker_symbol and a list of legs are required.'}, status=400)
+
     try:
         target_price = Decimal(str(payload.get('target_price')))
         stop_price = Decimal(str(payload.get('stop_price')))
-    except Exception:
-        return JsonResponse({'error': 'Invalid target/stop price.'}, status=400)
+    except (TypeError, ValueError, models.Decimal.InvalidOperation):
+        return JsonResponse({'error': 'Invalid target_price or stop_price.'}, status=400)
 
-    if not (title and ticker):
-        return JsonResponse({'error': 'Title and ticker are required.'}, status=400)
-
-    # Demo user fallback (for dev without auth)
-    from django.contrib.auth import get_user_model
-    if request.user.is_authenticated:
-        user = request.user
-    else:
-        User = get_user_model()
-        user, _ = User.objects.get_or_create(username='demo', defaults={'is_active': True})
+    user = request.user
 
     with transaction.atomic():
         stock_info, _ = StockInfo.objects.get_or_create(
             ticker_symbol=ticker,
-            defaults={'stock_name': ticker}
+            defaults={'stock_name': ticker}  # Default name, can be updated later
         )
+
         journal = StockJournal.objects.create(
             user=user,
             ticker_symbol=stock_info,
             target_price=target_price,
             stop_price=stop_price,
         )
+
+        # Create trades from legs
+        for leg in legs_data:
+            side = (leg.get('side') or '').upper()
+            trade_date = parse_date(leg.get('date') or '')
+            if not (side in StockTrade.Side.values and trade_date):
+                # This will roll back the transaction
+                raise ValueError('Invalid leg data: side and date are required.')
+
+            try:
+                price_per_share = Decimal(str(leg.get('price_per_share')))
+                quantity = Decimal(str(leg.get('quantity')))
+                if quantity <= 0:
+                    raise ValueError("Quantity must be positive.")
+            except (TypeError, ValueError, models.Decimal.InvalidOperation) as e:
+                raise ValueError(f'Invalid price or quantity in leg: {e}')
+
+            # The StockTrade.save() method automatically triggers journal recalculation
+            StockTrade.objects.create(
+                journal=journal,
+                user=user,
+                ticker_symbol=stock_info,
+                side=side,
+                trade_date=trade_date,
+                price_per_share=price_per_share,
+                quantity=quantity,
+                fee_rate=leg.get('fee_rate'),
+                tax_rate=leg.get('tax_rate'),
+            )
+
+        # Create the associated post
         post = JournalPost.objects.create(
             user=user,
             asset_class=JournalPost.AssetClass.STOCK,
             stock_journal=journal,
+            visibility=visibility,
             title=title,
             content=content,
+            screenshot_url=screenshot_url,
         )
 
+    # Reload the journal to get the final aggregated values
+    journal.refresh_from_db()
+
     card_html = render_to_string('_card_stock.html', {'post': post})
-    return JsonResponse({'post_id': post.id, 'card_html': card_html}, status=201)
+    return JsonResponse({
+        'post_id': post.id,
+        'card_html': card_html,
+        'journal_status': journal.status,
+        'realized_pnl': journal.realized_pnl,
+        'net_qty': journal.net_qty,
+    }, status=201)
 
 
+@login_required
 @require_http_methods(["POST"])
 @transaction.atomic
 def add_stock_trade_api(request, journal_id):
@@ -228,14 +325,7 @@ def add_stock_trade_api(request, journal_id):
     Adds a trade to an existing stock journal.
     Expects JSON: { side, trade_date, price_per_share, quantity }
     """
-    # Demo user fallback
-    from django.contrib.auth import get_user_model
-    if request.user.is_authenticated:
-        user = request.user
-    else:
-        User = get_user_model()
-        user, _ = User.objects.get_or_create(username='demo', defaults={'is_active': True})
-
+    user = request.user
     journal = get_object_or_404(StockJournal, pk=journal_id, user=user)
 
     try:
@@ -247,7 +337,7 @@ def add_stock_trade_api(request, journal_id):
     if side not in StockTrade.Side.values:
         return JsonResponse({'error': f'Invalid trade side. Must be one of {StockTrade.Side.labels}.'}, status=400)
 
-    trade_date = parse_date(payload.get('trade_date') or '')
+    trade_date = parse_date(payload.get('date') or '') # Corrected: 'trade_date' to 'date'
     if not trade_date:
         return JsonResponse({'error': 'Trade date is required.'}, status=400)
 
@@ -270,7 +360,7 @@ def add_stock_trade_api(request, journal_id):
         # fee/tax can be added later
     )
 
-    # The model's save() method will trigger recalculation.
+    # The model's save() method will trigger journal recalculation.
     # Reload the journal to get the updated values.
     journal.refresh_from_db()
 
@@ -284,7 +374,8 @@ def add_stock_trade_api(request, journal_id):
 
 @require_http_methods(["GET"])
 def realty_suggest_api(request):
-    """GET /api/realty/suggest?address=..."""
+    """
+    GET /api/realty/suggest?address=..."""
     address = request.GET.get('address')
     if not address:
         return JsonResponse({'error': 'Address is required.'}, status=400)
@@ -321,9 +412,10 @@ def realty_suggest_api(request):
         return JsonResponse({'error': f'Kakao request failed: {e}'}, status=502)
 
 
+@login_required
 @require_http_methods(["POST"])
 def realty_deals_api(request):
-    """POST /api/realty/deals
+    """
     Minimal creation without external fetch.
     Expects JSON with property and deal fields.
     """
@@ -332,13 +424,7 @@ def realty_deals_api(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON body.'}, status=400)
 
-    # Demo user fallback
-    from django.contrib.auth import get_user_model
-    if request.user.is_authenticated:
-        user = request.user
-    else:
-        User = get_user_model()
-        user, _ = User.objects.get_or_create(username='demo', defaults={'is_active': True})
+    user = request.user
 
     # Required minimal fields
     building_name = (payload.get('building_name') or '').strip()
@@ -357,7 +443,7 @@ def realty_deals_api(request):
     try:
         amount_main = Decimal(str(payload.get('amount_main') or '0'))
         amount_deposit = Decimal(str(payload.get('amount_deposit') or '0'))
-        amount_monthly = Decimal(str(payload.get('amount_monthly') or '0'))
+        amount_monthly = Decimal(str(payload.get('monthly_amount') or '0')) # Corrected: 'amount_monthly' to 'monthly_amount'
         area_m2 = Decimal(str(payload.get('area_m2') or '0'))
         floor = int(payload.get('floor') or 0)
     except Exception:
@@ -398,6 +484,7 @@ def realty_deals_api(request):
     return JsonResponse({'post_id': post.id, 'card_html': card_html}, status=201)
 
 
+@login_required
 @require_http_methods(["PATCH", "DELETE"])
 def journal_post_api(request, post_id):
     """
@@ -405,14 +492,7 @@ def journal_post_api(request, post_id):
     - PATCH: Updates the content of a journal post.
     - DELETE: Deletes a journal post and its related journal/deal.
     """
-    # Demo user fallback
-    from django.contrib.auth import get_user_model
-    if request.user.is_authenticated:
-        user = request.user
-    else:
-        User = get_user_model()
-        user, _ = User.objects.get_or_create(username='demo', defaults={'is_active': True})
-
+    user = request.user
     post = get_object_or_404(JournalPost, pk=post_id, user=user)
 
     if request.method == 'PATCH':
@@ -431,12 +511,94 @@ def journal_post_api(request, post_id):
         return JsonResponse({'post_id': post.id, 'content': post.content})
 
     elif request.method == 'DELETE':
-        # The related StockJournal or REDeal will be deleted automatically
-        # due to the on_delete=models.CASCADE setting in the JournalPost model.
-        post.delete()
+        with transaction.atomic():
+            # Manually delete the root journal/deal, which will then cascade
+            # and delete the post itself, along with any related trades.
+            if post.stock_journal:
+                post.stock_journal.delete()
+            elif post.re_deal:
+                post.re_deal.delete()
+            else:
+                # Fallback in case the post is orphaned, though this shouldn't happen
+                # with the CHECK constraint in the model.
+                post.delete()
         return JsonResponse({}, status=204)
 
 
+from django.db.models import Prefetch
+
 def posts_api(request):
-    """GET /api/posts?visibility=public"""
-    return JsonResponse({'posts': []})
+    """
+    GET /api/posts?visibility=public"""
+    visibility = request.GET.get('visibility', 'public')
+    if visibility != 'public':
+        return JsonResponse({'posts': []})
+
+    # Eagerly load related objects to prevent N+1 queries to our DB
+    posts = JournalPost.objects.filter(
+        visibility=JournalPost.Visibility.PUBLIC
+    ).select_related(
+        'user', 'stock_journal__ticker_symbol', 're_deal__property_info'
+    ).order_by('-created_at')[:50]  # Add pagination limit
+
+    # For stock signals, collect all unique tickers for a single batch yfinance request
+    stock_journals = [p.stock_journal for p in posts if p.asset_class == 'stock' and p.stock_journal]
+    tickers_to_fetch = {journal.ticker_symbol.ticker_symbol for journal in stock_journals}
+
+    current_prices = {}
+    if tickers_to_fetch:
+        try:
+            ticker_data = yf.Tickers(' '.join(tickers_to_fetch))
+            for ticker_str, ticker_obj in ticker_data.tickers.items():
+                last_price = ticker_obj.fast_info.get('lastPrice') # Corrected: 'info.get' to 'ticker_obj.fast_info.get'
+                if last_price:
+                    current_prices[ticker_str] = Decimal(str(last_price))
+        except Exception as e:
+            print(f"Error fetching batch stock data from yfinance: {e}")
+
+    # Build the final JSON response
+    response_posts = []
+    for post in posts:
+        post_data = {
+            'id': post.id,
+            'user': {
+                'my_id': post.user.my_ID,
+                'nickname': post.user.nickname
+            },
+            'asset_class': post.asset_class,
+            'title': post.title,
+            'content': post.content,
+            'created_at': post.created_at.isoformat(),
+        }
+
+        if post.asset_class == 'stock' and post.stock_journal:
+            journal = post.stock_journal
+            ticker = journal.ticker_symbol.ticker_symbol
+            current_price = current_prices.get(ticker)
+            signal = 'yellow'  # Default signal
+
+            if current_price:
+                if journal.target_price and current_price >= journal.target_price:
+                    signal = 'green'
+                elif journal.stop_price and current_price <= journal.stop_price:
+                    signal = 'red'
+            
+            post_data['asset_details'] = {
+                'ticker': ticker,
+                'stock_name': journal.ticker_symbol.stock_name,
+                'target_price': journal.target_price,
+                'stop_price': journal.stop_price,
+                'signal': signal,
+            }
+        elif post.asset_class == 'realestate' and post.re_deal:
+            deal = post.re_deal
+            post_data['asset_details'] = {
+                'building_name': deal.property_info.building_name,
+                'deal_type': deal.deal_type,
+                'area_m2': deal.area_m2,
+                'amount_main': deal.amount_main,
+            }
+        
+        response_posts.append(post_data)
+
+    return JsonResponse({'posts': response_posts})

@@ -1,0 +1,32 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}포트폴리오{% endblock %}
+
+{% block content %}
+<div class="portfolio-content">
+    <div class="portfolio-header">
+        <h1>포트폴리오</h1>
+        <div class="portfolio-summary">
+            <div class="summary-card">
+                <h3>총 자산</h3>
+                <p class="amount">₩1,250,000,000</p>
+            </div>
+            <div class="summary-card">
+                <h3>오늘 수익</h3>
+                <p class="amount positive">+₩2,500,000</p>
+            </div>
+            <div class="summary-card">
+                <h3>총 수익률</h3>
+                <p class="amount positive">+12.5%</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="portfolio-charts">
+        <div class="chart-container">
+            <h3>포트폴리오 성과</h3>
+            <canvas id="portfolioChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}자산 현황{% endblock %}
+
+{% block content %}
+<div class="total-content">
+    <div class="total-header">
+        <h1>자산 현황</h1>
+        <div class="total-summary">
+            <div class="summary-card">
+                <h3>총 자산</h3>
+                <p class="amount">₩1,250,000,000</p>
+            </div>
+            <div class="summary-card">
+                <h3>주식 자산</h3>
+                <p class="amount">₩750,000,000</p>
+            </div>
+            <div class="summary-card">
+                <h3>부동산 자산</h3>
+                <p class="amount">₩500,000,000</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="total-charts">
+        <div class="chart-container">
+            <h3>자산 분포</h3>
+            <canvas id="totalChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
