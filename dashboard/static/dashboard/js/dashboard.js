@@ -57,7 +57,7 @@ function initializeTotalPage() {
     initializeCharts();
     loadDashboardData();
     initializeCardPeriodButtons();
-    initializeMainPeriodButtons();
+    initializeDateRangePicker();  // 캘린더 기간 선택으로 변경
     initializePeriodRangeSelector();
     
     // 동적 일간 데이터로 초기화 (일간이 기본 선택이므로)
@@ -468,13 +468,12 @@ function updateCardCharts(period) {
     let cardLabels, cardData;
     
     if (period === 'daily') {
-        // 일간 데이터 (최근 7일간의 일별 데이터)
+        // 일간 데이터 (일봉: 1/15, 1/16, 1/17)
         cardLabels = generateDailyLabels(7); // 최근 7일
         cardData = generateDailyData(7); // 일별 누적 데이터
     } else {
-        // 주간 데이터 (최근 주차별 누적)
-        const currentWeek = getCurrentWeek();
-        cardLabels = generateWeekLabels(currentWeek, 7); // 최근 7주
+        // 주간 데이터 (주봉: 1/15, 1/22, 1/29)
+        cardLabels = generateWeeklyLabels(7); // 최근 7주
         cardData = generateWeeklyData(7); // 주간별 누적 데이터
     }
     
@@ -506,28 +505,34 @@ function updateMainPortfolioChart(period, periodRange = currentPeriodRange) {
     
     switch (period) {
         case '1D':
-            // 일간: 선택된 기간만큼의 실제 날짜별 데이터
+            // 일간: 일봉 (1/15, 1/16, 1/17)
             dataPoints = Math.min(periodRange, 365); // 최대 365일
-            mainLabels = generateActualDateLabels(dataPoints);
+            mainLabels = generateDailyLabels(dataPoints);
             mainData = generatePortfolioData(dataPoints, 22000, 'daily_sequence');
             break;
         case '1W':
-            // 주간: 선택된 기간을 주 단위로 변환
+            // 주간: 주봉 (1/15, 1/22, 1/29)
             dataPoints = Math.min(Math.ceil(periodRange / 7), 52); // 최대 52주
-            mainLabels = generateWeeklySequenceLabels(dataPoints);
+            mainLabels = generateWeeklyLabels(dataPoints);
             mainData = generatePortfolioData(dataPoints, 22000, 'weekly_sequence');
             break;
         case '1M':
-            // 월간: 선택된 기간을 월 단위로 변환
+            // 월간: 주봉 (Week 1, Week 2, Week 3)
             dataPoints = Math.min(Math.ceil(periodRange / 30), 12); // 최대 12개월
-            mainLabels = generateMonthlySequenceLabels(dataPoints);
+            mainLabels = generateMonthlyLabels(dataPoints);
             mainData = generatePortfolioData(dataPoints, 22000, 'monthly_sequence');
             break;
         case '1Y':
-            // 연간: 선택된 기간을 년 단위로 변환
+            // 연간: 주봉 (1월, 2월, 3월)
             dataPoints = Math.min(Math.ceil(periodRange / 365), 12); // 최대 12년
-            mainLabels = generateYearlySequenceLabels(dataPoints);
+            mainLabels = generateYearlyLabels(dataPoints);
             mainData = generatePortfolioData(dataPoints, 22000, 'yearly_sequence');
+            break;
+        case 'custom':
+            // 사용자 정의 기간: 일봉 (1/15, 1/16, 1/17)
+            dataPoints = Math.min(periodRange, 365);
+            mainLabels = generateDailyLabels(dataPoints);
+            mainData = generatePortfolioData(dataPoints, 22000, 'daily_sequence');
             break;
         default:
             dataPoints = Math.min(periodRange, 365);
@@ -636,6 +641,7 @@ function generateDetailedHourlyLabels(count) {
 }
 
 // 일별 라벨 생성 (날짜 형식)
+// 일간 차트 라벨 생성 (일봉: 1/15, 1/16, 1/17)
 function generateDailyLabels(count) {
     const labels = [];
     const now = new Date();
@@ -644,7 +650,6 @@ function generateDailyLabels(count) {
         const date = new Date(now);
         date.setDate(date.getDate() - i);
         
-        // MM/DD 형식으로 표시
         const month = date.getMonth() + 1;
         const day = date.getDate();
         labels.push(`${month}/${day}`);
@@ -653,7 +658,51 @@ function generateDailyLabels(count) {
     return labels;
 }
 
-// 월별 라벨 생성
+// 주간 차트 라벨 생성 (주봉: 1/15, 1/22, 1/29)
+function generateWeeklyLabels(count) {
+    const labels = [];
+    const now = new Date();
+    
+    for (let i = count - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - (i * 7)); // 7일씩 차이
+        
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        labels.push(`${month}/${day}`);
+    }
+    
+    return labels;
+}
+
+// 월간 차트 라벨 생성 (주봉: Week 1, Week 2, Week 3)
+function generateMonthlyLabels(count) {
+    const labels = [];
+    
+    for (let i = 1; i <= count; i++) {
+        labels.push(`Week ${i}`);
+    }
+    
+    return labels;
+}
+
+// 년간 차트 라벨 생성 (주봉: 1월, 2월, 3월)
+function generateYearlyLabels(count) {
+    const labels = [];
+    const now = new Date();
+    
+    for (let i = count - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setMonth(date.getMonth() - i);
+        const year = date.getFullYear().toString().slice(-2); // YY 형식
+        const month = (date.getMonth() + 1).toString().padStart(2, '0'); // MM 형식
+        labels.push(`${year}.${month}`);
+    }
+    
+    return labels;
+}
+
+// 기존 월별 라벨 생성 (영어 월 약어)
 function generateMonthLabels(count) {
     const labels = [];
     const now = new Date();
@@ -809,25 +858,245 @@ function initializePeriodRangeSelector() {
     }
 }
 
-// 메인 차트 기간 선택 버튼 초기화 (수정된 버전)
-function initializeMainPeriodButtons() {
-    const mainPeriodButtons = document.querySelectorAll('.main-period-btn');
+// 캘린더 기간 선택 초기화
+function initializeDateRangePicker() {
+    const startDateInput = document.getElementById('start-date');
+    const endDateInput = document.getElementById('end-date');
+    const applyBtn = document.getElementById('apply-date-range');
+    const quickPeriodBtns = document.querySelectorAll('.quick-period-btn');
     
-    mainPeriodButtons.forEach(button => {
+    // 전역 변수로 선택된 기간 저장
+    let selectedStartDate = null;
+    let selectedEndDate = null;
+    
+    // 기본값 설정 (1D - 30일간)
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+    endDateInput.value = today.toISOString().split('T')[0];
+    selectedStartDate = thirtyDaysAgo;
+    selectedEndDate = today;
+    
+    // 적용 버튼 클릭 이벤트
+    applyBtn.addEventListener('click', function() {
+        const startDate = new Date(startDateInput.value);
+        const endDate = new Date(endDateInput.value);
+        
+        if (startDate > endDate) {
+            alert('시작 날짜는 종료 날짜보다 이전이어야 합니다.');
+            return;
+        }
+        
+        // 선택된 기간 저장
+        selectedStartDate = startDate;
+        selectedEndDate = endDate;
+        
+        // 모든 빠른 선택 버튼에서 active 클래스 제거
+        quickPeriodBtns.forEach(btn => btn.classList.remove('active'));
+        
+        // 기간 범위 계산
+        const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        currentPeriodRange = daysDiff;
+        
+        // 차트 업데이트 (사용자 정의 기간)
+        updateMainPortfolioChartWithCustomPeriod(selectedStartDate, selectedEndDate, daysDiff);
+        
+        console.log(`사용자 정의 기간: ${startDateInput.value} ~ ${endDateInput.value} (${daysDiff}일)`);
+    });
+    
+    // 빠른 선택 버튼 클릭 이벤트 (1D/1W/1M/1Y)
+    quickPeriodBtns.forEach(button => {
+        // 클릭 이벤트
         button.addEventListener('click', function() {
-            // 모든 버튼에서 active 클래스 제거
-            mainPeriodButtons.forEach(btn => btn.classList.remove('active'));
+            // 모든 버튼에서 active 클래스 제거 및 스타일 초기화
+            quickPeriodBtns.forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.background = 'transparent';
+                btn.style.color = '#536471';
+                btn.style.borderColor = '#eff3f4';
+            });
             
-            // 클릭된 버튼에 active 클래스 추가
+            // 클릭된 버튼에 active 클래스 추가 및 스타일 적용
             this.classList.add('active');
+            this.style.background = '#1d9bf0';
+            this.style.color = 'white';
+            this.style.borderColor = '#1d9bf0';
             
-            // 선택된 기간 업데이트
-            currentMainPeriod = this.getAttribute('data-main-period');
+            // 선택된 기간
+            const period = this.getAttribute('data-period');
+            currentMainPeriod = period;
             
-            // 현재 선택된 기간 범위로 차트 업데이트
-            updateMainPortfolioChart(currentMainPeriod, currentPeriodRange);
+            // 캘린더에서 선택된 기간이 있으면 그 기간을 사용, 없으면 기본값 사용
+            let startDate, endDate, days;
+            
+            if (selectedStartDate && selectedEndDate) {
+                // 캘린더에서 선택된 기간 사용
+                startDate = selectedStartDate;
+                endDate = selectedEndDate;
+                days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            } else {
+                // 기본 기간 사용
+                endDate = new Date();
+                startDate = new Date();
+                switch(period) {
+                    case '1D':
+                        startDate.setDate(endDate.getDate() - 30);
+                        days = 30;
+                        break;
+                    case '1W':
+                        startDate.setDate(endDate.getDate() - 30);
+                        days = 30;
+                        break;
+                    case '1M':
+                        startDate.setDate(endDate.getDate() - 90);
+                        days = 90;
+                        break;
+                    case '1Y':
+                        startDate.setDate(endDate.getDate() - 365);
+                        days = 365;
+                        break;
+                    default:
+                        startDate.setDate(endDate.getDate() - 7);
+                        days = 7;
+                }
+            }
+            
+            currentPeriodRange = days;
+            
+            // 날짜 입력 필드 업데이트
+            startDateInput.value = startDate.toISOString().split('T')[0];
+            endDateInput.value = endDate.toISOString().split('T')[0];
+            
+            // 차트 업데이트 (선택된 기간에 맞춰서)
+            updateMainPortfolioChartWithCustomPeriod(startDate, endDate, days, period);
+            
+            console.log(`빠른 선택: ${period} (${startDate.toISOString().split('T')[0]} ~ ${endDate.toISOString().split('T')[0]})`);
+        });
+        
+        // 호버 이벤트
+        button.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('active')) {
+                this.style.background = '#f7f9fa';
+                this.style.borderColor = '#cfd9de';
+            }
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('active')) {
+                this.style.background = 'transparent';
+                this.style.borderColor = '#eff3f4';
+            }
         });
     });
+    
+    // 1D 버튼을 기본 활성화
+    const oneDayBtn = document.querySelector('.quick-period-btn[data-period="1D"]');
+    if (oneDayBtn) {
+        oneDayBtn.classList.add('active');
+    }
+}
+
+// 사용자 정의 기간으로 차트 업데이트하는 함수
+function updateMainPortfolioChartWithCustomPeriod(startDate, endDate, days, period = 'custom') {
+    if (!mainPortfolioChart) return;
+    
+    let mainLabels, mainData;
+    const dataPoints = Math.min(days, 365);
+    
+    // 기간에 따른 x축 라벨 생성
+    switch(period) {
+        case '1D':
+            // 일봉: 1/15, 1/16, 1/17
+            mainLabels = generateDailyLabelsFromDateRange(startDate, endDate);
+            break;
+        case '1W':
+            // 주봉: 1/15, 1/22, 1/29
+            mainLabels = generateWeeklyLabelsFromDateRange(startDate, endDate);
+            break;
+        case '1M':
+            // 주차: Week 1, Week 2, Week 3
+            mainLabels = generateMonthlyLabelsFromDateRange(startDate, endDate);
+            break;
+        case '1Y':
+            // 월: 1월, 2월, 3월
+            mainLabels = generateYearlyLabelsFromDateRange(startDate, endDate);
+            break;
+        default:
+            // 사용자 정의: 일봉 형식
+            mainLabels = generateDailyLabelsFromDateRange(startDate, endDate);
+    }
+    
+    // 데이터 생성
+    mainData = generatePortfolioData(mainLabels.length, 22000, 'daily_sequence');
+    
+    // 메인 포트폴리오 차트 업데이트
+    mainPortfolioChart.data.labels = mainLabels;
+    mainPortfolioChart.data.datasets[0].data = mainData;
+    mainPortfolioChart.update();
+    
+    console.log(`사용자 정의 차트 업데이트: ${period} (${startDate.toISOString().split('T')[0]} ~ ${endDate.toISOString().split('T')[0]})`);
+}
+
+// 날짜 범위에서 일봉 라벨 생성
+function generateDailyLabelsFromDateRange(startDate, endDate) {
+    const labels = [];
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+        const month = current.getMonth() + 1;
+        const day = current.getDate();
+        labels.push(`${month}/${day}`);
+        current.setDate(current.getDate() + 1);
+    }
+    
+    return labels;
+}
+
+// 날짜 범위에서 주봉 라벨 생성 (7일 간격)
+function generateWeeklyLabelsFromDateRange(startDate, endDate) {
+    const labels = [];
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+        const month = current.getMonth() + 1;
+        const day = current.getDate();
+        labels.push(`${month}/${day}`);
+        current.setDate(current.getDate() + 7);
+    }
+    
+    return labels;
+}
+
+// 날짜 범위에서 월봉 라벨 생성 (주차별)
+function generateMonthlyLabelsFromDateRange(startDate, endDate) {
+    const labels = [];
+    const current = new Date(startDate);
+    let weekCount = 1;
+    
+    while (current <= endDate) {
+        labels.push(`Week ${weekCount}`);
+        current.setDate(current.getDate() + 7);
+        weekCount++;
+    }
+    
+    return labels;
+}
+
+// 날짜 범위에서 연봉 라벨 생성 (월별) - YY.MM 형식
+function generateYearlyLabelsFromDateRange(startDate, endDate) {
+    const labels = [];
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+        const year = current.getFullYear().toString().slice(-2); // YY 형식
+        const month = (current.getMonth() + 1).toString().padStart(2, '0'); // MM 형식
+        labels.push(`${year}.${month}`);
+        current.setMonth(current.getMonth() + 1);
+    }
+    
+    return labels;
 }
 
 // 초기 차트 데이터도 동적으로 생성
@@ -984,7 +1253,7 @@ function initializeStockPortfolio() {
                 duration: 1500
             }
         },
-        plugins: [ChartDataLabels]
+        plugins: typeof ChartDataLabels !== 'undefined' ? [ChartDataLabels] : []
     });
     
     // 주식 자산 전체 추이 차트 초기화
@@ -1070,7 +1339,7 @@ function initializeRealEstatePortfolio() {
                 duration: 1500
             }
         },
-        plugins: [ChartDataLabels]
+        plugins: typeof ChartDataLabels !== 'undefined' ? [ChartDataLabels] : []
     });
     
     // 부동산 자산 전체 추이 차트 초기화
@@ -1699,16 +1968,17 @@ function generateMiniChartLabels(count, period) {
         const date = new Date(now);
         
         if (period === 'daily') {
+            // 일간: 일봉 (1/15, 1/16, 1/17)
             date.setDate(date.getDate() - i);
             const month = date.getMonth() + 1;
             const day = date.getDate();
-            labels.push(`${month}/${day}`); // 총 투자 자산과 동일한 MM/DD 형식
+            labels.push(`${month}/${day}`);
         } else {
-            // 주간 데이터의 경우
+            // 주간: 주봉 (1/15, 1/22, 1/29)
             date.setDate(date.getDate() - (i * 7));
             const month = date.getMonth() + 1;
             const day = date.getDate();
-            labels.push(`${month}/${day}`); // 주간도 동일한 형식으로 통일
+            labels.push(`${month}/${day}`);
         }
     }
     

@@ -5,7 +5,8 @@ from django.template.loader import render_to_string
 from django.views.decorators.http import require_http_methods
 from django.utils.dateparse import parse_date
 from django.db import transaction, models
-from django.db.models import Q
+from django.db.models import Q, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value
+from django.db.models.functions import Coalesce
 from decimal import Decimal
 
 from decouple import config
@@ -38,14 +39,121 @@ def compose(request):
 
 @login_required
 def my_journal_list(request):
-    """
-    Renders a page with a list of the current user's journal posts.
-    """
-    journal_posts = JournalPost.objects.filter(user=request.user).order_by('-created_at')
+    query = request.GET.get('q', '').strip()
+
+    # Aggregate StockJournal data by ticker_symbol for the current user
+    # This will give us one entry per unique stock ticker
+    stock_summaries = StockJournal.objects.filter(user=request.user) \
+        .values('ticker_symbol__ticker_symbol', 'ticker_symbol__stock_name') \
+        .annotate(
+            # Sum up quantities and PnL from all journals for this ticker
+            total_buy_qty_sum=Coalesce(Sum('total_buy_qty'), Decimal(0)),
+            total_sell_qty_sum=Coalesce(Sum('total_sell_qty'), Decimal(0)),
+            realized_pnl_sum=Coalesce(Sum('realized_pnl'), Decimal(0)),
+
+            # Calculate total value of buys and sells across all journals for this ticker
+            # Need to be careful with avg_buy_price * total_buy_qty as avg_buy_price can be None
+            total_buy_value_sum=Coalesce(Sum(ExpressionWrapper(
+                F('avg_buy_price') * F('total_buy_qty'),
+                output_field=DecimalField()
+            ), filter=Q(avg_buy_price__isnull=False)), Decimal(0)),
+            total_sell_value_sum=Coalesce(Sum(ExpressionWrapper(
+                F('avg_sell_price') * F('total_sell_qty'),
+                output_field=DecimalField()
+            ), filter=Q(avg_sell_price__isnull=False)), Decimal(0)),
+        ) \
+        .annotate(
+            # Calculate overall average buy/sell prices
+            overall_avg_buy_price=Case(
+                When(total_buy_qty_sum__gt=0, then=ExpressionWrapper(
+                    F('total_buy_value_sum') / F('total_buy_qty_sum'),
+                    output_field=DecimalField()
+                )),
+                default=Value(None, output_field=DecimalField()),
+                output_field=DecimalField()
+            ),
+            overall_avg_sell_price=Case(
+                When(total_sell_qty_sum__gt=0, then=ExpressionWrapper(
+                    F('total_buy_value_sum') / F('total_sell_qty_sum'),
+                    output_field=DecimalField()
+                )),
+                default=Value(None, output_field=DecimalField()),
+                output_field=DecimalField()
+            ),
+        ) \
+        .annotate(
+            # Calculate overall return rate
+            overall_return_rate=Case(
+                When(total_sell_qty_sum__gt=0, overall_avg_buy_price__isnull=False, then=ExpressionWrapper(
+                    (F('realized_pnl_sum') / (F('overall_avg_buy_price') * F('total_sell_qty_sum'))) * 100,
+                    output_field=DecimalField()
+                )),
+                default=Value(None, output_field=DecimalField()),
+                output_field=DecimalField()
+            )
+        ) \
+        .order_by('ticker_symbol__stock_name') # Order by stock name for consistency
+
+    # Filter stock_summaries if query is present
+    if query:
+        stock_summaries = stock_summaries.filter(
+            Q(ticker_symbol__ticker_symbol__icontains=query) |
+            Q(ticker_symbol__stock_name__icontains=query)
+        )
+
+    # Fetch REDeal objects for the current user (this part remains largely the same)
+    re_deals = REDeal.objects.filter(user=request.user) \
+        .select_related('property_info') \
+        .order_by('-created_at')
+
     context = {
-        'journal_posts': journal_posts,
+        'stock_summaries': stock_summaries, # Changed context variable name
+        're_deals': re_deals,
+        'query': query,
     }
     return render(request, 'my_journal_list.html', context)
+
+@login_required
+def stock_detail_view(request, pk):
+    stock_journal = get_object_or_404(StockJournal, pk=pk, user=request.user)
+    
+    trades = stock_journal.trades.all().order_by('trade_date')
+    
+    journal_posts = JournalPost.objects.filter(stock_journal=stock_journal).order_by('-created_at')
+
+    context = {
+        'stock_journal': stock_journal,
+        'trades': trades,
+        'journal_posts': journal_posts,
+    }
+    return render(request, 'stock_detail.html', context)
+
+
+@login_required
+def stock_summary_detail(request, ticker_symbol):
+    # Fetch all StockJournal entries for the given ticker and current user
+    stock_journals = StockJournal.objects.filter(
+        user=request.user,
+        ticker_symbol__ticker_symbol=ticker_symbol
+    ).select_related('ticker_symbol').order_by('-created_at')
+
+    # If no journals found for this ticker, handle appropriately (e.g., 404 or empty list)
+    if not stock_journals.exists():
+        # Optionally, raise Http404 or render a specific message
+        pass # For now, just pass an empty list to the template
+
+    # Get the stock name for display
+    stock_name = ticker_symbol
+    if stock_journals.first():
+        stock_name = stock_journals.first().ticker_symbol.stock_name
+
+    context = {
+        'ticker_symbol': ticker_symbol,
+        'stock_name': stock_name,
+        'stock_journals': stock_journals, # Individual StockJournal objects
+        # You might want to pass the aggregated summary here too if needed
+    }
+    return render(request, 'stock_summary_detail.html', context) # A new template will be needed
 
 
 @require_http_methods(["GET"])

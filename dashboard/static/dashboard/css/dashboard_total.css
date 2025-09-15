@@ -49,6 +49,48 @@
     background: #1a8cd8 !important;
 }
 
+/* 총 투자 자산 수익률 빠른 선택 버튼 (포트폴리오 페이지와 동일) */
+.total-content .quick-period-container {
+    display: flex !important;
+    justify-content: flex-end !important;
+}
+
+.total-content .quick-period-buttons {
+    display: flex !important;
+    gap: 4px !important;
+}
+
+.total-content .quick-period-btn {
+    padding: 6px 12px !important;
+    border: 1px solid #eff3f4 !important;
+    background: transparent !important;
+    color: #536471 !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+    margin: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.total-content .quick-period-btn.active {
+    background: #1d9bf0 !important;
+    color: white !important;
+    border-color: #1d9bf0 !important;
+}
+
+.total-content .quick-period-btn:hover:not(.active) {
+    background: #f7f9fa !important;
+    border-color: #cfd9de !important;
+}
+
+.total-content .quick-period-btn:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
 /* 자산 카드 그리드 */
 .asset-cards {
     display: grid;

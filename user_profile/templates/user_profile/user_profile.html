@@ -136,7 +136,7 @@
                     </tr>
                 {% else %}
                     {% for deal in re_deals %}
-                        <tr style="border-bottom: 1px solid #eee;">
+                        <tr id="re-row-{{ deal.id }}" style="border-bottom: 1px solid #eee;">
                             <td style="padding: 12px;">
                                 <div style="font-weight: 600;">{{ deal.property_info.building_name }}</div>
                                 <div style="font-size: 0.9em; color: #666;">{{ deal.property_info.address_base }}</div>
@@ -146,7 +146,7 @@
                             <td style="padding: 12px; text-align: right;">\ {{ deal.amount_main|intcomma }}</td>
                             {% if request.user.my_ID == user_to_view.my_ID %}
                                 <td style="padding: 12px; text-align: right;">
-                                    <button style="background: none; border: none; color: #dc3545; font-weight: bold; font-size: 1.2em; cursor: pointer;">
+                                    <button onclick="confirmAndDeleteRealEstate('{{ deal.id }}')" style="background: none; border: none; color: #dc3545; font-weight: bold; font-size: 1.2em; cursor: pointer;">
                                        X
                                     </button>
                                 </td>
@@ -200,6 +200,40 @@
             .then(data => {
                 if (data.success) {
                     const rowToRemove = document.getElementById(`stock-row-${tickerSymbol}`);
+                    if (rowToRemove) {
+                        rowToRemove.remove();
+                    }
+                    alert("자산이 성공적으로 삭제되었습니다.");
+                } else {
+                    alert("자산 삭제에 실패했습니다.");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("자산 삭제 중 오류가 발생했습니다.");
+            });
+        }
+    }
+
+    function confirmAndDeleteRealEstate(dealId) {
+        if (confirm("이 자산을 정말 삭제하시겠습니까?")) {
+            fetch(`/profile/delete_real_estate/${dealId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({ deal_id: dealId })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('삭제 실패');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    const rowToRemove = document.getElementById(`re-row-${dealId}`);
                     if (rowToRemove) {
                         rowToRemove.remove();
                     }
