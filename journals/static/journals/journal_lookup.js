@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
             if (response.ok) {
                 alert('매매일지가 성공적으로 작성되었습니다.');
-                window.location.href = '/';
+                window.location.href = '/journals/my-list/';
             } else {
                 alert(`작성 실패: ${data.error || '알 수 없는 오류'}`);
             }

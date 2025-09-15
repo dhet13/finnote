@@ -2,35 +2,89 @@
 
 {% block feed %}
 <style>
-    .journal-container { padding: 20px; max-width: 800px; margin: auto; }
-    .tabs { display: flex; border-bottom: 2px solid #f0f0f0; margin-bottom: 24px; }
-    .tab-item { padding: 12px 20px; cursor: pointer; font-size: 16px; font-weight: 500; color: #888; position: relative; border-bottom: 2px solid transparent; }
-    .tab-item.active { color: #111; border-bottom-color: #111; }
-    .search-bar { display: flex; gap: 8px; margin-bottom: 24px; }
-    .search-bar input { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
-    .search-bar button { padding: 10px 16px; background-color: #333; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    .journal-card { background-color: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 16px; text-decoration: none; color: inherit; display: block;}
-    .journal-card:hover { border-color: #ccc; }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .card-title { font-size: 1.5rem; font-weight: bold; }
-    .card-meta { font-size: 0.9rem; color: #666; }
-    .card-memo { color: #555; margin-bottom: 16px; }
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 12px; }
-    .stat-box { background-color: #f9f9f9; border-radius: 4px; padding: 12px; text-align: center; }
-    .stat-label { font-size: 0.8rem; color: #777; margin-bottom: 4px; }
-    .stat-value { font-size: 1.2rem; font-weight: 500; }
-    .pnl-box { background-color: #f0f0f0; }
-    .pnl-positive { color: #28a745 !important; }
-    .pnl-negative { color: #dc3545 !important; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
+:root {
+    --primary-color: #3b82f6; /* Blue */
+    --primary-text-color: #ffffff;
+    --buy-color-alt: #fae8e8; /* Light Red BG */
+    --buy-color: #ef4444; /* Red */
+    --sell-color: #16a34a; /* Green */
+    --sell-color-alt: #e8f5e9; /* Light Green BG */
+    --border-color: #e5e7eb;
+    --background-color: #f9fafb;
+    --card-background-color: #ffffff;
+    --text-color-primary: #111827;
+    --text-color-secondary: #6b7280;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.journal-container { /* Adapting .compose-card styles */
+    font-family: var(--font-family);
+    background-color: var(--card-background-color);
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    max-width: 600px;
+    padding: 0;
+    margin: 2rem auto; /* Consistent top margin */
+    box-sizing: border-box; /* Added for correct width calculation */
+}
+
+.journal-container h1 { /* Adapting .section-title */
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-color-primary);
+    position: static; /* Remove sticky */
+    padding: 0;
+    border-bottom: none;
+}
+
+.tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 24px; }
+.tab-item { padding: 12px 20px; cursor: pointer; font-size: 16px; font-weight: 500; color: var(--text-color-secondary); position: relative; border-bottom: 2px solid transparent; }
+.tab-item.active { color: var(--text-color-primary); border-bottom-color: var(--primary-color); } /* Use primary color for active tab */
+
+.search-bar { display: flex; gap: 8px; margin-bottom: 24px; }
+.search-bar input { flex-grow: 1; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--background-color); font-size: 1rem; color: var(--text-color-primary); } /* Adapted from form-control */
+.search-bar button { padding: 12px 16px; background-color: var(--primary-color); color: var(--primary-text-color); border: none; border-radius: 8px; cursor: pointer; font-weight: 600; } /* Adapted from btn-submit */
+
+.journal-card {
+    background-color: var(--background-color); /* Lighter background for list items */
+    border: 1px solid var(--border-color);
+    border-radius: 12px; /* Slightly larger radius */
+    padding: 16px; /* Slightly less padding */
+    margin-bottom: 12px; /* Slightly less margin */
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03); /* Subtle shadow */
+    transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+}
+.journal-card:hover {
+    border-color: var(--primary-color); /* Highlight on hover */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.card-title { font-size: 1.1rem; font-weight: 600; color: var(--text-color-primary); } /* Adjusted font size and weight */
+.card-meta { font-size: 0.8rem; color: var(--text-color-secondary); } /* Adjusted font size */
+
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 12px; margin-top: 12px; }
+.stat-box { background-color: var(--card-background-color); border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border-color); } /* Adapted from compose */
+.stat-label { font-size: 0.75rem; color: var(--text-color-secondary); margin-bottom: 4px; }
+.stat-value { font-size: 1.1rem; font-weight: 600; color: var(--text-color-primary); } /* Adjusted font size and weight */
+
+.pnl-positive { color: var(--sell-color) !important; }
+.pnl-negative { color: var(--buy-color) !important; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
 </style>
 
 <div class="journal-container">
     <h1>매매일지</h1>
 
     <div class="tabs">
-        <div class="tab-item active" data-tab="stocks">내 투자 종목 (주식)</div>
+        <div class="tab-item active" data-tab="stocks">내 투자 주식 종목</div>
         <div class="tab-item" data-tab="realty">내 투자 부동산</div>
     </div>
 
@@ -58,7 +112,7 @@
                             <div class="stat-value">{{ summary.overall_avg_sell_price|floatformat:2|default:"-" }}</div>
                         </div>
                         <div class="stat-box pnl-box">
-                            <div class="stat-label">손익(매도)</div>
+                            <div class="stat-label">손익율</div>
                             <div class="stat-value {% if summary.overall_return_rate > 0 %}pnl-positive{% elif summary.overall_return_rate < 0 %}pnl-negative{% endif %}">
                                 {% if summary.overall_return_rate is not None %}
                                     {{ summary.overall_return_rate|floatformat:2 }}%
