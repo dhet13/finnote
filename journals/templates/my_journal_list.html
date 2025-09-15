@@ -41,37 +41,27 @@
         </form>
 
         <div class="post-list">
-            {% for post in stock_posts %}
-                {# The anchor tag for the detail page will be added later #}
-                <a href="{% url 'journals:stock_detail' post.stock_journal.pk %}" class="journal-card">
+            {% for summary in stock_summaries %}
+                <a href="{% url 'journals:stock_summary_detail' summary.ticker_symbol__ticker_symbol %}" class="journal-card">
                     <div class="card-header">
-                        <span class="card-title">{{ post.stock_journal.ticker_symbol.stock_name }} ({{ post.stock_journal.ticker_symbol.ticker_symbol }})</span>
-                        <span class="card-meta">
-                            {% with post.stock_journal.trades.last as last_trade %}
-                                {% if last_trade.side == 'SELL' %}
-                                    [매도]
-                                {% else %}
-                                    [매수]
-                                {% endif %}
-                                {{ last_trade.trade_date|date:"Y-m-d" }}
-                            {% endwith %}
-                        </span>
+                        <span class="card-title">{{ summary.ticker_symbol__stock_name }} ({{ summary.ticker_symbol__ticker_symbol }})</span>
+                        {# No last trade info here, as per simplified wireframe #}
                     </div>
-                    <p class="card-memo">{{ post.content|default:"(메모 없음)" }}</p>
+                    {# No memo here, as per simplified wireframe #}
                     <div class="stats-grid">
                         <div class="stat-box">
                             <div class="stat-label">평균 매수가</div>
-                            <div class="stat-value">{{ post.stock_journal.avg_buy_price|floatformat:2 }}</div>
+                            <div class="stat-value">{{ summary.overall_avg_buy_price|floatformat:2|default:"-" }}</div>
                         </div>
                         <div class="stat-box">
                             <div class="stat-label">평균 매도가</div>
-                            <div class="stat-value">{{ post.stock_journal.avg_sell_price|floatformat:2|default:"-" }}</div>
+                            <div class="stat-value">{{ summary.overall_avg_sell_price|floatformat:2|default:"-" }}</div>
                         </div>
                         <div class="stat-box pnl-box">
                             <div class="stat-label">손익(매도)</div>
-                            <div class="stat-value {% if post.stock_journal.return_rate > 0 %}pnl-positive{% elif post.stock_journal.return_rate < 0 %}pnl-negative{% endif %}">
-                                {% if post.stock_journal.return_rate is not None %}
-                                    {{ post.stock_journal.return_rate|floatformat:2 }}%
+                            <div class="stat-value {% if summary.overall_return_rate > 0 %}pnl-positive{% elif summary.overall_return_rate < 0 %}pnl-negative{% endif %}">
+                                {% if summary.overall_return_rate is not None %}
+                                    {{ summary.overall_return_rate|floatformat:2 }}%
                                 {% else %}
                                     —
                                 {% endif %}
@@ -87,10 +77,10 @@
 
     <div id="tab-realty" class="tab-content">
         <div class="post-list">
-            {% for post in realty_posts %}
+            {% for deal in re_deals %}
                 {# The anchor tag for the detail page will be added later #}
                 <a href="#" class="journal-card">
-                    <p>부동산 매매일지: {{ post.re_deal.property_info.building_name }}</p>
+                    <p>부동산 매매일지: {{ deal.property_info.building_name }}</p>
                 </a>
             {% empty %}
                 <p>작성한 부동산 매매일지가 없습니다.</p>
