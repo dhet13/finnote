@@ -2,7 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import JournalPost, Like, Comment, Bookmark, Share
+from .models import JournalPost, Like, Comment, Bookmark, Share, Tag
+from django.core.paginator import Paginator
 import feedparser
 from datetime import datetime
 import requests
@@ -11,8 +12,50 @@ import yfinance as yf
 import FinanceDataReader as fdr
 from django.views.decorators.http import require_http_methods
 import json
+import re
+from .models import PostReport, HiddenPost
 
-
+def load_more_posts(request):
+    """무한 스크롤용 추가 포스트 로드"""
+    page = request.GET.get('page', 1)
+    posts_per_page = 10
+    
+    posts = JournalPost.objects.select_related('user').prefetch_related('likes', 'comments', 'tags').order_by('-created_at')
+    paginator = Paginator(posts, posts_per_page)
+    
+    try:
+        posts_page = paginator.page(page)
+    except:
+        return JsonResponse({'posts': [], 'has_next': False})
+    
+    posts_data = []
+    for post in posts_page:
+        # 사용자 좋아요 상태
+        is_liked = False
+        if request.user.is_authenticated:
+            is_liked = Like.objects.filter(user=request.user, journal=post).exists()
+        
+        posts_data.append({
+            'id': post.id,
+            'username': post.user.my_ID, 
+            'my_ID': post.user.my_ID,
+            'content': post.content,
+            'image_url': post.image.url if post.image else None,
+            'screenshot_url': post.screenshot_url,
+            'created_at': post.created_at.strftime('%Y-%m-%d %H:%M'),
+            'likes_count': post.likes.count(),
+            'comments_count': post.comments.count(),
+            'bookmarks_count': post.bookmarks.count(),
+            'shares_count': post.shares.count(),
+            'is_liked': is_liked,
+            'tags': [tag.name for tag in post.tags.all()]
+        })
+    
+    return JsonResponse({
+        'posts': posts_data,
+        'has_next': posts_page.has_next(),
+        'next_page': posts_page.next_page_number() if posts_page.has_next() else None
+    })
 
 def get_finance_news():
     """금융 뉴스 RSS 파싱"""
@@ -77,34 +120,160 @@ def get_finance_news():
 def create_post_view(request):
     """포스트 작성 페이지"""
     return render(request, 'home/create_post.html')
+@login_required
+@require_http_methods(["GET", "POST"])
+def edit_post(request, post_id):
+    """포스트 수정"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    
+    # 작성자 확인
+    if post.user != request.user:
+        return JsonResponse({'success': False, 'error': '권한이 없습니다.'})
+    
+    if request.method == 'GET':
+        # 수정할 포스트 데이터 반환
+        return JsonResponse({
+            'success': True,
+            'post': {
+                'id': post.id,
+                'content': post.content,
+                'tags': [tag.name for tag in post.tags.all()]
+            }
+        })
+    
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            content = data.get('content', '').strip()
+            
+            if not content:
+                return JsonResponse({'success': False, 'error': '내용을 입력해주세요.'})
+            
+            # 해시태그 파싱
+            hashtag_pattern = r'#(\w+)'
+            hashtags = re.findall(hashtag_pattern, content)
+            
+            # 본문에서 해시태그 제거
+            clean_content = re.sub(hashtag_pattern, '', content).strip()
+            clean_content = re.sub(r'\s+', ' ', clean_content)
+            
+            # 포스트 업데이트
+            post.content = clean_content
+            post.save()
+            
+            # 태그 업데이트
+            post.tags.clear()
+            for tag_name in hashtags:
+                tag, created = Tag.objects.get_or_create(
+                    name=tag_name,
+                    defaults={'is_default': False}
+                )
+                post.tags.add(tag)
+            
+            return JsonResponse({
+                'success': True,
+                'post': {
+                    'id': post.id,
+                    'content': post.content,
+                    'tags': [tag.name for tag in post.tags.all()]
+                }
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': '잘못된 요청입니다.'})
 
 @login_required
+@require_http_methods(["POST"])
+def hide_post(request, post_id):
+    """포스트 숨기기"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    
+    hidden, created = HiddenPost.objects.get_or_create(
+        user=request.user,
+        journal=post
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'hidden': True,
+        'message': '포스트를 숨겼습니다.'
+    })
+
+@login_required
+@require_http_methods(["POST"])
+def report_post(request, post_id):
+    """포스트 신고"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    
+    try:
+        data = json.loads(request.body)
+        reason = data.get('reason')
+        description = data.get('description', '')
+        
+        if not reason:
+            return JsonResponse({'success': False, 'error': '신고 사유를 선택해주세요.'})
+        
+        # 이미 신고한 포스트인지 확인
+        if PostReport.objects.filter(reporter=request.user, journal=post).exists():
+            return JsonResponse({'success': False, 'error': '이미 신고한 포스트입니다.'})
+        
+        report = PostReport.objects.create(
+            reporter=request.user,
+            journal=post,
+            reason=reason,
+            description=description
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': '신고가 접수되었습니다. 검토 후 조치하겠습니다.'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': '잘못된 요청입니다.'})
+@login_required
 def create_simple_post(request):
-    """간단한 텍스트 포스트 작성"""
     if request.method == 'POST':
         content = request.POST.get('content')
         image = request.FILES.get('image')
         
         if content and content.strip():
+            # 해시태그 파싱
+            hashtag_pattern = r'#(\w+)'
+            hashtags = re.findall(hashtag_pattern, content)
+            
+            # 본문에서 해시태그 제거
+            clean_content = re.sub(hashtag_pattern, '', content).strip()
+            clean_content = re.sub(r'\s+', ' ', clean_content)  # 중복 공백 제거
+            
             post = JournalPost.objects.create(
                 user=request.user,
-                content=content.strip(),
-                asset_class='stock',
+                content=clean_content,
                 embed_payload_json={},
                 image=image
             )
             
-            # JSON 응답 반환 (AJAX용)
+            # 태그 처리
+            for tag_name in hashtags:
+                tag, created = Tag.objects.get_or_create(
+                    name=tag_name,
+                    defaults={'is_default': False}
+                )
+                post.tags.add(tag)
+            
             return JsonResponse({
                 'success': True,
                 'post': {
+                    'id': post.id,
                     'my_ID': post.user.my_ID,
                     'content': post.content,
-                    'asset_class': post.asset_class,
-                    'asset_class_display': post.get_asset_class_display(),
                     'image_url': post.image.url if post.image else None,
+                    'nickname': post.user.nickname,
+                    'tags': [tag.name for tag in post.tags.all()],
+                    'username': post.user.my_ID
                 }
             })
+
         else:
             return JsonResponse({
                 'success': False,
@@ -136,7 +305,6 @@ def create_trading_post(request):
         post = JournalPost.objects.create(
             user=request.user,
             content=content,
-            asset_class='stock',
             embed_payload_json=embed_data,
             trading_symbol=trading_symbol,
             trading_name=trading_name,
@@ -160,7 +328,6 @@ def create_image_post(request):
         post = JournalPost.objects.create(
             user=request.user,
             content=content,
-            asset_class='stock',  # 임시
             embed_payload_json={}
         )
         
@@ -170,7 +337,7 @@ def create_image_post(request):
     return render(request, 'home/create_image.html')
 
 def home_view(request):
-    posts = JournalPost.objects.select_related('user').prefetch_related('likes', 'comments')[:20]
+    posts = JournalPost.objects.select_related('user').prefetch_related('likes', 'comments', 'tags')[:10]
     
     # 사용자 좋아요 상태 추가
     if request.user.is_authenticated:
@@ -211,7 +378,19 @@ def test_view(request):
         'posts_count': posts_count,
         'users_count': users_count,
     })
-
+@login_required
+@require_http_methods(["POST"])
+def delete_post(request, post_id):
+    """포스트 삭제"""
+    post = get_object_or_404(JournalPost, id=post_id)
+    
+    # 작성자 확인
+    if post.user != request.user:
+        return JsonResponse({'success': False, 'error': '권한이 없습니다.'})
+    
+    post.delete()
+    
+    return JsonResponse({'success': True})
 def get_stock_indices(period='1d'):
     """주요 지수 데이터 가져오기 (기간별) - 에러 처리 강화"""
     try:
@@ -810,6 +989,7 @@ def get_comments(request, post_id):
             {
                 'id': reply.id,
                 'my_ID': reply.user.my_ID,
+                'nickname': reply.user.nickname,
                 'content': reply.content,
                 'created_at': reply.created_at.strftime('%Y-%m-%d %H:%M')
             }
@@ -820,6 +1000,7 @@ def get_comments(request, post_id):
             'id': comment.id,
             'my_ID': comment.user.my_ID,
             'content': comment.content,
+            'nickname': comment.user.nickname,
             'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
             'replies': replies_data
         })

@@ -13,8 +13,8 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(JournalPost)
 class JournalPostAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'asset_class', 'content_preview', 'created_at']
-    list_filter = ['asset_class', 'embed_style', 'created_at']
+    list_display = ['id', 'user', 'content_preview', 'tags_preview', 'created_at']
+    list_filter = ['embed_style', 'created_at', 'tags']
     search_fields = ['content', 'user__my_ID']
     filter_horizontal = ['tags']
     

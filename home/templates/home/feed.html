@@ -22,16 +22,33 @@
 <form method="POST" action="{% url 'home:create_simple_post' %}" enctype="multipart/form-data" style="border-bottom: 1px solid #eff3f4; padding: 15px;" onsubmit="submitPost(event)">
     {% csrf_token %}
     <div style="display: flex; align-items: flex-start; gap: 12px;">
-        <!-- 프로필 이미지 placeholder -->
-        <div style="width: 40px; height: 40px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
-            U
-        </div>
-        
+        {% if post.user.my_ID %}
+            <a href="{% url 'user_profile:profile' my_ID=post.user.my_ID %}" style="text-decoration: none;">
+                {% if post.user.profile_picture %}
+                    <img src="{{ post.user.profile_picture.url }}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                {% else %}
+                    <div style="width: 40px; height: 40px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px;">
+                        {{ post.user.my_ID|first|upper }}
+                    </div>
+                {% endif %}
+            </a>
+        {% else %}
+            <div style="width: 40px; height: 40px; background: #ccc; border-radius: 50%;"></div>
+        {% endif %}
+                        
         <!-- 입력 영역 -->
         <div style="flex: 1;">
-            <textarea name="content" id="post-content" placeholder="What's happening?" 
-                style="width: 100%; min-height: 50px; font-size: 18px; color: #0f1419; border: none; outline: none; resize: none; padding: 12px 0; border-bottom: 1px solid #eff3f4; margin-bottom: 12px; background: transparent; font-family: inherit;" 
-                oninput="togglePostButton()"></textarea>
+            <div style="position: relative;">
+                <textarea name="content" id="post-content" placeholder="What's happening?" 
+                    style="width: 100%; min-height: 50px; font-size: 18px; color: #0f1419; border: none; outline: none; resize: none; padding: 12px 0; border-bottom: 1px solid #eff3f4; margin-bottom: 12px; background: transparent; font-family: inherit;" 
+                    oninput="handleTextInput(this)" 
+                    onkeyup="handleTextInput(this)"></textarea>
+                
+                <!-- 해시태그 미리보기 -->
+                <div id="hashtag-preview" style="font-size: 14px; color: #1d9bf0; margin-bottom: 8px; display: none;">
+                    <strong>감지된 해시태그:</strong> <span id="detected-tags"></span>
+                </div>
+            </div>
 
             <input type="file" id="image-input" name="image" accept="image/*" style="display: none;" onchange="previewImage(this)">
             
@@ -72,22 +89,25 @@
 
 <!-- 필터 버튼 -->
 <div style="padding: 12px 16px; border-bottom: 1px solid #eff3f4; background: #f7f9fa;">
-    <div style="display: flex; gap: 8px; align-items: center;">
-        <button onclick="toggleFilter('매매일지')" id="filter-매매일지" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;">
-            #매매일지
-        </button>
-        <button onclick="toggleFilter('주식')" id="filter-주식" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;">
-            #주식
-        </button>
-        <button onclick="toggleFilter('부동산')" id="filter-부동산" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;">
-            #부동산
-        </button>
+    <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+        <!-- 태그 버튼들 - 스크롤 가능한 영역 -->
+        <div style="display: flex; gap: 8px; align-items: center; flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; white-space: nowrap;">
+            <button onclick="toggleFilter('매매일지')" id="filter-매매일지" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; flex-shrink: 0;">
+                #매매일지
+            </button>
+            <button onclick="toggleFilter('주식')" id="filter-주식" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; flex-shrink: 0;">
+                #주식
+            </button>
+            <button onclick="toggleFilter('부동산')" id="filter-부동산" style="background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; flex-shrink: 0;">
+                #부동산
+            </button>
+            
+            <!-- 추가 태그들 -->
+            <div id="custom-tags-container" style="display: flex; gap: 8px;"></div>
+        </div>
         
-        <!-- 추가 태그들이 여기 동적으로 생성됩니다 -->
-        <div id="custom-tags-container" style="display: flex; gap: 8px;"></div>
-        
-        <!-- 태그 추가 입력창 -->
-        <div style="display: flex; gap: 4px; align-items: center;">
+        <!-- 태그 추가 입력창 - 고정 위치 -->
+        <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
             <input type="text" id="tag-input" placeholder="태그 추가" maxlength="10" 
                 style="width: 80px; padding: 4px 8px; border: 1px solid #eff3f4; border-radius: 12px; font-size: 13px;"
                 onkeypress="handleTagInput(event)">
@@ -99,39 +119,87 @@
     </div>
 </div>
 
-
 <!-- 포스트 피드 -->
 <div id="posts-container">
     {% if posts %}
         {% for post in posts %}
-        <div class="post-card" data-post-type="{{ post.asset_class }}">
-            <div class="post-header">
-                <span class="post-username">{{ post.user.username }}</span>
-                <span class="post-time">{{ post.created_at|timesince }} 전</span>
+        <div class="post-card" data-post-type="{{ post.asset_class }}" style="position: relative;">
+            <!-- 메뉴 버튼을 별도로 최상단에 배치 -->
+            <div class="post-menu-btn" data-post-id="{{ post.id }}" data-is-my-post="{% if user.is_authenticated and post.user == user %}true{% else %}false{% endif %}" style="position: absolute; top: 8px; right: 8px; z-index: 10;">
+                <span class="material-symbols-outlined">more_horiz</span>
             </div>
             
-            <div class="post-meta">
-                <span style="color: #1d9bf0; font-weight: 500;">{{ post.get_asset_class_display }}</span> • 
-            </div>
-            
-            <div class="post-content">
-                {{ post.content }}
-            </div>
-                        
-            {% if post.image %}
-            <div style="margin: 10px 0;">
-                <div style="width: 100%; aspect-ratio: 16/9; overflow: hidden; border-radius: 12px; border: 1px solid #eff3f4; cursor: pointer;" onclick="openImageModal('{{ post.image.url }}')">
-                    <img src="{{ post.image.url }}" alt="첨부 이미지" 
-                        style="width: 100%; height: 100%; object-fit: cover;">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <!-- 프로필 아이콘 -->
+                {% if post.user.my_ID %}
+                    <a href="{% url 'user_profile:profile' my_ID=post.user.my_ID %}" style="text-decoration: none;">
+                        {% if post.user.profile_picture %}
+                            <img src="{{ post.user.profile_picture.url }}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                            <div style="width: 32px; height: 32px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
+                                {{ post.user.my_ID|first|upper }}
+                            </div>
+                        {% endif %}
+                    </a>
+                {% else %}
+                    <div style="width: 32px; height: 32px; background: #ccc; border-radius: 50%;"></div>
+                {% endif %}
+                
+                <!-- 오른쪽 모든 내용 -->
+                <div style="flex: 1; margin-top: -4px;">
+                    <!-- 사용자명과 시간 -->
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        {% if post.user.my_ID %}
+                            <a href="{% url 'user_profile:profile' my_ID=post.user.my_ID %}" style="text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                                <span style="font-weight: bold; color: #0f1419;">{{ post.user.nickname }}</span>
+                                <span style="color: #536471; font-weight: normal;">@{{ post.user.my_ID }}</span>
+                            </a>
+                        {% else %}
+                            <span class="post-username">알 수 없음</span>
+                        {% endif %}
+                        <span style="color: #536471; font-size: 14px;">·</span>
+                        <span class="post-time" data-timestamp="{{ post.created_at|date:'c' }}" style="color: #536471; font-size: 14px;">{{ post.created_at|timesince }} 전</span>
+                    </div>
+                    
+                    <!-- 포스트 내용 -->
+                    <div class="post-content">
+                        {{ post.content }}
+                    </div>
+
+                    {% if post.image %}
+                        <div style="margin: 10px 0;">
+                            <div style="width: 100%; aspect-ratio: 16/9; overflow: hidden; border-radius: 12px; border: 1px solid #eff3f4; cursor: pointer;" onclick="openImageModal('{{ post.image.url }}')">
+                                <img data-src="{{ post.image.url }}" 
+                                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' fill='%23999'%3E이미지 로딩중...%3C/text%3E%3C/svg%3E"
+                                    alt="첨부 이미지" 
+                                    class="lazy-image"
+                                    style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                    {% elif post.screenshot_url %}
+                        <div style="margin: 10px 0; cursor: pointer;" onclick="openImageModal('{{ post.screenshot_url }}')">
+                            <img data-src="{{ post.screenshot_url }}" 
+                                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' fill='%23999'%3E이미지 로딩중...%3C/text%3E%3C/svg%3E"
+                                alt="첨부 이미지" 
+                                class="lazy-image"
+                                style="max-width: 100%; border-radius: 12px; border: 1px solid #eff3f4;">
+                        </div>
+                    {% endif %}
                 </div>
             </div>
-            {% elif post.screenshot_url %}
-            <div style="margin: 10px 0; cursor: pointer;" onclick="openImageModal('{{ post.screenshot_url }}')">
-                <img src="{{ post.screenshot_url }}" alt="첨부 이미지" 
-                    style="max-width: 100%; border-radius: 12px; border: 1px solid #eff3f4;">
+                        
+            {% if post.tags.all %}
+            <div style="margin: 10px 0;">
+                {% for tag in post.tags.all %}
+                <span onclick="toggleFilter('{{ tag.name }}')" 
+                    style="display: inline-block; background: #f0f8ff; color: #1d9bf0; padding: 4px 8px; border-radius: 12px; font-size: 12px; margin-right: 6px; margin-bottom: 4px; cursor: pointer; border: 1px solid #e1f5fe;"
+                    onmouseover="this.style.backgroundColor='#e3f2fd'"
+                    onmouseout="this.style.backgroundColor='#f0f8ff'">
+                    #{{ tag.name }}
+                </span>
+                {% endfor %}
             </div>
             {% endif %}
-            
             <div class="action-buttons">
                 <div class="action-btn" data-action="comments" data-post-id="{{ post.id }}">
                     <span class="material-symbols-outlined">chat_bubble</span>
@@ -139,12 +207,16 @@
                 </div>
                 
                 <div class="action-btn" data-action="like" data-post-id="{{ post.id }}" id="like-btn-{{ post.id }}">
-                    <span class="material-symbols-outlined" id="like-icon-{{ post.id }}">favorite_border</span>
+                    <span class="material-symbols-outlined {% if user.is_authenticated and post.is_liked_by_user %}liked{% endif %}" id="like-icon-{{ post.id }}">
+                        {% if user.is_authenticated and post.is_liked_by_user %}favorite{% else %}favorite_border{% endif %}
+                    </span>
                     <span id="likes-count-{{ post.id }}">{{ post.likes.count }}</span>
                 </div>
-                
+                                
                 <div class="action-btn" data-action="bookmark" data-post-id="{{ post.id }}">
-                    <span class="material-symbols-outlined">bookmark_border</span>
+                    <span class="material-symbols-outlined {% if user.is_authenticated and post.is_bookmarked_by_user %}bookmarked{% endif %}">
+                        {% if user.is_authenticated and post.is_bookmarked_by_user %}bookmark{% else %}bookmark_border{% endif %}
+                    </span>
                     <span>{{ post.bookmarks.count }}</span>
                 </div>
                 
@@ -470,11 +542,11 @@ function addCustomTag() {
     
     if (!tagName) return;
     if (customTags.length >= MAX_CUSTOM_TAGS) {
-        alert('최대 3개까지만 추가할 수 있습니다.');
+        Toast.warning('최대 3개까지만 추가할 수 있습니다.');
         return;
     }
     if (customTags.includes(tagName) || ['매매일지', '주식', '부동산'].includes(tagName)) {
-        alert('이미 존재하는 태그입니다.');
+        Toast.warning('이미 존재하는 태그입니다.');
         return;
     }
     
@@ -489,7 +561,7 @@ function renderCustomTags() {
     
     customTags.forEach(tagName => {
         const tagButton = document.createElement('button');
-        tagButton.innerHTML = `#${tagName} <span onclick="removeCustomTag('${tagName}')" style="margin-left: 4px;">×</span>`;
+        tagButton.innerHTML = `#${tagName} <span onclick="removeCustomTag('${tagName}')" style="margin-left: 6px; padding: 2px 4px; background: rgba(255,255,255,0.8); border-radius: 50%; font-size: 14px; font-weight: bold; cursor: pointer; hover:background: rgba(255,255,255,1);">×</span>`;
         tagButton.id = `filter-${tagName}`;
         tagButton.onclick = () => toggleFilter(tagName);
         tagButton.style.cssText = 'background: #ffffff; color: #0f1419; border: 1px solid #eff3f4; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;';
@@ -512,9 +584,21 @@ function applyFilters() {
     const posts = document.querySelectorAll('.post-card');
     posts.forEach(post => {
         if (activeFilters.length === 0) {
+            // 필터 없으면 모두 표시
             post.style.display = 'block';
         } else {
-            post.style.display = 'none';  // 임시로 숨김 (나중에 실제 태그 매칭 구현)
+            // 포스트의 태그 확인
+            const postTags = post.querySelectorAll('span[onclick*="toggleFilter"]');
+            const postTagNames = Array.from(postTags).map(tag => 
+                tag.textContent.replace('#', '').trim()
+            );
+            
+            // 활성화된 필터 중 하나라도 포스트에 있으면 표시
+            const shouldShow = activeFilters.some(filter => 
+                postTagNames.includes(filter)
+            );
+            
+            post.style.display = shouldShow ? 'block' : 'none';
         }
     });
 }
@@ -556,44 +640,76 @@ function submitPost(event) {
             document.getElementById('post-button').disabled = true;
             document.getElementById('post-button').style.opacity = '0.5';
             document.getElementById('image-preview').style.display = 'none';
+            
+            // PostStateManager 상태 초기화
+            PostStateManager.setState('none');
         } else {
-            alert('포스트 작성 실패: ' + data.error);
+            Toast.error('포스트 작성 실패: ' + data.error);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('포스트 작성 중 오류가 발생했습니다.');
+        Toast.error('포스트 작성 중 오류가 발생했습니다.');
     });
 }
 
 function addNewPostToFeed(postData) {
     const postsContainer = document.getElementById('posts-container');
+    let tagsHtml = '';
+    if (postData.tags && postData.tags.length > 0) {
+        tagsHtml = '<div style="margin: 10px 0;">';
+        postData.tags.forEach(tag => {
+            tagsHtml += `<span onclick="toggleFilter('${tag}')" style="display: inline-block; background: #f0f8ff; color: #1d9bf0; padding: 4px 8px; border-radius: 12px; font-size: 12px; margin-right: 6px; cursor: pointer;">#${tag}</span>`;
+        });
+        tagsHtml += '</div>';
+    }
     
     // 새 포스트 HTML 생성
     const newPostHTML = `
-        <div class="post-card" data-post-type="${postData.asset_class}">
-            <div class="post-header">
-                <span class="post-username">${postData.username}</span>
-                <span class="post-time">방금 전</span>
+        <div class="post-card" style="position: relative;">
+            <div class="post-menu-btn" data-post-id="${postData.id}" data-is-my-post="true">
+                <span class="material-symbols-outlined">more_horiz</span>
             </div>
-            
-            <div class="post-meta">
-                <span style="color: #1d9bf0; font-weight: 500;">${postData.asset_class_display}</span> • 
-            </div>
-            
-            <div class="post-content">
-                ${postData.content}
+
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <!-- 프로필 이미지 -->
+                <a href="/profile/${postData.my_ID}/" style="text-decoration: none;">
+                    <div style="width: 32px; height: 32px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
+                        ${postData.my_ID.charAt(0).toUpperCase()}
+                    </div>
+                </a>
+                
+                <!-- 오른쪽 모든 내용 -->
+                <div style="flex: 1; margin-top: -4px;">
+                    <!-- 사용자명과 시간 -->
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <a href="/profile/${postData.my_ID}/" style="text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                            <span style="font-weight: bold; color: #0f1419;">${postData.nickname || postData.my_ID}</span>
+                            <span style="color: #536471; font-weight: normal;">@${postData.my_ID}</span>
+                        </a>
+                        <span style="color: #536471; font-size: 14px;">·</span>
+                        <span style="color: #536471; font-size: 14px;">방금 전</span>
+                    </div>
+                    
+                    <!-- 포스트 내용 -->
+                    <div class="post-content">
+                        ${postData.content}
+                    </div>
+                </div>
             </div>
             
             ${postData.image_url ? `
             <div style="margin: 10px 0;">
                 <div style="width: 100%; aspect-ratio: 16/9; overflow: hidden; border-radius: 12px; border: 1px solid #eff3f4; cursor: pointer;" onclick="openImageModal('${postData.image_url}')">
-                    <img src="${postData.image_url}" alt="첨부 이미지" 
+                    <img data-src="${postData.image_url}" 
+                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' fill='%23999'%3E이미지 로딩중...%3C/text%3E%3C/svg%3E"
+                        alt="첨부 이미지" 
+                        class="lazy-image"
                         style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
             </div>
             ` : ''}
-            
+            ${tagsHtml}
             <div class="action-buttons">
                 <div class="action-btn">
                     <span class="material-symbols-outlined">chat_bubble</span>
@@ -620,7 +736,84 @@ function addNewPostToFeed(postData) {
     
     // 피드 맨 위에 새 포스트 추가
     postsContainer.insertAdjacentHTML('afterbegin', newPostHTML);
+    LazyLoader.observeNewImages();
 }
+// 무한 스크롤용 포스트 추가 (기존 함수 재사용)
+function addPostToFeed(postData) {
+    const postsContainer = document.getElementById('posts-container');
+    
+    // asset_class 관련 제거하고 기존 함수 로직 재사용
+    const modifiedPostData = {
+        ...postData,
+        username: postData.my_ID,
+        asset_class: '',
+        asset_class_display: ''
+    };
+    
+    let tagsHtml = '';
+    if (postData.tags && postData.tags.length > 0) {
+        tagsHtml = '<div style="margin: 10px 0;">';
+        postData.tags.forEach(tag => {
+            tagsHtml += `<span onclick="toggleFilter('${tag}')" style="display: inline-block; background: #f0f8ff; color: #1d9bf0; padding: 4px 8px; border-radius: 12px; font-size: 12px; margin-right: 6px; cursor: pointer;">#${tag}</span>`;
+        });
+        tagsHtml += '</div>';
+    }
+    
+    const newPostHTML = `
+        <div class="post-card">
+            <div class="post-header">
+                <span class="post-username">${postData.my_ID}</span>
+                <span class="post-time">${postData.created_at}</span>
+            </div>
+            
+            <div class="post-content">
+                ${postData.content}
+            </div>
+            
+            ${postData.image_url ? `
+            <div style="margin: 10px 0;">
+                <div style="width: 100%; aspect-ratio: 16/9; overflow: hidden; border-radius: 12px; border: 1px solid #eff3f4; cursor: pointer;" onclick="openImageModal('${postData.image_url}')">
+                    <img data-src="${postData.image_url}" 
+                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' fill='%23999'%3E이미지 로딩중...%3C/text%3E%3C/svg%3E"
+                        alt="첨부 이미지" 
+                        class="lazy-image"
+                        style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+            </div>
+            ` : ''}
+            
+            ${tagsHtml}
+            
+            <div class="action-buttons">
+                <div class="action-btn" data-action="comments" data-post-id="${postData.id}">
+                    <span class="material-symbols-outlined">chat_bubble</span>
+                    <span>${postData.comments_count}</span>
+                </div>
+                <div class="action-btn" data-action="like" data-post-id="${postData.id}">
+                    <span class="material-symbols-outlined${postData.is_liked ? ' liked' : ''}">${postData.is_liked ? 'favorite' : 'favorite_border'}</span>
+                    <span>${postData.likes_count}</span>
+                </div>
+                <div class="action-btn" data-action="bookmark" data-post-id="${postData.id}">
+                    <span class="material-symbols-outlined">bookmark_border</span>
+                    <span>${postData.bookmarks_count}</span>
+                </div>
+                <div class="action-btn" data-action="share" data-post-id="${postData.id}">
+                    <span class="material-symbols-outlined">share</span>
+                    <span>${postData.shares_count}</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 애니메이션 클래스 추가
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = newPostHTML;
+    const postElement = tempDiv.firstElementChild;
+    postElement.classList.add('fade-in');
+
+    postsContainer.appendChild(postElement);
+    LazyLoader.observeNewImages();
+    }
 // 캐러셀 변수
 let currentSlide = 0;
 const totalSlides = 3; // 총 3개 슬라이드 (9개 뉴스 ÷ 3개 = 3개)
@@ -681,9 +874,6 @@ if (carousel) {
         autoSlideInterval = setInterval(nextSlide, 10000);
     });
 }
-document.addEventListener('DOMContentLoaded', function() {
-    showSlide(0);
-});
 // CSRF 토큰 가져오기 함수 
 function getCSRFToken() {
     return document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -698,7 +888,7 @@ function isUserAuthenticated() {
 // 좋아요 토글 함수
 function toggleLike(postId) {
     if (!isUserAuthenticated()) {
-        alert('로그인이 필요합니다.');
+        Toast.warning('로그인이 필요합니다.');
         return;
     }
 
@@ -726,21 +916,29 @@ function toggleLike(postId) {
     .then(response => response.json())
     .then(data => {
         likeIcon.textContent = data.liked ? 'favorite' : 'favorite_border';
-        likeIcon.style.color = data.liked ? '#e91e63' : '#536471';
+        if (data.liked) {
+            likeIcon.classList.add('liked');
+        } else {
+            likeIcon.classList.remove('liked');
+        }
         likesCount.textContent = data.likes_count;
     })
     .catch(error => {
         console.error('오류:', error);
         likeIcon.textContent = isCurrentlyLiked ? 'favorite' : 'favorite_border';
-        likeIcon.style.color = isCurrentlyLiked ? '#e91e63' : '#536471';
+        if (isCurrentlyLiked) {
+            likeIcon.classList.add('liked');
+        } else {
+            likeIcon.classList.remove('liked');
+        }
         likesCount.textContent = currentCount;
-        alert('오류가 발생했습니다.');
+        Toast.error('오류가 발생했습니다.');
     });
 }
 // 북마크 토글 함수
 function toggleBookmark(postId) {
     if (!isUserAuthenticated()) {
-        alert('로그인이 필요합니다.');
+        Toast.warning('로그인이 필요합니다.');
         return;
     }
 
@@ -768,7 +966,11 @@ function toggleBookmark(postId) {
     .then(response => response.json())
     .then(data => {
         bookmarkIcon.textContent = data.bookmarked ? 'bookmark' : 'bookmark_border';
-        bookmarkIcon.style.color = data.bookmarked ? '#1d9bf0' : '#536471';
+        if (data.bookmarked) {
+            bookmarkIcon.classList.add('bookmarked');
+        } else {
+            bookmarkIcon.classList.remove('bookmarked');
+        }
         bookmarksCount.textContent = data.bookmarks_count;
     })
     .catch(error => {
@@ -776,7 +978,7 @@ function toggleBookmark(postId) {
         bookmarkIcon.textContent = isCurrentlyBookmarked ? 'bookmark' : 'bookmark_border';
         bookmarkIcon.style.color = isCurrentlyBookmarked ? '#1d9bf0' : '#536471';
         bookmarksCount.textContent = currentCount;
-        alert('북마크 처리 중 오류가 발생했습니다.');
+        Toast.error('북마크 처리 중 오류가 발생했습니다.');
     });
 }   
 // 댓글 토글 함수 (댓글 섹션 열기/닫기)
@@ -806,7 +1008,7 @@ function loadComments(postId) {
 // 댓글 제출
 function submitComment(postId) {
     if (!isUserAuthenticated()) {
-        alert('로그인이 필요합니다.');
+        Toast.warning('로그인이 필요합니다.');
         return;
     }
     
@@ -814,7 +1016,7 @@ function submitComment(postId) {
     const content = commentInput.value.trim();
     
     if (!content) {
-        alert('댓글 내용을 입력해주세요.');
+        Toast.warning('댓글 내용을 입력해주세요.');
         return;
     }
     
@@ -836,12 +1038,12 @@ function submitComment(postId) {
             commentsCountElement.textContent = data.comments_count;
             loadComments(postId);
         } else {
-            alert(data.error || '댓글 작성 중 오류가 발생했습니다.');
+            Toast.error(data.error || '댓글 작성 중 오류가 발생했습니다.');
         }
     })
     .catch(error => {
         console.error('댓글 작성 오류:', error);
-        alert('댓글 작성 중 오류가 발생했습니다.');
+        Toast.error('댓글 작성 중 오류가 발생했습니다.');
     });
 }
 
@@ -856,13 +1058,31 @@ function displayComments(postId, comments) {
     
     let commentsHTML = '';
     comments.forEach(comment => {
+        const timeAgo = getRelativeTime(comment.created_at);
+        
         commentsHTML += `
-            <div class="comment" style="margin-bottom: 12px; padding: 12px; background: #f8f9fa; border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-weight: bold; color: #0f1419;">${comment.username}</span>
-                    <span style="color: #536471; font-size: 12px;">${comment.created_at}</span>
+            <div class="comment" style="margin-bottom: 12px;">
+                <div style="display: flex; align-items: flex-start; gap: 8px;">
+                    <!-- 댓글 작성자 프로필 아이콘 (클릭 가능) -->
+                    <a href="/profile/${comment.my_ID}/" style="text-decoration: none;">
+                        <div style="width: 24px; height: 24px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; flex-shrink: 0;">
+                            ${comment.my_ID ? comment.my_ID.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                    </a>
+                    
+                    <!-- 댓글 내용 -->
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                            <a href="/profile/${comment.my_ID}/" style="text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                                <span style="font-weight: bold; color: #0f1419; font-size: 14px;">${comment.nickname || comment.my_ID}</span>
+                                <span style="color: #536471; font-size: 12px; font-weight: normal;">@${comment.my_ID}</span>
+                            </a>
+                            <span style="color: #536471; font-size: 12px;">·</span>
+                            <span style="color: #536471; font-size: 12px;">${timeAgo}</span>
+                        </div>
+                        <div style="color: #0f1419; line-height: 1.4; font-size: 14px;">${comment.content}</div>
+                    </div>
                 </div>
-                <div style="color: #0f1419; line-height: 1.4;">${comment.content}</div>
             </div>
         `;
     });
@@ -872,7 +1092,7 @@ function displayComments(postId, comments) {
 // 공유 기능
 function sharePost(postId) {
     if (!isUserAuthenticated()) {
-        alert('로그인이 필요합니다.');
+        Toast.warning('로그인이 필요합니다.');
         return;
     }
     
@@ -1114,12 +1334,12 @@ function shareToKakao(postUrl) {
         // 카카오톡 앱이 없을 경우 대체 방법
         setTimeout(() => {
             copyToClipboard(postUrl);
-            alert('카카오톡 앱으로 연결할 수 없습니다. URL이 복사되었으니 카카오톡에서 직접 붙여넣기 하세요.');
+            Toast.warning('카카오톡 앱으로 연결할 수 없습니다. URL이 복사되었으니 카카오톡에서 직접 붙여넣기 하세요.');
         }, 1000);
     } else {
         // 데스크탑에서는 URL 복사 후 안내
         copyToClipboard(postUrl);
-        alert('URL이 복사되었습니다. 카카오톡에서 붙여넣기 하여 공유하세요.');
+        Toast.warning('URL이 복사되었습니다. 카카오톡에서 붙여넣기 하여 공유하세요.');
     }
     
     closeShareModal();
@@ -1136,11 +1356,11 @@ function shareToInstagram(postUrl) {
         
         setTimeout(() => {
             copyToClipboard(postUrl);
-            alert('Instagram 앱으로 연결할 수 없습니다. URL이 복사되었으니 Instagram에서 직접 붙여넣기 하세요.');
+            Toast.warning('Instagram 앱으로 연결할 수 없습니다. URL이 복사되었으니 Instagram에서 직접 붙여넣기 하세요.');
         }, 1000);
     } else {
         copyToClipboard(postUrl);
-        alert('URL이 복사되었습니다. Instagram 웹사이트나 앱에서 붙여넣기 하여 공유하세요.');
+        Toast.warning('URL이 복사되었습니다. Instagram 웹사이트나 앱에서 붙여넣기 하여 공유하세요.');
     }
     
     closeShareModal();
@@ -1156,11 +1376,11 @@ function shareToTwitter(postUrl) {
 // URL 클립보드 복사
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        alert('URL이 클립보드에 복사되었습니다!');
+        Toast.warning('URL이 클립보드에 복사되었습니다!');
         closeShareModal();
     }).catch(err => {
         console.error('복사 실패:', err);
-        alert('복사에 실패했습니다.');
+        Toast.error('복사에 실패했습니다.');
     });
 }
 
@@ -1179,9 +1399,631 @@ function closeShareModal() {
     }
     window.currentShareOptions = null;
 }
+// 실시간 텍스트 입력 처리
+function handleTextInput(textarea) {
+    const text = textarea.value;
+    
+    // 해시태그 감지
+    const hashtags = extractHashtags(text);
+    
+    // 해시태그 미리보기 업데이트
+    updateHashtagPreview(hashtags);
+    
+    // 포스트 버튼 상태 업데이트
+    PostStateManager.updatePostButton();
+}
+
+// 해시태그 추출
+function extractHashtags(text) {
+    const hashtag_pattern = /#(\w+)/g;
+    const matches = text.match(hashtag_pattern);
+    return matches ? matches.map(tag => tag.substring(1)) : [];
+}
+
+// 해시태그 미리보기 업데이트
+function updateHashtagPreview(hashtags) {
+    const preview = document.getElementById('hashtag-preview');
+    const tagsSpan = document.getElementById('detected-tags');
+    
+    if (hashtags.length > 0) {
+        tagsSpan.innerHTML = hashtags.map(tag => `<span style="background: #e3f2fd; padding: 2px 6px; border-radius: 8px; margin-right: 4px;">#${tag}</span>`).join('');
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+
+// 로딩 스피너 표시
+function showLoadingSpinner() {
+    let spinner = document.getElementById('loading-spinner');
+    if (!spinner) {
+        spinner = document.createElement('div');
+        spinner.id = 'loading-spinner';
+        spinner.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #536471;">
+                <div class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #1d9bf0; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <div style="margin-top: 8px;">포스트를 불러오는 중...</div>
+            </div>
+        `;
+        document.getElementById('posts-container').appendChild(spinner);
+    }
+    spinner.style.display = 'block';
+}
+
+// 로딩 스피너 숨기기
+function hideLoadingSpinner() {
+    const spinner = document.getElementById('loading-spinner');
+    if (spinner) {
+        spinner.style.display = 'none';
+    }
+}
+// 이미지 지연 로딩 구현
+const LazyLoader = {
+    observer: null,
+    
+    init() {
+        // Intersection Observer 지원 확인
+        if ('IntersectionObserver' in window) {
+            this.observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        this.loadImage(entry.target);
+                        this.observer.unobserve(entry.target);
+                    }
+                });
+            }, {
+                root: null,
+                rootMargin: '50px', // 50px 전에 미리 로드
+                threshold: 0.1
+            });
+            
+            // 기존 이미지들 관찰 시작
+            this.observeImages();
+        } else {
+            // 구형 브라우저는 즉시 모든 이미지 로드
+            this.loadAllImages();
+        }
+    },
+    
+    observeImages() {
+        const lazyImages = document.querySelectorAll('.lazy-image');
+        lazyImages.forEach(img => {
+            this.observer.observe(img);
+        });
+    },
+    
+    loadImage(img) {
+        const src = img.getAttribute('data-src');
+        if (src) {
+            img.src = src;
+            img.classList.add('loaded');
+            img.removeAttribute('data-src');
+        }
+    },
+    
+    loadAllImages() {
+        const lazyImages = document.querySelectorAll('.lazy-image');
+        lazyImages.forEach(img => {
+            this.loadImage(img);
+        });
+    },
+    
+    // 새로운 이미지가 추가될 때 호출
+    observeNewImages() {
+        const newImages = document.querySelectorAll('.lazy-image:not(.loaded)');
+        newImages.forEach(img => {
+            if (this.observer) {
+                this.observer.observe(img);
+            } else {
+                this.loadImage(img);
+            }
+        });
+    }
+};
+
+// 무한 스크롤 관리 객체
+const InfiniteScroll = {
+    currentPage: 1,
+    isLoading: false,
+    hasMorePosts: true,
+    debounceTimer: null,
+    
+    init() {
+        window.addEventListener('scroll', () => {
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(() => {
+                this.handleScroll();
+            }, 150);
+        });
+    },
+    
+    handleScroll() {
+        if (this.isLoading || !this.hasMorePosts) return;
+        
+        const threshold = 300;
+        const scrolled = window.innerHeight + window.scrollY;
+        const documentHeight = document.body.offsetHeight;
+        
+        if (scrolled >= documentHeight - threshold) {
+            this.loadMorePosts();
+        }
+    },
+    
+    loadMorePosts() {
+        this.isLoading = true;
+        this.currentPage++;
+        
+        showLoadingSpinner();
+        
+        fetch(`/home/load-more-posts/?page=${this.currentPage}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.posts && data.posts.length > 0) {
+                    data.posts.forEach((post, index) => {
+                        setTimeout(() => {
+                            addPostToFeed(post);
+                        }, index * 100); // 100ms 간격으로 순차 등장
+                    });
+                    this.hasMorePosts = data.has_next;
+                } else {
+                    this.hasMorePosts = false;
+                }
+            })
+            .catch(error => {
+                console.error('포스트 로드 오류:', error);
+                this.currentPage--;
+            })
+            .finally(() => {
+                this.isLoading = false;
+                hideLoadingSpinner();
+            });
+    }
+};
+// 상대시간 계산 함수
+function getRelativeTime(dateString) {
+    const now = new Date();
+    const postTime = new Date(dateString);
+    const diffInSeconds = Math.floor((now - postTime) / 1000);
+    
+    if (diffInSeconds < 60) {
+        return "방금 전";
+    } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes}분 전`;
+    } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `${hours}시간 전`;
+    } else if (diffInSeconds < 2592000) {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `${days}일 전`;
+    } else if (diffInSeconds < 31536000) {
+        const months = Math.floor(diffInSeconds / 2592000);
+        return `${months}개월 전`;
+    } else {
+        const years = Math.floor(diffInSeconds / 31536000);
+        return `${years}년 전`;
+    }
+}
+
+// 모든 포스트 시간 업데이트
+function updateAllPostTimes() {
+    const timeElements = document.querySelectorAll('.post-time[data-timestamp]');
+    timeElements.forEach(element => {
+        const timestamp = element.getAttribute('data-timestamp');
+        element.textContent = getRelativeTime(timestamp);
+    });
+}
+
+// 1분마다 시간 업데이트
+setInterval(updateAllPostTimes, 60000);
+// 포스트 수정 모달 관련 함수들
+function showEditModal(post) {
+    const modal = document.createElement('div');
+    modal.id = 'edit-modal';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 1000;
+        display: flex; align-items: center; justify-content: center;
+    `;
+    
+    const modalContent = `
+        <div style="background: white; border-radius: 12px; width: 90%; max-width: 500px; padding: 20px;">
+            <h3 style="margin: 0 0 15px 0;">포스트 수정</h3>
+            <textarea id="edit-content" style="width: 100%; height: 120px; border: 1px solid #ddd; border-radius: 8px; padding: 12px; resize: vertical;">${post.content}${post.tags.map(tag => ' #' + tag).join('')}</textarea>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button onclick="submitEdit(${post.id})" style="flex: 1; background: #1d9bf0; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">수정</button>
+                <button onclick="closeEditModal()" style="flex: 1; background: #f0f0f0; color: #333; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">취소</button>
+            </div>
+        </div>
+    `;
+    
+    modal.innerHTML = modalContent;
+    document.body.appendChild(modal);
+}
+
+function submitEdit(postId) {
+    const content = document.getElementById('edit-content').value.trim();
+    
+    if (!content) {
+        Toast.warning('내용을 입력해주세요.');
+        return;
+    }
+    
+    fetch(`/home/post/${postId}/edit/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
+        },
+        body: JSON.stringify({ content: content })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updatePostInDOM(postId, data.post);
+            closeEditModal();
+            Toast.success('포스트가 수정되었습니다.');
+        } else {
+            Toast.error(data.error);
+        }
+    })
+    .catch(error => {
+        Toast.error('수정 중 오류가 발생했습니다.');
+    });
+}
+
+function updatePostInDOM(postId, postData) {
+    const postCard = document.querySelector(`[data-post-id="${postId}"]`).closest('.post-card');
+    const contentElement = postCard.querySelector('.post-content');
+    
+    contentElement.textContent = postData.content;
+    
+    // 기존 태그 제거
+    const existingTagsDiv = contentElement.nextElementSibling;
+    if (existingTagsDiv && existingTagsDiv.querySelector('span[onclick*="toggleFilter"]')) {
+        existingTagsDiv.remove();
+    }
+    
+    // 새 태그 추가
+    if (postData.tags.length > 0) {
+        let tagsHtml = '<div style="margin: 10px 0;">';
+        postData.tags.forEach(tag => {
+            tagsHtml += `<span onclick="toggleFilter('${tag}')" style="display: inline-block; background: #f0f8ff; color: #1d9bf0; padding: 4px 8px; border-radius: 12px; font-size: 12px; margin-right: 6px; margin-bottom: 4px; cursor: pointer; border: 1px solid #e1f5fe;">#${tag}</span>`;
+        });
+        tagsHtml += '</div>';
+        contentElement.insertAdjacentHTML('afterend', tagsHtml);
+    }
+}
+
+function closeEditModal() {
+    const modal = document.getElementById('edit-modal');
+    if (modal) modal.remove();
+}
+
+// 신고 모달 관련 함수들
+function showReportModal(postId) {
+    const modal = document.createElement('div');
+    modal.id = 'report-modal';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 1000;
+        display: flex; align-items: center; justify-content: center;
+    `;
+    
+    const modalContent = `
+        <div style="background: white; border-radius: 12px; width: 90%; max-width: 400px; padding: 20px;">
+            <h3 style="margin: 0 0 15px 0;">포스트 신고</h3>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px;"><input type="radio" name="report-reason" value="spam" style="margin-right: 8px;"> 스팸</label>
+                <label style="display: block; margin-bottom: 8px;"><input type="radio" name="report-reason" value="abuse" style="margin-right: 8px;"> 욕설/비방</label>
+                <label style="display: block; margin-bottom: 8px;"><input type="radio" name="report-reason" value="inappropriate" style="margin-right: 8px;"> 부적절한 내용</label>
+                <label style="display: block; margin-bottom: 8px;"><input type="radio" name="report-reason" value="fake" style="margin-right: 8px;"> 허위 정보</label>
+                <label style="display: block; margin-bottom: 8px;"><input type="radio" name="report-reason" value="other" style="margin-right: 8px;"> 기타</label>
+            </div>
+            <textarea id="report-description" placeholder="상세 내용 (선택사항)" style="width: 100%; height: 80px; border: 1px solid #ddd; border-radius: 6px; padding: 8px; resize: vertical;"></textarea>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button onclick="submitReport(${postId})" style="flex: 1; background: #e74c3c; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">신고</button>
+                <button onclick="closeReportModal()" style="flex: 1; background: #f0f0f0; color: #333; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">취소</button>
+            </div>
+        </div>
+    `;
+    
+    modal.innerHTML = modalContent;
+    document.body.appendChild(modal);
+}
+
+function submitReport(postId) {
+    const reason = document.querySelector('input[name="report-reason"]:checked')?.value;
+    const description = document.getElementById('report-description').value;
+    
+    if (!reason) {
+        Toast.warning('신고 사유를 선택해주세요.');
+        return;
+    }
+    
+    fetch(`/home/post/${postId}/report/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
+        },
+        body: JSON.stringify({
+            reason: reason,
+            description: description
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeReportModal();
+            Toast.success(data.message);
+        } else {
+            Toast.error(data.error);
+        }
+    })
+    .catch(error => {
+        Toast.error('신고 처리 중 오류가 발생했습니다.');
+    });
+}
+
+function closeReportModal() {
+    const modal = document.getElementById('report-modal');
+    if (modal) modal.remove();
+}
+// Toast 메시지 시스템
+const Toast = {
+    show(message, type = 'info', duration = 3000) {
+        // 기존 toast 제거
+        const existingToast = document.querySelector('.toast');
+        if (existingToast) {
+            existingToast.remove();
+        }
+        
+        // 새 toast 생성
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        
+        document.body.appendChild(toast);
+        
+        // 애니메이션 시작
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+        
+        // 자동 제거
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 300);
+        }, duration);
+    },
+    
+    success(message) {
+        this.show(message, 'success');
+    },
+    
+    error(message) {
+        this.show(message, 'error');
+    },
+    
+    warning(message) {
+        this.show(message, 'warning');
+    }
+};
+function togglePostMenu(postId, isMyPost) {
+    // 현재 열린 메뉴가 같은 포스트인지 확인
+    const existingMenu = document.querySelector('.post-menu-dropdown');
+    if (existingMenu && existingMenu.dataset.postId === postId.toString()) {
+        // 같은 버튼 클릭시 메뉴 닫기
+        existingMenu.remove();
+        return;
+    }
+    
+    // 다른 메뉴가 열려있으면 닫기
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+    
+    // 메뉴 생성
+    const menuDiv = document.createElement('div');
+    menuDiv.className = 'post-menu-dropdown show';
+    menuDiv.dataset.postId = postId; // 포스트 ID 저장
+    
+    let menuItems = '';
+    
+    if (isMyPost) {
+        // 내 포스트 메뉴
+        menuItems = `
+            <div class="menu-item" onclick="editPost(${postId})">
+                <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+                수정하기
+            </div>
+            <div class="menu-item danger" onclick="deletePost(${postId})">
+                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                삭제하기
+            </div>
+            <div class="menu-item" onclick="copyPostLink(${postId})">
+                <span class="material-symbols-outlined" style="font-size: 18px;">link</span>
+                링크 복사
+            </div>
+        `;
+    } else {
+        // 다른 사람 포스트 메뉴
+        menuItems = `
+            <div class="menu-item" onclick="followUser(${postId})">
+                <span class="material-symbols-outlined" style="font-size: 18px;">person_add</span>
+                사용자 팔로우
+            </div>
+            <div class="menu-item" onclick="toggleTradingAlert(${postId})">
+                <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
+                매매 알림 받기
+            </div>
+            <div class="menu-item" onclick="copyPostLink(${postId})">
+                <span class="material-symbols-outlined" style="font-size: 18px;">link</span>
+                링크 복사
+            </div>
+            <div class="menu-item" onclick="hidePost(${postId})">
+                <span class="material-symbols-outlined" style="font-size: 18px;">visibility_off</span>
+                관심 없음
+            </div>
+            <div class="menu-item danger" onclick="reportPost(${postId})">
+                <span class="material-symbols-outlined" style="font-size: 18px;">flag</span>
+                포스트 신고
+            </div>
+        `;
+    }
+    
+    menuDiv.innerHTML = menuItems;
+    
+    // body에 추가하고 위치 계산
+    const menuBtn = document.querySelector(`[data-post-id="${postId}"]`);
+    const btnRect = menuBtn.getBoundingClientRect();
+    
+    menuDiv.style.position = 'fixed';
+    menuDiv.style.top = btnRect.bottom + 'px';
+    menuDiv.style.left = (btnRect.right - 180) + 'px';
+    menuDiv.style.width = '180px';
+    menuDiv.style.zIndex = '1000';
+    
+    document.body.appendChild(menuDiv);
+    
+    // 외부 클릭시 메뉴 닫기
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menuBtn.contains(e.target) && !menuDiv.contains(e.target)) {
+                menuDiv.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 10);
+}
+// 메뉴 기능 함수들
+function editPost(postId) {
+    closePostMenu();
+    
+    // 포스트 데이터 가져오기
+    fetch(`/home/post/${postId}/edit/`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showEditModal(data.post);
+        } else {
+            Toast.error(data.error);
+        }
+    })
+    .catch(error => {
+        Toast.error('포스트 정보를 가져올 수 없습니다.');
+    });
+}
+
+function deletePost(postId) {
+    closePostMenu();
+    if (confirm('정말 삭제하시겠습니까?')) {
+        fetch(`/home/post/${postId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // DOM에서 포스트 제거
+                const postCard = document.querySelector(`[data-post-id="${postId}"]`).closest('.post-card');
+                postCard.remove();
+                Toast.success('포스트가 삭제되었습니다.');
+            } else {
+                Toast.error(data.error || '삭제에 실패했습니다.');
+            }
+        })
+        .catch(error => {
+            Toast.error('네트워크 오류가 발생했습니다.');
+        });
+    }
+}
+function copyPostLink(postId) {
+    closePostMenu();
+    const postUrl = window.location.origin + `/post/${postId}/`;
+    navigator.clipboard.writeText(postUrl).then(() => {
+        Toast.success('링크가 복사되었습니다!');
+    }).catch(() => {
+        Toast.error('링크 복사에 실패했습니다.');
+    });
+}
+
+function followUser(postId) {
+    closePostMenu();
+    Toast.warning('팔로우 기능은 준비 중입니다.');
+    console.log('사용자 팔로우:', postId);
+}
+
+function toggleTradingAlert(postId) {
+    closePostMenu();
+    Toast.success('매매 알림이 설정되었습니다!');
+    console.log('매매 알림 토글:', postId);
+}
+
+function hidePost(postId) {
+    closePostMenu();
+    
+    fetch(`/home/post/${postId}/hide/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCSRFToken(),
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const postCard = document.querySelector(`[data-post-id="${postId}"]`).closest('.post-card');
+            postCard.style.display = 'none';
+            Toast.success('포스트를 숨겼습니다.');
+        } else {
+            Toast.error(data.error);
+        }
+    })
+    .catch(error => {
+        Toast.error('처리 중 오류가 발생했습니다.');
+    });
+}
+
+function reportPost(postId) {
+    closePostMenu();
+    showReportModal(postId);
+}
+function closePostMenu() {
+    const existingMenu = document.querySelector('.post-menu-dropdown');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+}
+
 // 이벤트 리스너 등록
 document.addEventListener('DOMContentLoaded', function() {
-    showSlide(0);  // 기존 함수 유지
+    showSlide(0);
+    
+    // LazyLoader 초기화 추가
+    LazyLoader.init();
+
+    updateAllPostTimes();
+    
+    setTimeout(() => {
+        InfiniteScroll.init();
+    }, 2000);
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.post-menu-btn')) {
+            const menuBtn = e.target.closest('.post-menu-btn');
+            const postId = menuBtn.getAttribute('data-post-id');
+            const isMyPost = menuBtn.getAttribute('data-is-my-post') === 'true';
+            
+            togglePostMenu(postId, isMyPost);
+        }
+    });
     
     // 모든 action 버튼에 클릭 이벤트 추가
     document.querySelectorAll('.action-btn').forEach(function(btn) {
@@ -1210,5 +2052,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
 </script>
 {% endblock %}

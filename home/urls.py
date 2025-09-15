@@ -18,4 +18,9 @@ urlpatterns = [
     path('post/<int:post_id>/comments/', views.get_comments, name='get_comments'),
     path('post/<int:post_id>/comment/', views.create_comment, name='create_comment'),
     path('post/<int:post_id>/share/', views.toggle_share, name='toggle_share'),
+    path('load-more-posts/', views.load_more_posts, name='load_more_posts'),
+    path('post/<int:post_id>/delete/', views.delete_post, name='delete_post'),
+    path('post/<int:post_id>/edit/', views.edit_post, name='edit_post'),
+    path('post/<int:post_id>/hide/', views.hide_post, name='hide_post'),
+    path('post/<int:post_id>/report/', views.report_post, name='report_post'),
 ]
