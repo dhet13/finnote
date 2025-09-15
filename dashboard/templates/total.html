@@ -57,23 +57,22 @@
 <!-- 총 투자 자산 수익률 섹션 -->
 <div style="background: #f7f9fa; padding: 24px; border-radius: 8px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h3 style="color: #0f1419; font-size: 18px; font-weight: 600;">총 투자 자산 수익률</h3>
-        <div style="display: flex; align-items: center; gap: 16px;">
-            <!-- 메인 기간 선택 버튼 -->
-            <div class="main-period-buttons" style="display: flex; gap: 8px;">
-                <button class="main-period-btn active" data-main-period="1D">1D</button>
-                <button class="main-period-btn" data-main-period="1W">1W</button>
-                <button class="main-period-btn" data-main-period="1M">1M</button>
-                <button class="main-period-btn" data-main-period="1Y">1Y</button>
-            </div>
-            <!-- 기간 범위 선택 -->
-            <select class="period-selector" data-period-range="30">
-                <option value="30">30일</option>
-                <option value="60">60일</option>
-                <option value="90">90일</option>
-                <option value="180">180일</option>
-                <option value="365">365일</option>
-            </select>
+        <h3 style="color: #0f1419; font-size: 18px; font-weight: 600; margin: 0;">총 투자 자산 수익률</h3>
+        <div class="quick-period-buttons" style="display: flex; gap: 8px;">
+            <button class="quick-period-btn active" data-period="1D" style="padding: 6px 12px; border: 1px solid #eff3f4; background: #1d9bf0; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">1D</button>
+            <button class="quick-period-btn" data-period="1W" style="padding: 6px 12px; border: 1px solid #eff3f4; background: transparent; color: #536471; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">1W</button>
+            <button class="quick-period-btn" data-period="1M" style="padding: 6px 12px; border: 1px solid #eff3f4; background: transparent; color: #536471; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">1M</button>
+            <button class="quick-period-btn" data-period="1Y" style="padding: 6px 12px; border: 1px solid #eff3f4; background: transparent; color: #536471; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">1Y</button>
+        </div>
+    </div>
+    
+    <!-- 캘린더 기간 선택 (별도 줄) -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+        <div class="date-range-picker" style="display: flex; align-items: center; gap: 8px;">
+            <input type="date" id="start-date" class="date-input" style="padding: 6px 12px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 12px;">
+            <span style="color: #536471; font-size: 12px;">~</span>
+            <input type="date" id="end-date" class="date-input" style="padding: 6px 12px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 12px;">
+            <button id="apply-date-range" class="apply-btn" style="padding: 6px 12px; background: #1d9bf0; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">적용</button>
         </div>
     </div>
     <div style="height: 300px;">
