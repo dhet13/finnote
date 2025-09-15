@@ -215,38 +215,77 @@ p.dashboard-subtitle {
     border-color: #1a8cd8;
 }
 
-/* 메인 차트 기간 선택 버튼 스타일 (1D/1W/1M/3M/6M/1Y) */
-.main-period-buttons {
+/* 캘린더 기간 선택 스타일 */
+.date-range-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.date-input {
+    padding: 6px 12px;
+    border: 1px solid #e1e8ed;
+    border-radius: 6px;
+    font-size: 12px;
+    background-color: #ffffff;
+    color: #0f1419;
+    transition: border-color 0.2s ease;
+}
+
+.date-input:focus {
+    outline: none;
+    border-color: #1d9bf0;
+    box-shadow: 0 0 0 2px rgba(29, 155, 240, 0.1);
+}
+
+.apply-btn {
+    padding: 6px 12px;
+    background: #1d9bf0;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.apply-btn:hover {
+    background: #1a8cd8;
+}
+
+/* 빠른 선택 버튼 스타일 (포트폴리오 페이지와 동일) */
+.quick-period-container {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.quick-period-buttons {
     display: flex;
     gap: 4px;
 }
 
-.main-period-btn {
-    background-color: #f7f9fa;
-    border: 1px solid #e1e8ed;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 500;
-    color: #536471;
-    cursor: pointer;
-    transition: all 0.2s ease;
+.quick-period-btn {
+    padding: 6px 12px !important;
+    border: 1px solid #eff3f4 !important;
+    background: transparent !important;
+    color: #536471 !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
 }
 
-.main-period-btn:hover {
-    background-color: #e1e8ed;
-    color: #0f1419;
+.quick-period-btn.active {
+    background: #1d9bf0 !important;
+    color: white !important;
+    border-color: #1d9bf0 !important;
 }
 
-.main-period-btn.active {
-    background-color: #1d9bf0;
-    border-color: #1d9bf0;
-    color: #ffffff;
-}
-
-.main-period-btn.active:hover {
-    background-color: #1a8cd8;
-    border-color: #1a8cd8;
+.quick-period-btn:hover:not(.active) {
+    background: #f7f9fa !important;
+    border-color: #cfd9de !important;
 }
 
 /* 기간 선택 드롭다운 스타일 */

@@ -1,7 +1,7 @@
 // 포트폴리오 수익률 차트 관련 함수들
 
-// 날짜 라벨 생성 함수
-function generateDailyLabels(count) {
+// 포트폴리오 일간 차트 라벨 생성 (일봉: 1/15, 1/16, 1/17)
+function generatePortfolioDailyLabels(count) {
     const labels = [];
     const now = new Date();
     
@@ -9,10 +9,53 @@ function generateDailyLabels(count) {
         const date = new Date(now);
         date.setDate(date.getDate() - i);
         
-        // MM/DD 형식으로 표시
         const month = date.getMonth() + 1;
         const day = date.getDate();
         labels.push(`${month}/${day}`);
+    }
+    
+    return labels;
+}
+
+// 포트폴리오 주간 차트 라벨 생성 (주봉: 1/15, 1/22, 1/29)
+function generatePortfolioWeeklyLabels(count) {
+    const labels = [];
+    const now = new Date();
+    
+    for (let i = count - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - (i * 7)); // 7일씩 차이
+        
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        labels.push(`${month}/${day}`);
+    }
+    
+    return labels;
+}
+
+// 포트폴리오 월간 차트 라벨 생성 (주봉: Week 1, Week 2, Week 3)
+function generatePortfolioMonthlyLabels(count) {
+    const labels = [];
+    
+    for (let i = 1; i <= count; i++) {
+        labels.push(`Week ${i}`);
+    }
+    
+    return labels;
+}
+
+// 포트폴리오 년간 차트 라벨 생성 (주봉: 1월, 2월, 3월)
+function generatePortfolioYearlyLabels(count) {
+    const labels = [];
+    const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', 
+                       '7월', '8월', '9월', '10월', '11월', '12월'];
+    const now = new Date();
+    
+    for (let i = count - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setMonth(date.getMonth() - i);
+        labels.push(monthNames[date.getMonth()]);
     }
     
     return labels;
@@ -29,19 +72,19 @@ let currentPropertyReturnPeriod = 'daily';
 // 동적 주식 데이터 관리
 let dynamicStockData = {
     '기술주': [
-        { name: '삼성전자', weight: '35%', value: '45,000원', dailyReturn: '+1.2%', weeklyReturn: '+5.4%' },
-        { name: 'SK하이닉스', weight: '25%', value: '89,000원', dailyReturn: '+3.1%', weeklyReturn: '+12.3%' },
-        { name: '네이버', weight: '20%', value: '180,000원', dailyReturn: '-0.5%', weeklyReturn: '+2.9%' }
+        { name: '삼성전자', ticker: '005930.KS', weight: '35%', value: '45,000원', dailyReturn: '+1.2%', weeklyReturn: '+5.4%' },
+        { name: 'SK하이닉스', ticker: '000660.KS', weight: '25%', value: '89,000원', dailyReturn: '+3.1%', weeklyReturn: '+12.3%' },
+        { name: '네이버', ticker: '035420.KS', weight: '20%', value: '180,000원', dailyReturn: '-0.5%', weeklyReturn: '+2.9%' }
     ],
     '금융주': [
-        { name: '삼성생명', weight: '40%', value: '75,000원', dailyReturn: '+1.5%', weeklyReturn: '+4.8%' },
-        { name: 'KB금융', weight: '35%', value: '52,000원', dailyReturn: '-2.2%', weeklyReturn: '+7.1%' },
-        { name: '신한지주', weight: '25%', value: '38,000원', dailyReturn: '+1.6%', weeklyReturn: '+6.9%' }
+        { name: '삼성생명', ticker: '032830.KS', weight: '40%', value: '75,000원', dailyReturn: '+1.5%', weeklyReturn: '+4.8%' },
+        { name: 'KB금융', ticker: '105560.KS', weight: '35%', value: '52,000원', dailyReturn: '-2.2%', weeklyReturn: '+7.1%' },
+        { name: '신한지주', ticker: '055550.KS', weight: '25%', value: '38,000원', dailyReturn: '+1.6%', weeklyReturn: '+6.9%' }
     ],
     '헬스케어': [
-        { name: '셀트리온', weight: '50%', value: '165,000원', dailyReturn: '+4.2%', weeklyReturn: '+15.8%' },
-        { name: '유한양행', weight: '30%', value: '85,000원', dailyReturn: '+2.1%', weeklyReturn: '+8.3%' },
-        { name: '종근당', weight: '20%', value: '120,000원', dailyReturn: '+2.8%', weeklyReturn: '+9.7%' }
+        { name: '셀트리온', ticker: '068270.KS', weight: '50%', value: '165,000원', dailyReturn: '+4.2%', weeklyReturn: '+15.8%' },
+        { name: '유한양행', ticker: '000100.KS', weight: '30%', value: '85,000원', dailyReturn: '+2.1%', weeklyReturn: '+8.3%' },
+        { name: '종근당', ticker: '185750.KS', weight: '20%', value: '120,000원', dailyReturn: '+2.8%', weeklyReturn: '+9.7%' }
     ]
 };
 
@@ -70,7 +113,7 @@ function initializeStockPerformanceChart() {
     if (!ctx) return;
 
     // 주식 자산 전체 추이 데이터 (단일 라인)
-    const stockLabels = generateDailyLabels(7);
+    const stockLabels = generatePortfolioDailyLabels(7);  // 일봉: 1/15, 1/16, 1/17
     const stockData = {
         labels: stockLabels,
         datasets: [
@@ -162,7 +205,7 @@ function initializePropertyPerformanceChart() {
     if (!ctx) return;
 
     // 부동산 자산 전체 추이 데이터 (단일 라인)
-    const propertyLabels = generateDailyLabels(7);
+    const propertyLabels = generatePortfolioDailyLabels(7);  // 일봉: 1/15, 1/16, 1/17
     const propertyData = {
         labels: propertyLabels,
         datasets: [
@@ -319,31 +362,31 @@ function updateStockPerformanceChart(period) {
     
     switch(period) {
         case '1D':
-            labels = generateDailyLabels(7);
+            labels = generatePortfolioDailyLabels(7);  // 일봉: 1/15, 1/16, 1/17
             data = [100000, 102500, 101800, 105200, 107800, 109500, 112300];
             break;
         case '1W':
-            labels = generateWeekLabels(getCurrentWeek(), 4);
+            labels = generatePortfolioWeeklyLabels(4);  // 주봉: 1/15, 1/22, 1/29
             data = [95000, 98500, 102000, 112300];
             break;
         case '1M':
-            labels = generateMonthLabels(12);
-            data = [80000, 82000, 85000, 88000, 92000, 95000, 98000, 102000, 105000, 108000, 110000, 112300];
+            labels = generatePortfolioMonthlyLabels(4);  // 주봉: Week 1, Week 2, Week 3
+            data = [80000, 85000, 95000, 112300];
             break;
         case '1Y':
-            labels = generateYearlySequenceLabels(5);
-            data = [60000, 70000, 85000, 95000, 112300];
+            labels = generatePortfolioYearlyLabels(12);  // 주봉: 1월, 2월, 3월
+            data = [60000, 65000, 70000, 75000, 80000, 85000, 90000, 95000, 100000, 105000, 110000, 112300];
             break;
         default:
-            labels = generateDailyLabels(7);
+            labels = generatePortfolioDailyLabels(7);
             data = [100000, 102500, 101800, 105200, 107800, 109500, 112300];
     }
 
-    // console.log('주식 차트 데이터 업데이트:', labels, data);
+    console.log('주식 차트 데이터 업데이트:', period, labels, data);
     stockPerformanceChart.data.labels = labels;
     stockPerformanceChart.data.datasets[0].data = data;
     stockPerformanceChart.update();
-    // console.log('주식 차트 업데이트 완료');
+    console.log('주식 차트 업데이트 완료');
 }
 
 // 부동산 자산 추이 차트 데이터 업데이트
@@ -354,29 +397,31 @@ function updatePropertyPerformanceChart(period) {
     
     switch(period) {
         case '1D':
-            labels = generateDailyLabels(7);
+            labels = generatePortfolioDailyLabels(7);  // 일봉: 1/15, 1/16, 1/17
             data = [80000, 81200, 81800, 82500, 83100, 84000, 84800];
             break;
         case '1W':
-            labels = generateWeekLabels(getCurrentWeek(), 4);
+            labels = generatePortfolioWeeklyLabels(4);  // 주봉: 1/15, 1/22, 1/29
             data = [78000, 80500, 82000, 84800];
             break;
         case '1M':
-            labels = generateMonthLabels(12);
-            data = [70000, 71000, 72500, 74000, 75500, 77000, 78500, 80000, 81500, 83000, 84000, 84800];
+            labels = generatePortfolioMonthlyLabels(4);  // 주봉: Week 1, Week 2, Week 3
+            data = [70000, 75000, 80000, 84800];
             break;
         case '1Y':
-            labels = generateYearlySequenceLabels(5);
-            data = [60000, 65000, 72000, 78000, 84800];
+            labels = generatePortfolioYearlyLabels(12);  // 주봉: 1월, 2월, 3월
+            data = [60000, 62000, 64000, 66000, 68000, 70000, 72000, 74000, 76000, 78000, 80000, 84800];
             break;
         default:
-            labels = generateDailyLabels(7);
+            labels = generatePortfolioDailyLabels(7);
             data = [80000, 81200, 81800, 82500, 83100, 84000, 84800];
     }
 
+    console.log('부동산 차트 데이터 업데이트:', period, labels, data);
     propertyPerformanceChart.data.labels = labels;
     propertyPerformanceChart.data.datasets[0].data = data;
     propertyPerformanceChart.update();
+    console.log('부동산 차트 업데이트 완료');
 }
 
 // 섹터별 카드 업데이트 (수익률 표시 포함)
@@ -462,7 +507,10 @@ function updateSectorCards() {
             else if (returnValue < 0) returnClass = 'negative';
             
             return `
-                <div class="portfolio-item stock-item" data-stock="${encodeURIComponent(stock.name)}">
+                <div class="portfolio-item stock-item clickable" 
+                     data-stock="${encodeURIComponent(stock.name)}" 
+                     data-ticker="${stock.ticker || ''}"
+                     onclick="navigateToStockJournal('${stock.ticker || stock.name}')">
                     <div class="portfolio-item-name">${stock.name}</div>
                     <div class="portfolio-item-right">
                         <div class="portfolio-item-weight">${stock.weight}</div>
@@ -699,4 +747,26 @@ function updatePropertyCards() {
         
         container.appendChild(card);
     });
+}
+
+// 종목 클릭 시 journal 앱으로 이동하는 함수
+function navigateToStockJournal(ticker) {
+    // ticker가 비어있거나 없으면 종목명으로 대체
+    if (!ticker || ticker.trim() === '') {
+        console.warn('Ticker symbol not found');
+        return;
+    }
+    
+    // URL 인코딩
+    const encodedTicker = encodeURIComponent(ticker);
+    
+    // journal 앱의 해당 종목 페이지로 이동
+    // 다른 개발자가 만든 페이지 URL에 맞게 수정 필요
+    const journalUrl = `/journals/stock/${encodedTicker}/`;
+    
+    // 새 탭에서 열기 (선택사항)
+    window.open(journalUrl, '_blank');
+    
+    // 또는 현재 탭에서 이동
+    // window.location.href = journalUrl;
 }
