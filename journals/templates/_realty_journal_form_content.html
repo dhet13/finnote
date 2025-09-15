@@ -1,0 +1,50 @@
+<div class="form-section">
+    <h2 class="section-title">부동산 기본 정보</h2>
+    <div class="input-group">
+        <label for="id_property_type">부동산 종류</label>
+        <select name="property_type" id="id_property_type" class="form-control">
+            <option value="apartment">아파트</option>
+            <option value="officetel">오피스텔</option>
+            <option value="house">주택</option>
+            <option value="land">토지</option>
+            <option value="commercial">상업용</option>
+        </select>
+    </div>
+    <div class="input-group">
+        <label for="id_building_name">건물 이름</label>
+        <input type="text" name="building_name" id="id_building_name" class="form-control" placeholder="예: 아파트명, 빌딩명">
+    </div>
+    <div class="input-group">
+        <label for="id_address_base">주소</label>
+        <input type="text" name="address_base" id="id_address_base" class="form-control" placeholder="예: 서울시 강남구 테헤란로">
+    </div>
+</div>
+
+<div class="form-section">
+    <h2 class="section-title">거래 정보</h2>
+    <div class="input-group">
+        <label for="id_deal_type">거래 종류</label>
+        <select name="deal_type" id="id_deal_type" class="form-control">
+            <option value="매매">매매</option>
+            <option value="전세">전세</option>
+            <option value="월세">월세</option>
+        </select>
+    </div>
+    <div class="input-group">
+        <label for="id_contract_date">계약일</label>
+        <input type="date" name="contract_date" id="id_contract_date" class="form-control">
+    </div>
+    <div class="input-group">
+        <label for="id_amount_main">매매가/전세가/보증금</label>
+        <input type="number" name="amount_main" id="id_amount_main" class="form-control" placeholder="숫자만 입력">
+    </div>
+    <div class="input-group">
+        <label for="id_area_m2">전용면적 (m²)</label>
+        <input type="number" step="0.01" name="area_m2" id="id_area_m2" class="form-control" placeholder="예: 84.5">
+    </div>
+    <div class="input-group">
+        <label for="id_floor">층</label>
+        <input type="number" name="floor" id="id_floor" class="form-control" placeholder="예: 10">
+    </div>
+</div>
+

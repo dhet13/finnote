@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // --- ELEMENT SELECTORS ---
-    const form = document.getElementById('stock-journal-form');
+    const form = document.getElementById('main-journal-form');
     if (!form) return;
 
     const stockSearchInput = document.getElementById('stock-search');
@@ -229,25 +229,72 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function handleFormSubmit(event) {
         event.preventDefault();
-        if (!state.selectedTicker) {
-            alert('주식을 선택해주세요.');
-            return;
+
+        // Determine the active tab's asset type
+        const activeTab = document.querySelector('.compose-tab-item.active');
+        const activeAssetType = activeTab ? activeTab.dataset.assetType : 'stock'; // Fallback to stock
+
+        let payload = {};
+        let apiUrl = '';
+
+        if (activeAssetType === 'stock') {
+            if (!state.selectedTicker) {
+                alert('주식을 선택해주세요.');
+                return;
+            }
+            payload = {
+                ticker_symbol: state.selectedTicker,
+                target_price: targetPriceInput.value,
+                stop_price: stopPriceInput.value,
+                legs: [{
+                    side: state.side,
+                    price_per_share: tradePriceInput.value,
+                    quantity: tradeQuantityInput.value,
+                    date: tradeDateInput.value,
+                }],
+                content: tradeReasonInput.value,
+            };
+            apiUrl = '/api/stock/journals/';
+        } else if (activeAssetType === 'realestate') {
+            // Collect data from real estate form fields
+            const realtyForm = document.getElementById('realestate-tab-content'); // Get the real estate form container
+            payload = {
+                // Fields present in the simplified form
+                building_name: realtyForm.querySelector('[name="building_name"]').value,
+                address_base: realtyForm.querySelector('[name="address_base"]').value,
+                property_type: realtyForm.querySelector('[name="property_type"]').value,
+                deal_type: realtyForm.querySelector('[name="deal_type"]').value,
+                contract_date: realtyForm.querySelector('[name="contract_date"]').value,
+                amount_main: realtyForm.querySelector('[name="amount_main"]').value,
+                area_m2: realtyForm.querySelector('[name="area_m2"]').value,
+                floor: realtyForm.querySelector('[name="floor"]').value,
+
+                // Fields NOT present in the simplified form, but expected by API (set to null/default)
+                lawd_cd: null,
+                dong: null,
+                lat: 0,
+                lng: 0,
+                amount_deposit: 0,
+                amount_monthly: 0,
+                loan_amount: null,
+                loan_rate: null,
+                fees_broker: null,
+                tax_acq: null,
+                reg_fee: null,
+                misc_cost: null,
+                content: '', // Memo field
+            };
+            apiUrl = '/api/realty/deals/';
+
+            // Basic validation for real estate form
+            if (!payload.building_name || !payload.address_base || !payload.contract_date || !payload.amount_main) {
+                alert('부동산 필수 정보를 입력해주세요 (건물명, 기본 주소, 계약일, 주요 금액).');
+                return;
+            }
         }
-        const payload = {
-            ticker_symbol: state.selectedTicker,
-            target_price: targetPriceInput.value,
-            stop_price: stopPriceInput.value,
-            legs: [{
-                side: state.side,
-                price_per_share: tradePriceInput.value,
-                quantity: tradeQuantityInput.value,
-                date: tradeDateInput.value,
-            }],
-            content: tradeReasonInput.value,
-        };
 
         try {
-            const response = await fetch('/api/stock/journals/', {
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify(payload),
