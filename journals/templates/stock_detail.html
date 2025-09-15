@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block feed %}
+<style>
+    .detail-container { padding: 20px; max-width: 800px; margin: auto; }
+    .stock-header { text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #eee; }
+    .stock-header h1 { font-size: 2.5rem; margin-bottom: 8px; color: #333; }
+    .stock-header p { font-size: 1.1rem; color: #666; }
+    .tabs { display: flex; border-bottom: 2px solid #f0f0f0; margin-bottom: 24px; }
+    .tab-item { padding: 12px 20px; cursor: pointer; font-size: 16px; font-weight: 500; color: #888; position: relative; border-bottom: 2px solid transparent; }
+    .tab-item.active { color: #111; border-bottom-color: #111; }
+    .tab-content { display: none; padding-top: 16px; }
+    .tab-content.active { display: block; }
+
+    .trade-list { border: 1px solid #eee; border-radius: 8px; overflow: hidden; }
+    .trade-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; }
+    .trade-item:last-child { border-bottom: none; }
+    .trade-date { font-size: 0.9rem; color: #777; flex-basis: 100px; }
+    .trade-side { font-weight: bold; flex-basis: 60px; text-align: center; }
+    .trade-side.buy { color: #28a745; }
+    .trade-side.sell { color: #dc3545; }
+    .trade-price, .trade-quantity { flex-basis: 100px; text-align: right; }
+    .trade-memo { flex-grow: 1; margin-left: 16px; color: #555; }
+
+    .journal-post-item { background-color: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .journal-post-date { font-size: 0.85rem; color: #777; margin-bottom: 8px; }
+    .journal-post-content { font-size: 1rem; line-height: 1.5; color: #333; }
+</style>
+
+<div class="detail-container">
+    <div class="stock-header">
+        <h1>{{ stock_journal.ticker_symbol.stock_name }} ({{ stock_journal.ticker_symbol.ticker_symbol }})</h1>
+        <p>총 손익: 
+            <span style="{% if stock_journal.return_rate > 0 %}color: #28a745;{% elif stock_journal.return_rate < 0 %}color: #dc3545;{% endif %}">
+                {% if stock_journal.return_rate is not None %}
+                    {{ stock_journal.return_rate|floatformat:2 }}%
+                {% else %}
+                    —
+                {% endif %}
+            </span>
+        </p>
+    </div>
+
+    <div class="tabs">
+        <div class="tab-item active" data-tab="summary">투자 요약</div>
+        <div class="tab-item" data-tab="journal">투자 일지</div>
+    </div>
+
+    <div id="tab-summary" class="tab-content active">
+        <h2>거래 내역</h2>
+        <div class="trade-list">
+            {% for trade in trades %}
+                <div class="trade-item">
+                    <span class="trade-date">{{ trade.trade_date|date:"Y-m-d" }}</span>
+                    <span class="trade-side {% if trade.side == 'BUY' %}buy{% else %}sell{% endif %}">
+                        {% if trade.side == 'BUY' %}매수{% else %}매도{% endif %}
+                    </span>
+                    <span class="trade-price">{{ trade.price_per_share|floatformat:2 }}</span>
+                    <span class="trade-quantity">{{ trade.quantity|floatformat:2 }}</span>
+                    {# Add memo if available in StockTrade #}
+                </div>
+            {% empty %}
+                <p>아직 거래 내역이 없습니다.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="tab-journal" class="tab-content">
+        <h2>관련 매매일지 포스트</h2>
+        {% for post in journal_posts %}
+            <div class="journal-post-item">
+                <div class="journal-post-date">{{ post.created_at|date:"Y-m-d H:i" }}</div>
+                <div class="journal-post-content">{{ post.content|default:"(내용 없음)" }}</div>
+            </div>
+        {% empty %}
+            <p>관련 매매일지 포스트가 없습니다.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab-item');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            tabs.forEach(item => item.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+
+            this.classList.add('active');
+            document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+        });
+    });
+});
+</script>
+
+{% endblock %}

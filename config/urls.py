@@ -26,6 +26,7 @@ urlpatterns = [
     path('journals/', include('journals.urls')),
     # 2. 주식 검색, 폼 제출 등 API를 위한 URL 설정
     path('api/', include('journals.api_urls')),
+    path('profile/', include('user_profile.urls')),
 ]
 
 if settings.DEBUG:

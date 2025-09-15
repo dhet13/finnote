@@ -6,6 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.utils.dateparse import parse_date
 from django.db import transaction, models
 from django.db.models import Q
+from django.db.models import Q
 from decimal import Decimal
 
 from decouple import config
@@ -38,14 +39,52 @@ def compose(request):
 
 @login_required
 def my_journal_list(request):
-    """
-    Renders a page with a list of the current user's journal posts.
-    """
-    journal_posts = JournalPost.objects.filter(user=request.user).order_by('-created_at')
+    query = request.GET.get('q', '').strip()
+
+    # Base queryset for JournalPosts for the current user
+    base_queryset = JournalPost.objects.filter(user=request.user) \
+        .select_related('stock_journal__ticker_symbol', 're_deal__property_info') \
+        .prefetch_related('stock_journal__trades') \
+        .order_by('-created_at') # Order by creation date, newest first
+
+    stock_posts = base_queryset.filter(asset_class='stock')
+    realty_posts = base_queryset.filter(asset_class='realestate')
+
+    if query:
+        # Apply search filter to stock posts
+        stock_posts = stock_posts.filter(
+            Q(stock_journal__ticker_symbol__ticker_symbol__icontains=query) |
+            Q(stock_journal__ticker_symbol__stock_name__icontains=query) |
+            Q(content__icontains=query)
+        )
+        # Apply search filter to realty posts (assuming similar fields or just content)
+        realty_posts = realty_posts.filter(
+            Q(re_deal__property_info__building_name__icontains=query) |
+            Q(re_deal__property_info__address_base__icontains=query) |
+            Q(content__icontains=query)
+        )
+
     context = {
-        'journal_posts': journal_posts,
+        'stock_posts': stock_posts,
+        'realty_posts': realty_posts,
+        'query': query, # Pass query back to template for search input value
     }
     return render(request, 'my_journal_list.html', context)
+
+@login_required
+def stock_detail_view(request, pk):
+    stock_journal = get_object_or_404(StockJournal, pk=pk, user=request.user)
+    
+    trades = stock_journal.trades.all().order_by('trade_date')
+    
+    journal_posts = JournalPost.objects.filter(stock_journal=stock_journal).order_by('-created_at')
+
+    context = {
+        'stock_journal': stock_journal,
+        'trades': trades,
+        'journal_posts': journal_posts,
+    }
+    return render(request, 'stock_detail.html', context)
 
 
 @require_http_methods(["GET"])
