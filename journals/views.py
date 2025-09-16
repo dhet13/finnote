@@ -199,7 +199,7 @@ def portfolio_summary_api(request):
             ticker_symbol=ticker,
             defaults={'stock_name': ticker}
         )
-
+        
         journal = StockJournal.objects.get(
             user=request.user,
             ticker_symbol=stock_info

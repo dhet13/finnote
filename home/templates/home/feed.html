@@ -326,13 +326,47 @@ const TradingJournalInterface = {
         journalScript.onload = () => {
             console.log('Journal script loaded');
             
-            // ★ DOMContentLoaded 이벤트를 수동으로 트리거
+            // 🔧 추가: 탭 전환 로직 수동 실행
+            this.initializeTabSwitching();
+            
+            // DOMContentLoaded 이벤트를 수동으로 트리거
             setTimeout(() => {
                 const event = new Event('DOMContentLoaded');
                 document.dispatchEvent(event);
             }, 100);
         };
         document.head.appendChild(journalScript);
+    },
+
+    // 🔧 새로 추가: 탭 전환 로직
+    initializeTabSwitching: function() {
+        const composeTabs = document.querySelectorAll('.compose-tab-item');
+        const composeTabContents = document.querySelectorAll('.compose-tab-content');
+
+        composeTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                console.log('탭 클릭:', this.dataset.assetType); // 디버깅용
+                
+                composeTabs.forEach(item => item.classList.remove('active'));
+                composeTabContents.forEach(content => content.classList.remove('active'));
+
+                this.classList.add('active');
+                const targetContent = document.getElementById(this.dataset.assetType + '-tab-content');
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+            });
+        });
+
+        // URL 파라미터 기반 초기 탭 활성화
+        const urlParams = new URLSearchParams(window.location.search);
+        const assetType = urlParams.get('asset');
+        if (assetType) {
+            const initialTab = document.querySelector(`.compose-tab-item[data-asset-type="${assetType}"]`);
+            if (initialTab) {
+                initialTab.click();
+            }
+        }
     },
     
     // 모달 닫기
@@ -359,10 +393,172 @@ const TradingJournalInterface = {
     setupMessageListener: function() {
         window.addEventListener('message', (event) => {
             if (event.data.type === 'trading-journal-complete') {
-                this.onComplete(event.data.payload);
+                console.log('매매일지 완료, 모달 닫기');
+                
+                // 1. 모달 먼저 닫기
+                this.closeModal();
+                
+                // 2. form 데이터로 바로 카드 생성
+                if (event.data.payload && event.data.payload.form_data) {
+                    this.createSimpleJournalCard(event.data.payload.form_data);
+                }
+                
+                Toast.success('매매일지가 작성되었습니다!');
             }
         });
-    }
+    },
+
+    createSimpleJournalCard: function(formData) {
+        const postsContainer = document.getElementById('posts-container');
+        if (!postsContainer) return;
+        
+        const ticker = formData.ticker_symbol || 'UNKNOWN';
+        const side = formData.side || 'BUY';
+        const sideKor = side === 'BUY' ? '매수' : '매도';
+        const sideColor = side === 'BUY' ? '#ef4444' : '#16a34a';
+        const price = formData.price || '0';
+        const quantity = formData.quantity || '0';
+        const date = formData.date || new Date().toISOString().split('T')[0];
+        
+        const cardHTML = `
+            <div class="post-card trading-journal-card fade-in" style="border-left: 4px solid ${sideColor};">
+                <div style="background: #f8fafc; border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="width: 40px; height: 40px; background: ${sideColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <span class="material-symbols-outlined" style="color: white; font-size: 20px;">assessment</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; color: #0f172a; font-size: 16px;">매매일지 작성 완료</div>
+                            <div style="color: #64748b; font-size: 14px;">방금 전</div>
+                        </div>
+                        <div style="background: ${sideColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+                            ${sideKor}
+                        </div>
+                    </div>
+                    
+                    <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <div style="color: #64748b; font-size: 13px;">종목</div>
+                                <div style="font-weight: bold; font-size: 18px; color: #0f172a;">${ticker}</div>
+                            </div>
+                            <div>
+                                <div style="color: #64748b; font-size: 13px;">거래일</div>
+                                <div style="font-weight: 600; color: #0f172a;">${date}</div>
+                            </div>
+                            <div>
+                                <div style="color: #64748b; font-size: 13px;">가격</div>
+                                <div style="font-weight: 600; color: #0f172a;">$${price}</div>
+                            </div>
+                            <div>
+                                <div style="color: #64748b; font-size: 13px;">수량</div>
+                                <div style="font-weight: 600; color: #0f172a;">${quantity}주</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 12px;">
+                        <a href="/journals/my-list/" 
+                        style="flex: 1; background: ${sideColor}; color: white; padding: 12px; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600;">
+                            매매일지 보기
+                        </a>
+                        <button onclick="this.closest('.post-card').remove()" 
+                                style="background: #f1f5f9; color: #64748b; padding: 12px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            닫기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        postsContainer.insertAdjacentHTML('afterbegin', cardHTML);
+        console.log('카드 생성 완료');
+    },
+
+    // 매매일지 카드 추가 함수
+    addTradingJournalCard: function(payload) {
+        const postsContainer = document.getElementById('posts-container');
+        if (!postsContainer) return;
+        
+        console.log('카드 추가 payload:', payload);
+        
+        // 백엔드에서 생성된 card_html 우선 사용
+        if (payload.card_html) {
+            postsContainer.insertAdjacentHTML('afterbegin', payload.card_html);
+            console.log('백엔드 card_html 사용됨');
+            return;
+        }
+        
+        console.log('백엔드 카드 없음, 프론트엔드에서 생성');
+        // 받은 form 데이터 활용 (API 호출 없음)
+        const formData = payload.form_data || {};
+        const ticker = formData.ticker_symbol || 'UNKNOWN';
+        const side = formData.side || 'BUY';
+        const price = formData.price || '0';
+        const quantity = formData.quantity || '0';
+        const date = formData.date || new Date().toISOString().split('T')[0];
+        
+        // 한국어 변환
+        const sideKor = side === 'BUY' ? '매수' : '매도';
+        const sideColor = side === 'BUY' ? '#ef4444' : '#16a34a';
+        
+        const cardHTML = `
+            <div class="post-card trading-journal-card fade-in" style="border-left: 4px solid ${sideColor}; margin-bottom: 16px;">
+                <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    
+                    <!-- 헤더 -->
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="width: 40px; height: 40px; background: ${sideColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+                            <span class="material-symbols-outlined" style="color: white; font-size: 20px;">assessment</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; color: #0f172a; font-size: 16px;">매매일지 작성 완료</div>
+                            <div style="color: #64748b; font-size: 14px;">방금 전</div>
+                        </div>
+                        <div style="background: ${sideColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+                            ${sideKor}
+                        </div>
+                    </div>
+                    
+                    <!-- 거래 정보 카드 -->
+                    <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <div style="color: #64748b; font-size: 13px; margin-bottom: 4px;">종목</div>
+                                <div style="font-weight: bold; font-size: 18px; color: #0f172a;">${ticker}</div>
+                            </div>
+                            <div>
+                                <div style="color: #64748b; font-size: 13px; margin-bottom: 4px;">거래일</div>
+                                <div style="font-weight: 600; color: #0f172a;">${date}</div>
+                            </div>
+                            <div>
+                                <div style="color: #64748b; font-size: 13px; margin-bottom: 4px;">가격</div>
+                                <div style="font-weight: 600; color: #0f172a;">$${price}</div>
+                            </div>
+                            <div>
+                                <div style="color: #64748b; font-size: 13px; margin-bottom: 4px;">수량</div>
+                                <div style="font-weight: 600; color: #0f172a;">${quantity}주</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 액션 버튼 -->
+                    <div style="display: flex; gap: 12px;">
+                        <a href="/journals/my-list/" 
+                        style="flex: 1; background: ${sideColor}; color: white; padding: 12px; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600; transition: all 0.2s;">
+                            매매일지 보기
+                        </a>
+                        <button onclick="this.closest('.post-card').remove()" 
+                                style="background: #f1f5f9; color: #64748b; padding: 12px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            닫기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        postsContainer.insertAdjacentHTML('afterbegin', cardHTML);
+    },
 };
 // 포스트 상태 관리
 const PostStateManager = {
