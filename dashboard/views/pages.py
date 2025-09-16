@@ -4,15 +4,24 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from ..models import AssetLogUnified, PortfolioHolding, PortfolioSnapshot
 
-# @login_required  # 임시로 주석 처리
+@login_required
 def total_page(request):
     """대시보드 총자산 현황 페이지"""
     
     try:
+        # 로그인된 사용자 확인
+        if not request.user.is_authenticated:
+            return render(request, "total.html", {
+                'page_title': '대시보드 - 총자산',
+                'user': None,
+                'login_required': True
+            })
+        
         # 기본 컨텍스트 데이터
         context = {
             'page_title': '대시보드 - 총자산',
             'user': request.user,
+            'login_required': False
         }
         
         # 실제 total.html 템플릿 렌더링
@@ -43,10 +52,14 @@ def total_page(request):
         </html>
         """)
 
-# @login_required  # 임시로 주석 처리
+@login_required
 def total_content(request):
     """자산 현황 콘텐츠만 반환 (AJAX용)"""
     try:
+        # 로그인된 사용자 확인
+        if not request.user.is_authenticated:
+            return HttpResponse("로그인이 필요합니다.")
+        
         context = {
             'page_title': '대시보드 - 총자산',
             'user': request.user,
@@ -55,10 +68,14 @@ def total_content(request):
     except Exception as e:
         return HttpResponse(f"Error: {str(e)}")
 
-# @login_required  # 임시로 주석 처리
+@login_required
 def portfolio_content(request):
     """포트폴리오 콘텐츠만 반환 (AJAX용)"""
     try:
+        # 로그인된 사용자 확인
+        if not request.user.is_authenticated:
+            return HttpResponse("로그인이 필요합니다.")
+        
         context = {
             'page_title': '대시보드 - 포트폴리오',
             'user': request.user,
@@ -67,15 +84,24 @@ def portfolio_content(request):
     except Exception as e:
         return HttpResponse(f"Error: {str(e)}")
 
-# @login_required  # 임시로 주석 처리
+@login_required
 def portfolio_page(request):
     """대시보드 포트폴리오 페이지"""
     
     try:
+        # 로그인된 사용자 확인
+        if not request.user.is_authenticated:
+            return render(request, "portfolio.html", {
+                'page_title': '대시보드 - 포트폴리오',
+                'user': None,
+                'login_required': True
+            })
+        
         # 기본 컨텍스트 데이터
         context = {
             'page_title': '대시보드 - 포트폴리오',
             'user': request.user,
+            'login_required': False
         }
         
         # 실제 portfolio.html 템플릿 렌더링
