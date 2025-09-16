@@ -74,6 +74,7 @@ class Comment(models.Model):
     parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True)  # PARENT_ID
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)  # CREATE_AT
+    is_edited = models.BooleanField(default=False)
     
     class Meta:
         ordering = ['created_at']

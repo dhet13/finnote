@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // --- ELEMENT SELECTORS ---
-    const form = document.getElementById('stock-journal-form');
+    const form = document.getElementById('main-journal-form');
     if (!form) return;
 
     const stockSearchInput = document.getElementById('stock-search');
@@ -229,33 +229,88 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function handleFormSubmit(event) {
         event.preventDefault();
-        if (!state.selectedTicker) {
-            alert('주식을 선택해주세요.');
-            return;
+
+        // Determine the active tab's asset type
+        const activeTab = document.querySelector('.compose-tab-item.active');
+        const activeAssetType = activeTab ? activeTab.dataset.assetType : 'stock'; // Fallback to stock
+
+        let payload = {};
+        let apiUrl = '';
+
+        if (activeAssetType === 'stock') {
+            if (!state.selectedTicker) {
+                alert('주식을 선택해주세요.');
+                return;
+            }
+            payload = {
+                ticker_symbol: state.selectedTicker,
+                target_price: targetPriceInput.value,
+                stop_price: stopPriceInput.value,
+                legs: [{
+                    side: state.side,
+                    price_per_share: tradePriceInput.value,
+                    quantity: tradeQuantityInput.value,
+                    date: tradeDateInput.value,
+                }],
+                content: tradeReasonInput.value,
+            };
+            apiUrl = '/api/stock/journals/';
+        } else if (activeAssetType === 'realestate') {
+            // Collect data from real estate form fields
+            const realtyForm = document.getElementById('realestate-tab-content'); // Get the real estate form container
+            payload = {
+                // [수정] 백엔드가 주소로부터 dong, lat, lng 등을 자동 추출하므로 프론트엔드에서는 보내지 않습니다.
+                building_name: realtyForm.querySelector('[name="building_name"]').value,
+                address_base: realtyForm.querySelector('[name="address_base"]').value,
+                property_type: realtyForm.querySelector('[name="property_type"]').value,
+                deal_type: realtyForm.querySelector('[name="deal_type"]').value,
+                contract_date: realtyForm.querySelector('[name="contract_date"]').value,
+                amount_main: realtyForm.querySelector('[name="amount_main"]').value,
+                area_m2: realtyForm.querySelector('[name="area_m2"]').value,
+                floor: realtyForm.querySelector('[name="floor"]').value,
+                content: '', // 메모 필드. 실제 입력칸이 있다면 그 값을 사용해야 합니다.
+            };
+            apiUrl = '/api/realty/deals/';
+
+            // Basic validation for real estate form
+            if (!payload.building_name || !payload.address_base || !payload.contract_date || !payload.amount_main) {
+                alert('부동산 필수 정보를 입력해주세요 (건물명, 기본 주소, 계약일, 주요 금액).');
+                return;
+            }
         }
-        const payload = {
-            ticker_symbol: state.selectedTicker,
-            target_price: targetPriceInput.value,
-            stop_price: stopPriceInput.value,
-            legs: [{
-                side: state.side,
-                price_per_share: tradePriceInput.value,
-                quantity: tradeQuantityInput.value,
-                date: tradeDateInput.value,
-            }],
-            content: tradeReasonInput.value,
-        };
 
         try {
-            const response = await fetch('/api/stock/journals/', {
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify(payload),
             });
             const data = await response.json();
             if (response.ok) {
+                // home 앱으로 데이터 전달
+                if (window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'trading-journal-complete',
+                        payload: {
+                            success: true,
+                            // 추가: 사용자가 입력한 폼 데이터
+                            form_data: {
+                                ticker_symbol: state.selectedTicker,
+                                side: state.side,
+                                price: tradePriceInput.value,
+                                quantity: tradeQuantityInput.value,
+                                date: tradeDateInput.value,
+                                target_price: targetPriceInput.value,
+                                stop_price: stopPriceInput.value,
+                                trade_reason: tradeReasonInput.value
+                            },
+                            journal_data: data,
+                            card_html: data.card_html || null
+                        }
+                    }, '*');
+                }
+
                 alert('매매일지가 성공적으로 작성되었습니다.');
-                window.location.href = '/';
             } else {
                 alert(`작성 실패: ${data.error || '알 수 없는 오류'}`);
             }
@@ -264,7 +319,6 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('데이터 전송 중 오류가 발생했습니다.');
         }
     }
-
     // --- INITIALIZATION ---
     const searchIcon = document.getElementById('journal-search-icon');
 

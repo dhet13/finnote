@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+
 {% load static %}
 
 {% block feed %}
@@ -28,9 +28,73 @@
     margin: 2rem auto;
 }
 
-.form-section {
+/* New styles for tabs */
+.compose-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border-color);
     margin-bottom: 24px;
 }
+.compose-tab-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    position: relative;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+.compose-tab-item.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+.compose-tab-content {
+    display: none;
+}
+.compose-tab-content.active {
+    display: block;
+}
+
+/* Consolidated common form styles */
+.form-section {
+    margin-bottom: 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.input-group {
+    margin-bottom: 16px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--background-color);
+    font-size: 1rem;
+    color: var(--text-color-primary);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-color-primary);
+}
+
+
+
+.form-section {
+    margin-bottom: 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 
 .section-title {
     font-size: 1.25rem;
@@ -55,6 +119,13 @@
 .input-group-icon .form-control {
     padding-left: 48px;
 }
+
+.input-group {
+    margin-bottom: 16px; /* Consistent spacing between input groups */
+    width: 100%; /* Ensure it takes full width */
+    box-sizing: border-box; /* Padding and border included in width */
+}
+
 
 .form-control {
     width: 100%;
@@ -319,13 +390,60 @@
 }
 </style>
 
-    <div style="padding: 20px;">
-        <h1>매매일지 작성</h1>
-        {% include '_stock_journal_form_content.html' %}
+    <div class="compose-card">
+    <div class="compose-tabs">
+        <div class="compose-tab-item active" data-asset-type="stock">주식</div>
+        <div class="compose-tab-item" data-asset-type="realestate">부동산</div>
     </div>
+
+    <form id="main-journal-form" novalidate>
+        {% csrf_token %}
+
+        <div id="stock-tab-content" class="compose-tab-content active">
+            <h1 class="section-title">주식 매매일지 작성</h1>
+            {% include 'journals/_stock_journal_form_content.html' %}
+        </div>
+
+        <div id="realestate-tab-content" class="compose-tab-content">
+            <h1 class="section-title">부동산 매매일지 작성</h1>
+            {% include 'journals/_realty_journal_form_content.html' %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-submit">확인</button>
+            <button type="button" id="complete-journal-btn" class="btn btn-secondary hidden">매매 종료</button>
+        </div>
+    </form>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{% static 'journals/journal_lookup.js' %}" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const composeTabs = document.querySelectorAll('.compose-tab-item');
+    const composeTabContents = document.querySelectorAll('.compose-tab-content');
+
+    composeTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            composeTabs.forEach(item => item.classList.remove('active'));
+            composeTabContents.forEach(content => content.classList.remove('active'));
+
+            this.classList.add('active');
+            document.getElementById(this.dataset.assetType + '-tab-content').classList.add('active');
+        });
+    });
+
+    // Initial tab activation based on URL parameter (if any)
+    const urlParams = new URLSearchParams(window.location.search);
+    const assetType = urlParams.get('asset');
+    if (assetType) {
+        const initialTab = document.querySelector(`.compose-tab-item[data-asset-type="${assetType}"]`);
+        if (initialTab) {
+            initialTab.click(); // Simulate click to activate
+        }
+    }
+});
+</script>
 {% endblock %}

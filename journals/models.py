@@ -154,7 +154,9 @@ class REPropertyInfo(models.Model):
     property_type = models.CharField(max_length=50)
     building_name = models.CharField(max_length=255)
     address_base = models.CharField(max_length=255)
-    lawd_cd = models.CharField(max_length=5)  # 법정동 코드
+    lawd_cd = models.CharField(max_length=5, blank=True, null=True)  # 법정동 코드
+
+
     dong = models.CharField(max_length=50)
     build_year = models.IntegerField(null=True, blank=True)
     lat = models.DecimalField(max_digits=10, decimal_places=7)  # Latitude
