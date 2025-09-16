@@ -8,7 +8,7 @@ from journals.models import StockInfo, StockJournal, StockTrade, REDeal, REPrope
 from decimal import Decimal
 from django.http import JsonResponse
 import json
-from home.models import JournalPost, Like, Bookmark
+from home.models import Post, Like, Bookmark
 
 # 프로필 보기 페이지
 @login_required
@@ -187,7 +187,7 @@ def my_posts_view(request):
     사용자가 작성한 게시물 목록 뷰
     """
     user = request.user
-    my_posts = JournalPost.objects.filter(user=user).order_by('-created_at')
+    my_posts = Post.objects.filter(user=user).order_by('-created_at')
     
     context = {
         'posts': my_posts,
@@ -203,7 +203,7 @@ def liked_posts_view(request):
     """
     user = request.user
     liked_posts_ids = Like.objects.filter(user=user).values_list('journal_id', flat=True)
-    liked_posts = JournalPost.objects.filter(id__in=liked_posts_ids).order_by('-created_at')
+    liked_posts = Post.objects.filter(id__in=liked_posts_ids).order_by('-created_at')
     
     context = {
         'posts': liked_posts,
@@ -219,7 +219,7 @@ def bookmarked_posts_view(request):
     """
     user = request.user
     bookmarked_posts_ids = Bookmark.objects.filter(user=user).values_list('journal_id', flat=True)
-    bookmarked_posts = JournalPost.objects.filter(id__in=bookmarked_posts_ids).order_by('-created_at')
+    bookmarked_posts = Post.objects.filter(id__in=bookmarked_posts_ids).order_by('-created_at')
     
     context = {
         'posts': bookmarked_posts,
