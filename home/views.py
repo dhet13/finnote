@@ -336,6 +336,38 @@ def create_image_post(request):
     
     return render(request, 'home/create_image.html')
 
+@login_required
+@require_http_methods(["POST"])
+def create_reply(request, comment_id):
+    """대댓글 작성"""
+    parent_comment = get_object_or_404(Comment, id=comment_id)
+    
+    try:
+        data = json.loads(request.body)
+        content = data.get('content', '').strip()
+        
+        if not content:
+            return JsonResponse({'error': '댓글 내용을 입력해주세요.'}, status=400)
+        
+        reply = Comment.objects.create(
+            journal=parent_comment.journal,
+            user=request.user,
+            parent=parent_comment,
+            content=content
+        )
+        
+        return JsonResponse({
+            'reply_id': reply.id,
+            'my_ID': reply.user.my_ID,
+            'nickname': reply.user.nickname,
+            'content': reply.content,
+            'created_at': reply.created_at.strftime('%Y-%m-%d %H:%M'),
+            'comments_count': parent_comment.journal.comments.count()
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': '잘못된 요청입니다.'}, status=400)
+    
 def home_view(request):
     posts = JournalPost.objects.select_related('user').prefetch_related('likes', 'comments', 'tags')[:10]
     
@@ -343,9 +375,11 @@ def home_view(request):
     if request.user.is_authenticated:
         for post in posts:
             post.is_liked_by_user = Like.objects.filter(user=request.user, journal=post).exists()
+            post.is_bookmarked_by_user = Bookmark.objects.filter(user=request.user, journal=post).exists()
     else:
         for post in posts:
             post.is_liked_by_user = False
+            post.is_bookmarked_by_user = False
             post.is_shared_by_user = False 
     
     context = {
@@ -991,6 +1025,7 @@ def get_comments(request, post_id):
                 'my_ID': reply.user.my_ID,
                 'nickname': reply.user.nickname,
                 'content': reply.content,
+                'is_edited': reply.is_edited,
                 'created_at': reply.created_at.strftime('%Y-%m-%d %H:%M')
             }
             for reply in replies
@@ -1000,9 +1035,59 @@ def get_comments(request, post_id):
             'id': comment.id,
             'my_ID': comment.user.my_ID,
             'content': comment.content,
+            'is_edited': comment.is_edited, 
             'nickname': comment.user.nickname,
             'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
-            'replies': replies_data
+            'replies': replies_data,
+            'replies_count': len(replies_data) 
         })
     
     return JsonResponse({'comments': comments_data})
+@login_required
+@require_http_methods(["POST"])
+def edit_comment(request, comment_id):
+    """댓글 수정"""
+    comment = get_object_or_404(Comment, id=comment_id)
+    
+    # 작성자 확인
+    if comment.user != request.user:
+        return JsonResponse({'success': False, 'error': '권한이 없습니다.'})
+    
+    try:
+        data = json.loads(request.body)
+        content = data.get('content', '').strip()
+        
+        if not content:
+            return JsonResponse({'success': False, 'error': '댓글 내용을 입력해주세요.'})
+        
+        comment.content = content
+        comment.is_edited = True
+        comment.save()
+        
+        return JsonResponse({
+            'success': True,
+            'comment': {
+                'id': comment.id,
+                'content': comment.content,
+                'is_edited': True,
+                'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M')
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': '잘못된 요청입니다.'})
+
+@login_required
+@require_http_methods(["POST"])
+def delete_comment(request, comment_id):
+    """댓글 삭제"""
+    comment = get_object_or_404(Comment, id=comment_id)
+    
+    # 작성자 확인
+    if comment.user != request.user:
+        return JsonResponse({'success': False, 'error': '권한이 없습니다.'})
+    
+    comment.delete()
+    
+    return JsonResponse({'success': True})
+
