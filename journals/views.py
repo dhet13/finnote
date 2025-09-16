@@ -194,9 +194,15 @@ def portfolio_summary_api(request):
         return JsonResponse({'error': 'Ticker is required'}, status=400)
 
     try:
+        # StockInfo가 없으면 먼저 생성
+        stock_info, created = StockInfo.objects.get_or_create(
+            ticker_symbol=ticker,
+            defaults={'stock_name': ticker}
+        )
+        
         journal = StockJournal.objects.get(
             user=request.user,
-            ticker_symbol__ticker_symbol=ticker
+            ticker_symbol=stock_info
         )
         # If journal is found, return its data
         data = {
