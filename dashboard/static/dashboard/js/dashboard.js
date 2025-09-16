@@ -93,10 +93,14 @@ function initializeTotalPage() {
 // 로그인 상태 확인 및 데이터 로드
 async function checkLoginStatusAndLoadData() {
     try {
+        console.log('로그인 상태 확인 시작');
+        
         // 먼저 간단한 API 호출로 로그인 상태 확인
         const response = await fetch('/dashboard/api/total/?interval=weekly', {
             credentials: 'same-origin'
         });
+        
+        console.log('API 응답 상태:', response.status);
         
         if (response.status === 401) {
             console.log('로그인되지 않은 사용자입니다. 로그인 안내를 표시합니다.');
@@ -111,6 +115,8 @@ async function checkLoginStatusAndLoadData() {
             disablePortfolioTab();
             return false;
         }
+        
+        console.log('로그인 상태 확인 완료 - 사용자 인증됨');
         
         // 로그인된 경우 데이터 로드
         await loadDashboardData();
@@ -2428,3 +2434,38 @@ function startLoginStatusCheck() {
 }
 
 // 포트폴리오 페이지 전용 함수들 (중복 제거됨 - 기존 함수들 사용)
+
+// 페이지 로드 시 자동 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('대시보드 페이지 로드됨 - 자동 초기화 시작');
+    
+    // 현재 페이지 확인
+    const currentPath = window.location.pathname;
+    console.log('현재 경로:', currentPath);
+    
+    if (currentPath.includes('/dashboard/') || currentPath === '/dashboard/') {
+        // 대시보드 메인 페이지 초기화
+        console.log('대시보드 메인 페이지 초기화');
+        initializeTotalPage();
+    } else if (currentPath.includes('/portfolio/')) {
+        // 포트폴리오 페이지 초기화
+        console.log('포트폴리오 페이지 초기화');
+        if (typeof initializePortfolioPage === 'function') {
+            initializePortfolioPage();
+        }
+    }
+});
+
+// 페이지 로드 완료 후에도 초기화 (혹시 놓친 경우)
+window.addEventListener('load', function() {
+    console.log('페이지 완전 로드됨 - 추가 초기화 확인');
+    
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/dashboard/') || currentPath === '/dashboard/') {
+        // 차트가 아직 초기화되지 않았다면 초기화
+        if (!totalBarChart) {
+            console.log('차트가 초기화되지 않음 - 재초기화');
+            initializeTotalPage();
+        }
+    }
+});
