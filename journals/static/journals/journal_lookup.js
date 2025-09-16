@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Collect data from real estate form fields
             const realtyForm = document.getElementById('realestate-tab-content'); // Get the real estate form container
             payload = {
-                // Fields present in the simplified form
+                // [수정] 백엔드가 주소로부터 dong, lat, lng 등을 자동 추출하므로 프론트엔드에서는 보내지 않습니다.
                 building_name: realtyForm.querySelector('[name="building_name"]').value,
                 address_base: realtyForm.querySelector('[name="address_base"]').value,
                 property_type: realtyForm.querySelector('[name="property_type"]').value,
@@ -268,21 +268,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 amount_main: realtyForm.querySelector('[name="amount_main"]').value,
                 area_m2: realtyForm.querySelector('[name="area_m2"]').value,
                 floor: realtyForm.querySelector('[name="floor"]').value,
-
-                // Fields NOT present in the simplified form, but expected by API (set to null/default)
-                lawd_cd: null,
-                dong: null,
-                lat: 0,
-                lng: 0,
-                amount_deposit: 0,
-                amount_monthly: 0,
-                loan_amount: null,
-                loan_rate: null,
-                fees_broker: null,
-                tax_acq: null,
-                reg_fee: null,
-                misc_cost: null,
-                content: '', // Memo field
+                content: '', // 메모 필드. 실제 입력칸이 있다면 그 값을 사용해야 합니다.
             };
             apiUrl = '/api/realty/deals/';
 
@@ -301,9 +287,20 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             const data = await response.json();
             if (response.ok) {
-                alert('매매일지가 성공적으로 작성되었습니다.');
-                window.location.href = '/journals/my-list/';
-            } else {
+    // home 앱으로 데이터 전달
+    if (window.parent !== window) {
+        window.parent.postMessage({
+            type: 'trading-journal-complete',
+            payload: {
+                success: true,
+                journal_data: data,
+                card_html: data.card_html || null
+            }
+        }, '*');
+    }
+
+    alert('매매일지가 성공적으로 작성되었습니다.');
+} else {
                 alert(`작성 실패: ${data.error || '알 수 없는 오류'}`);
             }
         } catch (error) {
