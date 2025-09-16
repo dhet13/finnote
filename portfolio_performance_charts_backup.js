@@ -1330,7 +1330,7 @@ function updateSectorCards(stockHoldings) {
                     </div>
                 </div>
             `;
-        });
+        }));
         
         const stocksHTMLString = stocksHTML.join('');
 
@@ -1357,7 +1357,7 @@ function updateSectorCards(stockHoldings) {
         `;
         
         container.appendChild(card);
-    };
+    });
     
     // 주식 클릭 리스너 재등록
     addStockClickListeners();

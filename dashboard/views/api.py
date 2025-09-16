@@ -74,12 +74,49 @@ def api_real_estate(request: HttpRequest) -> JsonResponse:
 
 def api_total_timeseries(request: HttpRequest) -> JsonResponse:
     """총자산 시계열 데이터 API"""
-    # 임시 더미 데이터 반환
-    return JsonResponse({
-        "series": [
-            {"date": "2024-01", "value": 0.0},
-            {"date": "2024-02", "value": 3.2},
-            {"date": "2024-03", "value": 5.3},
-            {"date": "2024-04", "value": 6.7}
-        ]
-    })
+    from .services import build_total_timeseries_payload
+    
+    interval = request.GET.get('interval', 'weekly')
+    
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    try:
+        data = build_total_timeseries_payload(request.user.id, interval)
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def api_portfolio(request: HttpRequest) -> JsonResponse:
+    """포트폴리오 데이터 API"""
+    from .services import DashboardDataCalculator
+    
+    interval = request.GET.get('interval', 'weekly')
+    
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    try:
+        # 포트폴리오 데이터 계산
+        calculator = DashboardDataCalculator(
+            user_id=request.user.id, 
+            asset_type=None,  # 전체 자산
+            interval=interval
+        )
+        
+        # 포트폴리오 전용 데이터 구조
+        data = {
+            'total_value': calculator.get_total_value(),
+            'total_change': calculator.get_total_change(),
+            'total_change_percent': calculator.get_total_change_percent(),
+            'stock_holdings': calculator.get_stock_holdings(),
+            'real_estate_holdings': calculator.get_real_estate_holdings(),
+            'sector_breakdown': calculator.get_sector_breakdown(),
+            'region_breakdown': calculator.get_region_breakdown(),
+            'timeseries_data': calculator.get_timeseries_data()
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

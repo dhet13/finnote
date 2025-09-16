@@ -46,35 +46,95 @@ class Command(BaseCommand):
         """테스트용 보유 자산 생성"""
         self.stdout.write('Creating test holdings...')
         
-        # 주식 자산들
+        # 주식 자산들 (섹터별로 분류)
         stock_holdings = [
             {
                 'ticker': '005930.KS',  # 삼성전자
                 'name': '삼성전자',
-                'sector': 'IT/전자',
+                'sector': 'Technology',
                 'quantity': Decimal('10'),
                 'avg_price': Decimal('70000'),
             },
             {
                 'ticker': '000660.KS',  # SK하이닉스
                 'name': 'SK하이닉스',
-                'sector': 'IT/전자',
+                'sector': 'Technology',
                 'quantity': Decimal('5'),
                 'avg_price': Decimal('120000'),
             },
             {
                 'ticker': '035420.KS',  # 네이버
                 'name': '네이버',
-                'sector': 'IT/서비스',
+                'sector': 'Technology',
                 'quantity': Decimal('3'),
                 'avg_price': Decimal('180000'),
             },
             {
                 'ticker': 'AAPL',  # 애플
                 'name': 'Apple Inc.',
-                'sector': 'IT/전자',
+                'sector': 'Technology',
                 'quantity': Decimal('2'),
                 'avg_price': Decimal('150000'),
+            },
+            # Healthcare 섹터
+            {
+                'ticker': '068270.KS',  # 셀트리온
+                'name': '셀트리온',
+                'sector': 'Healthcare',
+                'quantity': Decimal('8'),
+                'avg_price': Decimal('150000'),
+            },
+            {
+                'ticker': '207940.KS',  # 삼성바이오로직스
+                'name': '삼성바이오로직스',
+                'sector': 'Healthcare',
+                'quantity': Decimal('4'),
+                'avg_price': Decimal('800000'),
+            },
+            # Finance 섹터
+            {
+                'ticker': '055550.KS',  # 신한지주
+                'name': '신한지주',
+                'sector': 'Finance',
+                'quantity': Decimal('20'),
+                'avg_price': Decimal('45000'),
+            },
+            {
+                'ticker': '105560.KS',  # KB금융
+                'name': 'KB금융',
+                'sector': 'Finance',
+                'quantity': Decimal('15'),
+                'avg_price': Decimal('60000'),
+            },
+            # Consumer 섹터
+            {
+                'ticker': '017670.KS',  # SK텔레콤
+                'name': 'SK텔레콤',
+                'sector': 'Consumer',
+                'quantity': Decimal('12'),
+                'avg_price': Decimal('25000'),
+            },
+            {
+                'ticker': '030200.KS',  # KT
+                'name': 'KT',
+                'sector': 'Consumer',
+                'quantity': Decimal('10'),
+                'avg_price': Decimal('30000'),
+            },
+            # Energy 섹터
+            {
+                'ticker': '096770.KS',  # SK이노베이션
+                'name': 'SK이노베이션',
+                'sector': 'Energy',
+                'quantity': Decimal('6'),
+                'avg_price': Decimal('100000'),
+            },
+            {
+                'ticker': '010950.KS',  # S-Oil
+                'name': 'S-Oil',
+                'sector': 'Energy',
+                'quantity': Decimal('8'),
+                'avg_price': Decimal('80000'),
             },
         ]
         
@@ -105,14 +165,35 @@ class Command(BaseCommand):
             {
                 'property_id': 1,
                 'name': '강남구 아파트',
-                'region': '서울 강남구',
+                'region': '강남구',
                 'quantity': Decimal('1'),
-                'avg_price': Decimal('500000000'),  # 5억
+                'avg_price': Decimal('1000000000'),  # 10억
             },
             {
                 'property_id': 2,
-                'name': '부산 해운대 오피스텔',
-                'region': '부산 해운대구',
+                'name': '서초구 오피스텔',
+                'region': '서초구',
+                'quantity': Decimal('1'),
+                'avg_price': Decimal('800000000'),  # 8억
+            },
+            {
+                'property_id': 3,
+                'name': '송파구 상가',
+                'region': '송파구',
+                'quantity': Decimal('1'),
+                'avg_price': Decimal('600000000'),  # 6억
+            },
+            {
+                'property_id': 4,
+                'name': '마포구 빌라',
+                'region': '마포구',
+                'quantity': Decimal('1'),
+                'avg_price': Decimal('400000000'),  # 4억
+            },
+            {
+                'property_id': 5,
+                'name': '용산구 원룸',
+                'region': '용산구',
                 'quantity': Decimal('1'),
                 'avg_price': Decimal('200000000'),  # 2억
             },
@@ -161,7 +242,7 @@ class Command(BaseCommand):
                 trend_factor = 1 + (30 - days_ago) * 0.001  # 30일간 3% 상승
                 current_price = current_price * Decimal(str(trend_factor))
                 
-                market_value = holding.total_quantity * current_price
+                invested_amount = holding.total_quantity * current_price
                 
                 snapshot, created = PortfolioSnapshot.objects.get_or_create(
                     user_id=user_id,
@@ -175,7 +256,7 @@ class Command(BaseCommand):
                         'avg_buy_price': holding.avg_buy_price,
                         'invested_amount': holding.invested_amount,
                         'market_price': current_price,
-                        'market_value': market_value,
+                        'invested_amount': invested_amount,
                         'currency_code': holding.currency_code,
                     }
                 )
@@ -183,7 +264,7 @@ class Command(BaseCommand):
                 if not created:
                     # 기존 스냅샷 업데이트
                     snapshot.market_price = current_price
-                    snapshot.market_value = market_value
+                    snapshot.invested_amount = invested_amount
                     snapshot.save()
         
         self.stdout.write(f'Created snapshots for {holdings.count()} holdings over 30 days')

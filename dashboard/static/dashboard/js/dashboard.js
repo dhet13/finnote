@@ -53,17 +53,212 @@ function generateColorPalette(count) {
 }
 
 // 전역 초기화 함수 (base.html에서 호출됨)
+let isInitializing = false; // 중복 초기화 방지
+
 function initializeTotalPage() {
+    if (isInitializing) {
+        console.log('이미 초기화 중입니다. 중복 호출 방지');
+        return;
+    }
+    
+    isInitializing = true;
+    
+    // 로그인 상태 확인 후 데이터 로드
+    checkLoginStatusAndLoadData().then((isLoggedIn) => {
+        if (isLoggedIn) {
+            // 로그인된 경우에만 차트 초기화
     initializeCharts();
-    loadDashboardData();
     initializeCardPeriodButtons();
-    initializeDateRangePicker();  // 캘린더 기간 선택으로 변경
+            initializeDateRangePicker();
     initializePeriodRangeSelector();
     
-    // 동적 일간 데이터로 초기화 (일간이 기본 선택이므로)
+            // 동적 일간 데이터로 초기화
     setTimeout(() => {
         initializeChartData();
     }, 100);
+        } else {
+            // 로그인되지 않은 경우 로그인 안내만 표시
+            console.log('로그인되지 않은 사용자 - 차트 초기화 건너뜀');
+            // 로그인 상태 주기적 확인 시작
+            startLoginStatusCheck();
+        }
+        
+        isInitializing = false;
+    }).catch((error) => {
+        console.error('초기화 중 오류:', error);
+        isInitializing = false;
+    });
+}
+
+// 로그인 상태 확인 및 데이터 로드
+async function checkLoginStatusAndLoadData() {
+    try {
+        // 먼저 간단한 API 호출로 로그인 상태 확인
+        const response = await fetch('/dashboard/api/total/?interval=weekly', {
+            credentials: 'same-origin'
+        });
+        
+        if (response.status === 401) {
+            console.log('로그인되지 않은 사용자입니다. 로그인 안내를 표시합니다.');
+            showLoginRequired();
+            disablePortfolioTab(); // 포트폴리오 탭 비활성화
+            return false; // 로그인되지 않음
+        }
+        
+        if (!response.ok) {
+            console.error('API 응답 오류:', response.status);
+            showLoginRequired();
+            disablePortfolioTab();
+            return false;
+        }
+        
+        // 로그인된 경우 데이터 로드
+        await loadDashboardData();
+        enablePortfolioTab(); // 포트폴리오 탭 활성화
+        return true; // 로그인됨
+        
+    } catch (error) {
+        console.error('로그인 상태 확인 중 오류:', error);
+        showLoginRequired();
+        disablePortfolioTab(); // 포류 발생 시 포트폴리오 탭 비활성화
+        return false; // 오류 발생
+    }
+}
+
+// 포트폴리오 탭 비활성화
+function disablePortfolioTab() {
+    const portfolioTab = document.getElementById('portfolio-tab');
+    if (portfolioTab) {
+        portfolioTab.style.pointerEvents = 'none';
+        portfolioTab.style.opacity = '0.5';
+        portfolioTab.style.cursor = 'not-allowed';
+        portfolioTab.title = '로그인이 필요합니다';
+        
+        // 기존 클릭 이벤트 제거
+        portfolioTab.replaceWith(portfolioTab.cloneNode(true));
+        
+        // 새로운 포트폴리오 탭 요소에 클릭 방지 이벤트 추가
+        const newPortfolioTab = document.getElementById('portfolio-tab');
+        if (newPortfolioTab) {
+            newPortfolioTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                alert('포트폴리오 분석을 보려면 로그인이 필요합니다.');
+                return false;
+            });
+        }
+        
+        console.log('포트폴리오 탭 비활성화 완료');
+    }
+}
+
+// 포트폴리오 탭 활성화
+function enablePortfolioTab() {
+    const portfolioTab = document.getElementById('portfolio-tab');
+    if (portfolioTab) {
+        portfolioTab.style.pointerEvents = 'auto';
+        portfolioTab.style.opacity = '1';
+        portfolioTab.style.cursor = 'pointer';
+        portfolioTab.title = '';
+        
+        // 기존 클릭 이벤트 제거
+        portfolioTab.replaceWith(portfolioTab.cloneNode(true));
+        
+        // 포트폴리오 탭이 base.html의 메인 네비게이션을 사용하도록 설정
+        // 포트폴리오 탭 클릭 시 메인 네비게이션의 포트폴리오 탭을 클릭하도록 함
+        const newPortfolioTab = document.getElementById('portfolio-tab');
+        if (newPortfolioTab) {
+            newPortfolioTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('포트폴리오 탭 클릭됨 - 메인 네비게이션 호출');
+                
+                // 무한 루프 방지를 위해 직접 네비게이션 로직 실행
+                console.log('포트폴리오 네비게이션 직접 실행');
+                
+                const tabName = 'portfolio';
+                const url = '/dashboard/portfolio/';
+                const contentArea = document.getElementById('dashboard-content');
+                
+                // 탭 활성화 상태 변경 - 모든 탭 초기화
+                document.querySelectorAll('.nav-link[data-tab]').forEach(tab => {
+                    tab.style.color = '#536471';
+                    tab.style.fontWeight = '500';
+                    tab.classList.remove('active');
+                });
+                
+                // 포트폴리오 탭만 활성화
+                this.style.color = '#1d9bf0';
+                this.style.fontWeight = '600';
+                this.classList.add('active');
+                
+                console.log('포트폴리오 탭 활성화, 자산 현황 탭 비활성화');
+                
+                // 로딩 표시
+                contentArea.innerHTML = '<div style="text-align: center; padding: 40px; color: #536471;">로딩 중...</div>';
+                
+                // AJAX로 콘텐츠 로드
+                fetch(url)
+                    .then(response => response.text())
+                    .then(html => {
+                        console.log('포트폴리오 AJAX 응답 받음, HTML 길이:', html.length);
+                        
+                        // HTML에서 콘텐츠 영역 추출
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        
+                        let contentElement = doc.querySelector('.portfolio-main-content');
+                        if (!contentElement) {
+                            contentElement = doc.querySelector('body');
+                            console.log('portfolio-main-content를 찾을 수 없어 body 사용');
+                        }
+                        
+                        if (contentElement) {
+                            contentArea.innerHTML = contentElement.outerHTML;
+                            console.log('포트폴리오 콘텐츠 로드 완료');
+                            
+                            // 포트폴리오 페이지 초기화
+                            setTimeout(() => {
+                                if (typeof initializePortfolioPage === 'function') {
+                                    initializePortfolioPage();
+                                }
+                                
+                                // 포트폴리오 페이지의 자산 타입 버튼 상태 초기화
+                                const stockButton = document.querySelector('[data-type="stock"]');
+                                const propertyButton = document.querySelector('[data-type="real_estate"]');
+                                
+                                if (stockButton) {
+                                    stockButton.classList.add('active');
+                                }
+                                if (propertyButton) {
+                                    propertyButton.classList.remove('active');
+                                }
+                                
+                                // 포트폴리오 콘텐츠 표시 상태 초기화
+                                const stockPortfolio = document.getElementById('stockPortfolio');
+                                const propertyPortfolio = document.getElementById('propertyPortfolio');
+                                
+                                if (stockPortfolio) {
+                                    stockPortfolio.style.display = 'block';
+                                }
+                                if (propertyPortfolio) {
+                                    propertyPortfolio.style.display = 'none';
+                                }
+                            }, 100);
+                        } else {
+                            contentArea.innerHTML = html;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('포트폴리오 콘텐츠 로드 오류:', error);
+                        contentArea.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc2626;">포트폴리오 콘텐츠를 불러오는데 실패했습니다.</div>';
+                    });
+            });
+        }
+        
+        console.log('포트폴리오 탭 활성화 완료');
+    }
 }
 
 // 수익률 계산 함수
@@ -132,32 +327,21 @@ function initializeCharts() {
     const totalBarCtx = document.getElementById('totalBarChart');
     if (totalBarCtx) {
     
-    // 커스텀 툴팁 요소 생성
-    let totalTooltip = document.getElementById('total-custom-tooltip');
-    if (!totalTooltip) {
-        totalTooltip = document.createElement('div');
-        totalTooltip.id = 'total-custom-tooltip';
-        totalTooltip.style.cssText = `
-            position: absolute;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            border: 2px solid #1d9bf0;
-            z-index: 999999;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            white-space: nowrap;
-        `;
-        document.body.appendChild(totalTooltip);
-    }
+    // 기본 툴팁 사용 - 커스텀 툴팁 요소 생성 제거
     
-    // 고정 데이터와 라벨 생성
-    const totalChartData = generateDailyData(7);
-    const totalChartLabels = generateDailyLabels(7);
+    // 실제 API 데이터 사용 (없으면 더미 데이터)
+    let totalChartData, totalChartLabels;
+    
+    if (dashboardData && dashboardData.timeseries) {
+        // 실제 API 데이터 사용
+        const timeseries = dashboardData.timeseries;
+        totalChartData = timeseries.slice(-7).map(item => item.market_value || 0);
+        totalChartLabels = generateDailyLabels(totalChartData.length);
+    } else {
+        // 더미 데이터 사용
+        totalChartData = generateDailyData(7);
+        totalChartLabels = generateDailyLabels(7);
+    }
     
     const totalBarContext = totalBarCtx.getContext('2d');
     totalBarChart = new Chart(totalBarContext, {
@@ -176,7 +360,45 @@ function initializeCharts() {
             plugins: { 
                 legend: { display: false }, 
                 tooltip: {
-                    enabled: false  // Chart.js 기본 툴팁 비활성화
+                    enabled: true,
+                    position: 'nearest',
+                    yAlign: 'top',
+                    xAlign: 'center',
+                    caretPadding: 10,
+                    displayColors: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#1d9bf0',
+                    borderWidth: 1,
+                    cornerRadius: 6,
+                    padding: 8,
+                    external: function(context) {
+                        // 툴팁을 body에 직접 추가하여 카드 밖으로 나오게 함
+                        let tooltipEl = document.getElementById('chartjs-tooltip');
+                        if (!tooltipEl) {
+                            tooltipEl = document.createElement('div');
+                            tooltipEl.id = 'chartjs-tooltip';
+                            tooltipEl.style.position = 'absolute';
+                            tooltipEl.style.zIndex = '999999';
+                            tooltipEl.style.pointerEvents = 'none';
+                            document.body.appendChild(tooltipEl);
+                        }
+                        
+                        const {chart, tooltip} = context;
+                        if (tooltip.opacity === 0) {
+                            tooltipEl.style.opacity = '0';
+                            return;
+                        }
+                        
+                        tooltipEl.style.opacity = '1';
+                        tooltipEl.style.left = chart.canvas.offsetLeft + tooltip.caretX + 'px';
+                        tooltipEl.style.top = chart.canvas.offsetTop + tooltip.caretY - 250 + 'px';
+                        tooltipEl.innerHTML = tooltip.body.map(b => b.lines.join('<br>')).join('<br>');
+                    }
+                },
+                datalabels: {
+                    display: false
                 }
             },
             scales: { 
@@ -186,50 +408,7 @@ function initializeCharts() {
         }
     });
     
-    // 커스텀 툴팁 이벤트 핸들러
-    totalBarCtx.addEventListener('mousemove', function(e) {
-        const rect = totalBarCtx.getBoundingClientRect();
-        const points = totalBarChart.getElementsAtEventForMode(e, 'index', { intersect: true }, false);
-        
-        if (points.length > 0) {
-            const point = points[0];
-            const dataIndex = point.index;
-            const value = totalChartData[dataIndex]; // 차트와 동일한 데이터 사용
-            const label = totalChartLabels[dataIndex]; // 차트와 동일한 라벨 사용
-            
-            // 툴팁 내용 업데이트
-            totalTooltip.innerHTML = `
-                <div style="text-align: center;">
-                    <div style="font-size: 11px; margin-bottom: 2px;">${label}</div>
-                    <div style="font-size: 13px; font-weight: bold;">₩${(value * 1000).toLocaleString()}</div>
-                </div>
-            `;
-            
-            // 툴팁 위치 설정 (카드 위치 기준)
-            const rect = totalBarCtx.getBoundingClientRect();
-            
-            // 툴팁을 먼저 보이게 해서 크기 계산 가능하게 함
-            totalTooltip.style.opacity = '1';
-            totalTooltip.style.visibility = 'visible';
-            
-            // 짧은 지연 후 위치 계산
-            setTimeout(() => {
-                const tooltipWidth = totalTooltip.offsetWidth || 120; // 기본값 설정
-                totalTooltip.style.left = (rect.left + rect.width / 2 - tooltipWidth / 2) + 'px';
-                totalTooltip.style.top = (rect.top - 10) + 'px';
-            }, 10);
-            
-            console.log('총 투자 자산 커스텀 툴팁 표시:', `인덱스: ${dataIndex}, 라벨: ${label}, 값: ${value}`);
-        } else {
-            totalTooltip.style.opacity = '0';
-            totalTooltip.style.visibility = 'hidden';
-        }
-    });
-    
-    totalBarCtx.addEventListener('mouseleave', function() {
-        totalTooltip.style.opacity = '0';
-        totalTooltip.style.visibility = 'hidden';
-    });
+    // 기본 툴팁 사용 - 커스텀 툴팁 이벤트 핸들러 제거
 
     }
 
@@ -256,24 +435,7 @@ function initializeCharts() {
             plugins: { 
                 legend: { display: false }, 
                 tooltip: { 
-                    enabled: true,
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    borderColor: '#00ba7c',
-                    borderWidth: 1,
-                    cornerRadius: 6,
-                    displayColors: false,
-                    callbacks: {
-                        title: function(context) {
-                            return context[0].label;
-                        },
-                        label: function(context) {
-                            return '$' + context.raw.toFixed(2);
-                        }
-                    }
+                    enabled: true
                 }
             },
             scales: { x: { display: false }, y: { display: false } }
@@ -306,24 +468,7 @@ function initializeCharts() {
             plugins: { 
                 legend: { display: false }, 
                 tooltip: { 
-                    enabled: true,
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    borderColor: '#00ba7c',
-                    borderWidth: 1,
-                    cornerRadius: 6,
-                    displayColors: false,
-                    callbacks: {
-                        title: function(context) {
-                            return context[0].label;
-                        },
-                        label: function(context) {
-                            return '$' + context.raw.toFixed(2);
-                        }
-                    }
+                    enabled: true
                 }
             },
             scales: { x: { display: false }, y: { display: false } }
@@ -337,9 +482,13 @@ function initializeCharts() {
     if (mainChartCtx) {
     
     const mainChartContext = mainChartCtx.getContext('2d');
-    // 날짜별 수익률 데이터 생성
-    const portfolioReturnData = generateCumulativeReturnData(30); // 30일 수익률 데이터
-    const portfolioLabels = generateDailyLabels(30); // 30일 라벨
+    // 실제 API 데이터 사용 - 누적 수익률 데이터 사용
+    const timeseries = dashboardData?.timeseries || [];
+    const portfolioReturnData = timeseries.map(item => {
+        // 누적 수익률 데이터 사용 (cumulative_return_rate)
+        return item.cumulative_return_rate || 0;
+    });
+    const portfolioLabels = generateDailyLabels(portfolioReturnData.length);
     
     console.log('포트폴리오 수익률 데이터:', portfolioReturnData);
     console.log('포트폴리오 라벨:', portfolioLabels);
@@ -349,7 +498,7 @@ function initializeCharts() {
         data: {
             labels: portfolioLabels,
             datasets: [{
-                label: 'Portfolio Returns',
+                label: '누적 수익률 (%)',
                 data: portfolioReturnData, // 날짜별 누적 수익률 데이터
                 borderColor: '#4285f4',
                 backgroundColor: 'rgba(66, 133, 244, 0.1)',
@@ -365,19 +514,10 @@ function initializeCharts() {
             plugins: { 
                 legend: { display: false },
                 tooltip: { 
-                    enabled: true,
-                    backgroundColor: '#4285f4',
-                    titleColor: 'white',
-                    bodyColor: 'white',
-                    callbacks: {
-                        title: function(context) {
-                            return context[0].label;
-                        },
-                        label: function(context) {
-                            const value = context.raw || context.parsed.y;
-                            return '수익률: ' + (value ? value.toFixed(1) : '0.0') + '%';
-                        }
-                    }
+                    enabled: true
+                },
+                datalabels: {
+                    display: false
                 }
             },
             scales: { 
@@ -400,17 +540,97 @@ function initializeCharts() {
     }
 }
 
+// 전역 변수 선언
+let stockCardData = null;
+let propertyCardData = null;
+let dashboardData = null;
+
+// API 데이터에서 기간별 데이터 추출
+function getApiDataForPeriod(period, dataPoints) {
+    if (!dashboardData?.timeseries) {
+        return Array(dataPoints).fill(0);
+    }
+    
+    const apiData = dashboardData.timeseries;
+    const dataLength = apiData.length;
+    
+    switch (period) {
+        case '1D':
+            return apiData.slice(-dataPoints).map(item => {
+                return item.cumulative_return_rate || 0;
+            });
+        case '1W':
+            const weeklyData = [];
+            for (let i = 0; i < dataPoints && i * 7 < dataLength; i++) {
+                const index = dataLength - 1 - (i * 7);
+                if (index >= 0) {
+                    const cumulativeReturnRate = apiData[index].cumulative_return_rate || 0;
+                    weeklyData.unshift(cumulativeReturnRate);
+                }
+            }
+            return weeklyData.length > 0 ? weeklyData : Array(dataPoints).fill(0);
+        case '1M':
+            const monthlyData = [];
+            for (let i = 0; i < dataPoints && i * 30 < dataLength; i++) {
+                const index = dataLength - 1 - (i * 30);
+                if (index >= 0) {
+                    const cumulativeReturnRate = apiData[index].cumulative_return_rate || 0;
+                    monthlyData.unshift(cumulativeReturnRate);
+                }
+            }
+            return monthlyData.length > 0 ? monthlyData : Array(dataPoints).fill(0);
+        case '1Y':
+            const yearlyData = [];
+            for (let i = 0; i < dataPoints && i * 365 < dataLength; i++) {
+                const index = dataLength - 1 - (i * 365);
+                if (index >= 0) {
+                    const cumulativeReturnRate = apiData[index].cumulative_return_rate || 0;
+                    yearlyData.unshift(cumulativeReturnRate);
+                }
+            }
+            return yearlyData.length > 0 ? yearlyData : Array(dataPoints).fill(0);
+        default:
+            return apiData.slice(-dataPoints).map(item => {
+                return item.cumulative_return_rate || 0;
+    });
+    }
+}
+
 // 대시보드 데이터 로드
 async function loadDashboardData() {
     try {
         // API에서 데이터 로드
-        const response = await fetch('/dashboard/api/total/?interval=weekly');
+        const response = await fetch('/dashboard/api/total/?interval=weekly', {
+            credentials: 'same-origin'  // 쿠키 포함하여 요청
+        });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                console.warn('사용자가 로그인되지 않았습니다. 로그인 안내를 표시합니다.');
+                // 로그인되지 않은 경우 로그인 안내 표시
+                showLoginRequired();
+                return;
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
 
-        // 총 자산 값 업데이트
-        const totalValue = Number(data.total_value) || 117340;
-        const totalChangePercent = Number(data.wow_change_pct) || 2.5;
+        if (data.status === 'error') {
+            throw new Error(data.error || 'Unknown error');
+        }
         
+        // 전역 변수에 데이터 저장
+        dashboardData = data;
+
+        // 실제 API 응답 구조에 맞게 데이터 처리
+        const holdings = data.holdings || {};
+        const totalValue = Number(holdings.total_market_value) || 0;
+        const totalInvested = Number(holdings.total_invested) || 0;
+        const returnRate = Number(holdings.return_rate) || 0;
+        const returnAmount = Number(holdings.return_amount) || 0;
+        
+        // 총 자산 값 업데이트
         const totalAssetElement = document.getElementById('total-asset-value');
         const totalChangeElement = document.getElementById('total-asset-change');
         
@@ -419,20 +639,136 @@ async function loadDashboardData() {
         }
         
         if (totalChangeElement) {
-            const changeText = totalChangePercent >= 0 ? `+${totalChangePercent.toFixed(1)}%` : `${totalChangePercent.toFixed(1)}%`;
+            const changeText = returnRate >= 0 ? `+${returnRate.toFixed(1)}%` : `${returnRate.toFixed(1)}%`;
             totalChangeElement.textContent = changeText;
-            totalChangeElement.style.color = totalChangePercent >= 0 ? '#17bf63' : '#f91880';
-            totalChangeElement.style.background = totalChangePercent >= 0 ? 'rgba(23, 191, 99, 0.1)' : 'rgba(249, 24, 128, 0.1)';
+            totalChangeElement.style.color = returnRate >= 0 ? '#17bf63' : '#f91880';
+            totalChangeElement.style.background = returnRate >= 0 ? 'rgba(23, 191, 99, 0.1)' : 'rgba(249, 24, 128, 0.1)';
         }
+
+        // 주식과 부동산 카드 데이터 먼저 로드
+        await loadCardData();
 
         // 자산 데이터 업데이트
         updateAssetCards();
         
+        // 미니 차트 직접 업데이트 (초기화 시 필수) - loadCardData 완료 후
+        setTimeout(() => {
+            updateStockAssetChart();
+            updatePropertyAssetChart();
+        }, 100);
+        
+        // 카드뷰 차트 업데이트 (실제 API 데이터 사용)
+        updateCardCharts(currentCardPeriod);
+        
     } catch (error) {
         console.error('대시보드 데이터 로드 중 오류 발생:', error);
-        // 오류 발생 시 기본값 사용
-        console.log('기본값으로 대체합니다.');
+        // 오류 발생 시 로그인 안내 표시
+        showLoginRequired();
     }
+}
+
+// 카드 데이터 로드 (주식, 부동산)
+async function loadCardData() {
+    try {
+        // 주식 데이터 로드
+        const stockResponse = await fetch('/dashboard/api/stock/?interval=weekly', {
+            credentials: 'same-origin'
+        });
+        
+        if (stockResponse.ok) {
+            const stockData = await stockResponse.json();
+            stockCardData = stockData;
+            console.log('주식 카드 데이터 로드 완료:', stockData);
+        }
+        
+        // 부동산 데이터 로드
+        const propertyResponse = await fetch('/dashboard/api/real_estate/?interval=weekly', {
+            credentials: 'same-origin'
+        });
+        
+        if (propertyResponse.ok) {
+            const propertyData = await propertyResponse.json();
+            propertyCardData = propertyData;
+            console.log('부동산 카드 데이터 로드 완료:', propertyData);
+        }
+        
+    } catch (error) {
+        console.error('카드 데이터 로드 중 오류:', error);
+        // 오류 발생 시 데이터를 null로 설정 (더미 데이터 사용 안함)
+        stockCardData = null;
+        propertyCardData = null;
+    }
+}
+
+// 로그인되지 않은 경우 로그인 안내 표시
+function showLoginRequired() {
+    // 전체 통계 카드 영역을 로그인 안내로 교체
+    const statsRow = document.querySelector('.stats-row');
+    if (statsRow) {
+        statsRow.innerHTML = `
+            <div style="
+                background: #f7f9fa;
+                padding: 40px;
+                border-radius: 8px;
+                text-align: center;
+                margin: 20px 0;
+                width: 100%;
+                max-width: 560px;
+            ">
+                <div style="font-size: 18px; color: #0f1419; margin-bottom: 12px; font-weight: 600;">
+                    포트폴리오 데이터를 보려면 로그인이 필요합니다
+                </div>
+                <div style="font-size: 14px; color: #536471; margin-bottom: 24px;">
+                    로그인 후 개인화된 투자 현황을 확인하세요
+                </div>
+                <a href="/accounts/login/" style="
+                    display: inline-block;
+                    background: #1d9bf0;
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 6px;
+                    text-decoration: none;
+                    font-weight: 500;
+                    font-size: 14px;
+                    transition: background-color 0.2s;
+                " onmouseover="this.style.background='#1a8cd8'" onmouseout="this.style.background='#1d9bf0'">
+                    로그인하기
+                </a>
+            </div>
+        `;
+    }
+    
+    // 차트 영역도 로그인 안내로 교체
+    const chartSection = document.querySelector('.total-content > div[style*="background: #f7f9fa"]');
+    if (chartSection) {
+        chartSection.innerHTML = `
+            <div style="text-align: center; padding: 60px 20px;">
+                <div style="font-size: 24px; color: #0f1419; margin-bottom: 16px; font-weight: 600;">
+                    📊 포트폴리오 분석
+                </div>
+                <div style="font-size: 16px; color: #536471; margin-bottom: 32px;">
+                    로그인 후 개인화된 투자 현황과 수익률 분석을 확인하세요
+                </div>
+                <a href="/accounts/login/" style="
+                    display: inline-block;
+                    background: #1d9bf0;
+                    color: white;
+                    padding: 16px 32px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-weight: 600;
+                    font-size: 16px;
+                    transition: background-color 0.2s;
+                    box-shadow: 0 2px 8px rgba(29, 155, 240, 0.3);
+                " onmouseover="this.style.background='#1a8cd8'; this.style.transform='translateY(-2px)'" 
+                   onmouseout="this.style.background='#1d9bf0'; this.style.transform='translateY(0)'">
+                    로그인하고 포트폴리오 보기
+                </a>
+            </div>
+        `;
+    }
+    
+    console.log('로그인 안내 표시 완료');
 }
 
 // 카드뷰 기간 선택 버튼 초기화 (일간/주간)
@@ -467,14 +803,35 @@ function initializeCardPeriodButtons() {
 function updateCardCharts(period) {
     let cardLabels, cardData;
     
+    // 실제 API 데이터 사용
+    if (dashboardData && dashboardData.timeseries) {
+        const timeseries = dashboardData.timeseries;
+    
     if (period === 'daily') {
-        // 일간 데이터 (일봉: 1/15, 1/16, 1/17)
-        cardLabels = generateDailyLabels(7); // 최근 7일
-        cardData = generateDailyData(7); // 일별 누적 데이터
+            // 일간 데이터: 최근 7일
+            cardData = timeseries.slice(-7).map(item => item.market_value || 0);
+            cardLabels = generateDailyLabels(cardData.length);
     } else {
-        // 주간 데이터 (주봉: 1/15, 1/22, 1/29)
-        cardLabels = generateWeeklyLabels(7); // 최근 7주
-        cardData = generateWeeklyData(7); // 주간별 누적 데이터
+            // 주간 데이터: 최근 7주 (7일씩 건너뛰기)
+            const weeklyData = [];
+            for (let i = 0; i < 7 && i * 7 < timeseries.length; i++) {
+                const index = timeseries.length - 1 - (i * 7);
+                if (index >= 0) {
+                    weeklyData.unshift(timeseries[index].market_value || 0);
+                }
+            }
+            cardData = weeklyData;
+            cardLabels = generateWeeklyLabels(cardData.length);
+        }
+    } else {
+        // API 데이터가 없을 때 더미 데이터 사용
+        if (period === 'daily') {
+            cardLabels = generateDailyLabels(7);
+            cardData = generateDailyData(7);
+        } else {
+            cardLabels = generateWeeklyLabels(7);
+            cardData = generateWeeklyData(7);
+        }
     }
     
     // 총 투자 자산 막대 차트 업데이트
@@ -508,25 +865,25 @@ function updateMainPortfolioChart(period, periodRange = currentPeriodRange) {
             // 일간: 일봉 (1/15, 1/16, 1/17)
             dataPoints = Math.min(periodRange, 365); // 최대 365일
             mainLabels = generateDailyLabels(dataPoints);
-            mainData = generatePortfolioData(dataPoints, 22000, 'daily_sequence');
+            mainData = getApiDataForPeriod('1D', dataPoints);
             break;
         case '1W':
             // 주간: 주봉 (1/15, 1/22, 1/29)
             dataPoints = Math.min(Math.ceil(periodRange / 7), 52); // 최대 52주
             mainLabels = generateWeeklyLabels(dataPoints);
-            mainData = generatePortfolioData(dataPoints, 22000, 'weekly_sequence');
+            mainData = getApiDataForPeriod('1W', dataPoints);
             break;
         case '1M':
             // 월간: 주봉 (Week 1, Week 2, Week 3)
             dataPoints = Math.min(Math.ceil(periodRange / 30), 12); // 최대 12개월
             mainLabels = generateMonthlyLabels(dataPoints);
-            mainData = generatePortfolioData(dataPoints, 22000, 'monthly_sequence');
+            mainData = getApiDataForPeriod('1M', dataPoints);
             break;
         case '1Y':
             // 연간: 주봉 (1월, 2월, 3월)
             dataPoints = Math.min(Math.ceil(periodRange / 365), 12); // 최대 12년
             mainLabels = generateYearlyLabels(dataPoints);
-            mainData = generatePortfolioData(dataPoints, 22000, 'yearly_sequence');
+            mainData = getApiDataForPeriod('1Y', dataPoints);
             break;
         case 'custom':
             // 사용자 정의 기간: 일봉 (1/15, 1/16, 1/17)
@@ -864,6 +1221,12 @@ function initializeDateRangePicker() {
     const endDateInput = document.getElementById('end-date');
     const applyBtn = document.getElementById('apply-date-range');
     const quickPeriodBtns = document.querySelectorAll('.quick-period-btn');
+    
+    // 요소가 존재하지 않는 경우 함수 종료
+    if (!startDateInput || !endDateInput || !applyBtn) {
+        console.warn('날짜 선택 요소를 찾을 수 없습니다. 로그인 안내가 표시되었을 수 있습니다.');
+        return;
+    }
     
     // 전역 변수로 선택된 기간 저장
     let selectedStartDate = null;
@@ -1219,16 +1582,7 @@ function initializeStockPortfolio() {
                     display: false
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#ffffff',
-                    bodyColor: '#ffffff',
-                    borderColor: '#ffffff',
-                    borderWidth: 1,
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': ' + context.parsed + '%';
-                        }
-                    }
+                    enabled: false
                 },
                 datalabels: {
                     display: true,
@@ -1305,16 +1659,7 @@ function initializeRealEstatePortfolio() {
                     display: false
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#ffffff',
-                    bodyColor: '#ffffff',
-                    borderColor: '#ffffff',
-                    borderWidth: 1,
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': ' + context.parsed + '%';
-                        }
-                    }
+                    enabled: false
                 },
                 datalabels: {
                     display: true,
@@ -1563,7 +1908,7 @@ function updateStockAssetCard() {
             changeElement.style.display = 'none';
         }
         
-        // 차트 영역 비우기
+        // 차트 영역 비우기 (더미 데이터로 차트 생성)
         clearStockAssetChart();
     }
 }
@@ -1635,6 +1980,11 @@ window.setAssetAvailability = function(hasStock, hasProperty) {
 function handleCardPeriodChange(period) {
     currentCardPeriod = period;
     updateAssetCards();
+    
+    // 미니 차트도 업데이트
+    updateStockAssetChart();
+    updatePropertyAssetChart();
+    
     console.log(`카드 기간 변경: ${period}`);
 }
 
@@ -1649,35 +1999,23 @@ function updateStockAssetChart() {
         stockAssetMiniChart = null;
     }
     
-    // 커스텀 툴팁 요소 생성
-    let stockTooltip = document.getElementById('stock-custom-tooltip');
-    if (!stockTooltip) {
-        stockTooltip = document.createElement('div');
-        stockTooltip.id = 'stock-custom-tooltip';
-        stockTooltip.style.cssText = `
-            position: absolute;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            border: 2px solid #17bf63;
-            z-index: 999999;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            white-space: nowrap;
-        `;
-        document.body.appendChild(stockTooltip);
+    // 기본 툴팁 사용 - 커스텀 툴팁 요소 생성 제거
+    
+    // 실제 API 데이터 사용
+    console.log('주식 카드 데이터 구조:', stockCardData);
+    
+    if (!stockCardData || !stockCardData.timeseries || stockCardData.timeseries.length === 0) {
+        console.warn('주식 카드 데이터가 없습니다. 차트를 표시하지 않습니다.');
+        // 데이터가 없으면 차트를 표시하지 않음
+        return;
     }
     
-    // 데이터와 라벨 생성
-    const chartData = currentCardPeriod === 'daily' ? 
-        [82150, 82350, 81980, 83000, 82800, 83500, 83200] : 
-        [81500, 82800, 82200, 84000, 83500, 84500, 84200];
-    
-    const chartLabels = generateMiniChartLabels(7, currentCardPeriod);
+    const timeseries = stockCardData.timeseries;
+    const chartData = timeseries.map(item => {
+        // API 응답 구조에 따라 적절한 필드명 사용
+        return item.value || item.price || item.amount || item.market_value || 0;
+    });
+    const chartLabels = generateMiniChartLabels(chartData.length, currentCardPeriod);
     
     console.log('주식 차트 데이터:', chartData);
     console.log('주식 차트 라벨:', chartLabels);
@@ -1707,7 +2045,52 @@ function updateStockAssetChart() {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    enabled: false  // Chart.js 기본 툴팁 비활성화
+                    enabled: true,
+                    position: 'nearest',
+                    yAlign: 'top',
+                    xAlign: 'center',
+                    caretPadding: 10,
+                    displayColors: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#17bf63',
+                    borderWidth: 1,
+                    cornerRadius: 6,
+                    padding: 8,
+                    external: function(context) {
+                        // 툴팁을 body에 직접 추가하여 카드 밖으로 나오게 함
+                        let tooltipEl = document.getElementById('chartjs-tooltip-stock');
+                        if (!tooltipEl) {
+                            tooltipEl = document.createElement('div');
+                            tooltipEl.id = 'chartjs-tooltip-stock';
+                            tooltipEl.style.position = 'absolute';
+                            tooltipEl.style.zIndex = '999999';
+                            tooltipEl.style.pointerEvents = 'none';
+                            tooltipEl.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+                            tooltipEl.style.color = '#ffffff';
+                            tooltipEl.style.padding = '8px';
+                            tooltipEl.style.borderRadius = '6px';
+                            tooltipEl.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+                            tooltipEl.style.border = '1px solid #17bf63';
+                            tooltipEl.style.fontSize = '12px';
+                            document.body.appendChild(tooltipEl);
+                        }
+                        
+                        const {chart, tooltip} = context;
+                        if (tooltip.opacity === 0) {
+                            tooltipEl.style.opacity = '0';
+                            return;
+                        }
+                        
+                        tooltipEl.style.opacity = '1';
+                        tooltipEl.style.left = chart.canvas.offsetLeft + tooltip.caretX + 'px';
+                        tooltipEl.style.top = chart.canvas.offsetTop + tooltip.caretY - 250 + 'px';
+                        tooltipEl.innerHTML = tooltip.body.map(b => b.lines.join('<br>')).join('<br>');
+                    }
+                },
+                datalabels: {
+                    display: false
                 }
             },
             scales: {
@@ -1730,50 +2113,7 @@ function updateStockAssetChart() {
         }
     });
     
-    // 커스텀 툴팁 이벤트 핸들러
-    canvas.addEventListener('mousemove', function(e) {
-        const rect = canvas.getBoundingClientRect();
-        const points = stockAssetMiniChart.getElementsAtEventForMode(e, 'nearest', { intersect: false }, false);
-        
-        if (points.length > 0) {
-            const point = points[0];
-            const dataIndex = point.index;
-            const value = chartData[dataIndex];
-            const label = chartLabels[dataIndex];
-            
-            // 툴팁 내용 업데이트
-            stockTooltip.innerHTML = `
-                <div style="text-align: center;">
-                    <div style="font-size: 11px; margin-bottom: 2px;">${label}</div>
-                    <div style="font-size: 13px; font-weight: bold;">₩${value.toLocaleString()}</div>
-                </div>
-            `;
-            
-            // 툴팁 위치 설정 (카드 위치 기준)
-            const stockRect = canvas.getBoundingClientRect();
-            
-            // 툴팁을 먼저 보이게 해서 크기 계산 가능하게 함
-            stockTooltip.style.opacity = '1';
-            stockTooltip.style.visibility = 'visible';
-            
-            // 짧은 지연 후 위치 계산
-            setTimeout(() => {
-                const tooltipWidth = stockTooltip.offsetWidth || 120; // 기본값 설정
-                stockTooltip.style.left = (stockRect.left + stockRect.width / 2 - tooltipWidth / 2) + 'px';
-                stockTooltip.style.top = (stockRect.top - 10) + 'px';
-            }, 10);
-            
-            console.log('주식 커스텀 툴팁 표시:', label, value);
-        } else {
-            stockTooltip.style.opacity = '0';
-            stockTooltip.style.visibility = 'hidden';
-        }
-    });
-    
-    canvas.addEventListener('mouseleave', function() {
-        stockTooltip.style.opacity = '0';
-        stockTooltip.style.visibility = 'hidden';
-    });
+    // 기본 툴팁 사용 - 커스텀 툴팁 이벤트 핸들러 제거
 }
 
 function updatePropertyAssetChart() {
@@ -1786,35 +2126,23 @@ function updatePropertyAssetChart() {
         propertyAssetMiniChart = null;
     }
     
-    // 커스텀 툴팁 요소 생성
-    let propertyTooltip = document.getElementById('property-custom-tooltip');
-    if (!propertyTooltip) {
-        propertyTooltip = document.createElement('div');
-        propertyTooltip.id = 'property-custom-tooltip';
-        propertyTooltip.style.cssText = `
-            position: absolute;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            border: 2px solid #10b981;
-            z-index: 999999;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            white-space: nowrap;
-        `;
-        document.body.appendChild(propertyTooltip);
+    // 기본 툴팁 사용 - 커스텀 툴팁 요소 생성 제거
+    
+    // 실제 API 데이터 사용
+    console.log('부동산 카드 데이터 구조:', propertyCardData);
+    
+    if (!propertyCardData || !propertyCardData.timeseries || propertyCardData.timeseries.length === 0) {
+        console.warn('부동산 카드 데이터가 없습니다. 차트를 표시하지 않습니다.');
+        // 데이터가 없으면 차트를 표시하지 않음
+        return;
     }
     
-    // 데이터와 라벨 생성
-    const chartData = currentCardPeriod === 'daily' ? 
-        [35100, 35200, 34800, 35500, 35400, 35800, 35600] : 
-        [34800, 35400, 35100, 36000, 35800, 36200, 36100];
-    
-    const chartLabels = generateMiniChartLabels(7, currentCardPeriod);
+    const timeseries = propertyCardData.timeseries;
+    const chartData = timeseries.map(item => {
+        // API 응답 구조에 따라 적절한 필드명 사용
+        return item.value || item.price || item.amount || item.market_value || 0;
+    });
+    const chartLabels = generateMiniChartLabels(chartData.length, currentCardPeriod);
     
     console.log('부동산 차트 데이터:', chartData);
     console.log('부동산 차트 라벨:', chartLabels);
@@ -1843,7 +2171,52 @@ function updatePropertyAssetChart() {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    enabled: false  // Chart.js 기본 툴팁 비활성화
+                    enabled: true,
+                    position: 'nearest',
+                    yAlign: 'top',
+                    xAlign: 'center',
+                    caretPadding: 10,
+                    displayColors: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#10b981',
+                    borderWidth: 1,
+                    cornerRadius: 6,
+                    padding: 8,
+                    external: function(context) {
+                        // 툴팁을 body에 직접 추가하여 카드 밖으로 나오게 함
+                        let tooltipEl = document.getElementById('chartjs-tooltip-property');
+                        if (!tooltipEl) {
+                            tooltipEl = document.createElement('div');
+                            tooltipEl.id = 'chartjs-tooltip-property';
+                            tooltipEl.style.position = 'absolute';
+                            tooltipEl.style.zIndex = '999999';
+                            tooltipEl.style.pointerEvents = 'none';
+                            tooltipEl.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+                            tooltipEl.style.color = '#ffffff';
+                            tooltipEl.style.padding = '8px';
+                            tooltipEl.style.borderRadius = '6px';
+                            tooltipEl.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+                            tooltipEl.style.border = '1px solid #10b981';
+                            tooltipEl.style.fontSize = '12px';
+                            document.body.appendChild(tooltipEl);
+                        }
+                        
+                        const {chart, tooltip} = context;
+                        if (tooltip.opacity === 0) {
+                            tooltipEl.style.opacity = '0';
+                            return;
+                        }
+                        
+                        tooltipEl.style.opacity = '1';
+                        tooltipEl.style.left = chart.canvas.offsetLeft + tooltip.caretX + 'px';
+                        tooltipEl.style.top = chart.canvas.offsetTop + tooltip.caretY - 250 + 'px';
+                        tooltipEl.innerHTML = tooltip.body.map(b => b.lines.join('<br>')).join('<br>');
+                    }
+                },
+                datalabels: {
+                    display: false
                 }
             },
             scales: {
@@ -1866,50 +2239,7 @@ function updatePropertyAssetChart() {
         }
     });
     
-    // 커스텀 툴팁 이벤트 핸들러
-    canvas.addEventListener('mousemove', function(e) {
-        const rect = canvas.getBoundingClientRect();
-        const points = propertyAssetMiniChart.getElementsAtEventForMode(e, 'nearest', { intersect: false }, false);
-        
-        if (points.length > 0) {
-            const point = points[0];
-            const dataIndex = point.index;
-            const value = chartData[dataIndex];
-            const label = chartLabels[dataIndex];
-            
-            // 툴팁 내용 업데이트
-            propertyTooltip.innerHTML = `
-                <div style="text-align: center;">
-                    <div style="font-size: 11px; margin-bottom: 2px;">${label}</div>
-                    <div style="font-size: 13px; font-weight: bold;">₩${value.toLocaleString()}</div>
-                </div>
-            `;
-            
-            // 툴팁 위치 설정 (카드 위치 기준)
-            const propertyRect = canvas.getBoundingClientRect();
-            
-            // 툴팁을 먼저 보이게 해서 크기 계산 가능하게 함
-            propertyTooltip.style.opacity = '1';
-            propertyTooltip.style.visibility = 'visible';
-            
-            // 짧은 지연 후 위치 계산
-            setTimeout(() => {
-                const tooltipWidth = propertyTooltip.offsetWidth || 120; // 기본값 설정
-                propertyTooltip.style.left = (propertyRect.left + propertyRect.width / 2 - tooltipWidth / 2) + 'px';
-                propertyTooltip.style.top = (propertyRect.top - 10) + 'px';
-            }, 10);
-            
-            console.log('부동산 커스텀 툴팁 표시:', label, value);
-        } else {
-            propertyTooltip.style.opacity = '0';
-            propertyTooltip.style.visibility = 'hidden';
-        }
-    });
-    
-    canvas.addEventListener('mouseleave', function() {
-        propertyTooltip.style.opacity = '0';
-        propertyTooltip.style.visibility = 'hidden';
-    });
+    // 기본 툴팁 사용 - 커스텀 툴팁 이벤트 핸들러 제거
 }
 
 // 차트 비우기 함수들
@@ -1922,18 +2252,81 @@ function clearStockAssetChart() {
     const canvas = document.getElementById('stockAssetChart');
     if (!canvas) return;
     
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 더미 데이터로 차트 생성
+    const dummyData = Array(30).fill(0).map((_, i) => 1000000 + (i * 10000) + Math.random() * 50000);
+    const dummyLabels = generateMiniChartLabels(dummyData.length, currentCardPeriod);
     
-    // 회색 점선으로 "데이터 없음" 표시
-    ctx.strokeStyle = '#d1d5db';
-    ctx.setLineDash([2, 2]);
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(5, canvas.height / 2);
-    ctx.lineTo(canvas.width - 5, canvas.height / 2);
-    ctx.stroke();
-    ctx.setLineDash([]); // 점선 해제
+    const ctx = canvas.getContext('2d');
+    stockAssetMiniChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dummyLabels,
+            datasets: [{
+                data: dummyData,
+                borderColor: '#17bf63',
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 0,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { 
+                    enabled: true,
+                    position: 'nearest',
+                    yAlign: 'top',
+                    xAlign: 'center',
+                    caretPadding: 10,
+                    displayColors: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#17bf63',
+                    borderWidth: 1,
+                    cornerRadius: 6,
+                    padding: 8,
+                    external: function(context) {
+                        // 툴팁을 body에 직접 추가하여 카드 밖으로 나오게 함
+                        let tooltipEl = document.getElementById('chartjs-tooltip-clear');
+                        if (!tooltipEl) {
+                            tooltipEl = document.createElement('div');
+                            tooltipEl.id = 'chartjs-tooltip-clear';
+                            tooltipEl.style.position = 'absolute';
+                            tooltipEl.style.zIndex = '999999';
+                            tooltipEl.style.pointerEvents = 'none';
+                            tooltipEl.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+                            tooltipEl.style.color = '#ffffff';
+                            tooltipEl.style.padding = '8px';
+                            tooltipEl.style.borderRadius = '6px';
+                            tooltipEl.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+                            tooltipEl.style.border = '1px solid #17bf63';
+                            tooltipEl.style.fontSize = '12px';
+                            document.body.appendChild(tooltipEl);
+                        }
+                        
+                        const {chart, tooltip} = context;
+                        if (tooltip.opacity === 0) {
+                            tooltipEl.style.opacity = '0';
+                            return;
+                        }
+                        
+                        tooltipEl.style.opacity = '1';
+                        tooltipEl.style.left = chart.canvas.offsetLeft + tooltip.caretX + 'px';
+                        tooltipEl.style.top = chart.canvas.offsetTop + tooltip.caretY - 250 + 'px';
+                        tooltipEl.innerHTML = tooltip.body.map(b => b.lines.join('<br>')).join('<br>');
+                    }
+                }
+            },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            }
+        }
+    });
 }
 
 function clearPropertyAssetChart() {
@@ -2013,6 +2406,25 @@ function drawMiniChart(ctx, data, width, height, color) {
     });
     
     ctx.stroke();
+}
+
+// 로그인 상태 주기적 확인 (5초마다)
+function startLoginStatusCheck() {
+    setInterval(async () => {
+        try {
+            const response = await fetch('/dashboard/api/total/?interval=weekly', {
+                credentials: 'same-origin'
+            });
+            
+            if (response.status === 200) {
+                // 로그인 성공 감지
+                console.log('로그인 상태 감지됨. 페이지를 새로고침합니다.');
+                window.location.reload();
+            }
+        } catch (error) {
+            // 오류 무시 (로그인되지 않은 상태)
+        }
+    }, 5000); // 5초마다 확인
 }
 
 // 포트폴리오 페이지 전용 함수들 (중복 제거됨 - 기존 함수들 사용)

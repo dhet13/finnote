@@ -50,6 +50,7 @@
                 <li class="nav-item">
                     <a class="nav-link {% if request.resolver_match.url_name == 'page_portfolio' %}active{% endif %}" 
                        href="#" data-tab="portfolio" data-url="{% url 'dashboard:page_portfolio' %}"
+                       id="portfolio-tab"
                        style="text-decoration: none; {% if request.resolver_match.url_name == 'page_portfolio' %}color: #1d9bf0; font-weight: 600;{% else %}color: #536471; font-weight: 500;{% endif %} padding: 12px 0; display: block; position: relative;">
                        포트폴리오
                     </a>
@@ -177,16 +178,37 @@
                 const tabName = this.getAttribute('data-tab');
                 const url = this.getAttribute('data-url');
                 
-                // 탭 활성화 상태 변경
+                console.log('탭 클릭됨:', tabName, 'URL:', url);
+                
+                // 탭 활성화 상태 변경 - 모든 탭 초기화
                 tabLinks.forEach(tab => {
                     tab.style.color = '#536471';
                     tab.style.fontWeight = '500';
                     tab.classList.remove('active');
                 });
                 
+                // 클릭된 탭만 활성화
                 this.style.color = '#1d9bf0';
                 this.style.fontWeight = '600';
                 this.classList.add('active');
+                
+                // 포트폴리오 탭도 확실히 비활성화 (강제 초기화)
+                const portfolioTab = document.getElementById('portfolio-tab');
+                if (portfolioTab && tabName !== 'portfolio') {
+                    portfolioTab.style.color = '#536471';
+                    portfolioTab.style.fontWeight = '500';
+                    portfolioTab.classList.remove('active');
+                    console.log('포트폴리오 탭 강제 비활성화');
+                }
+                
+                // 자산 현황 탭도 확실히 비활성화 (강제 초기화)
+                const totalTab = document.querySelector('[data-tab="total"]');
+                if (totalTab && tabName !== 'total') {
+                    totalTab.style.color = '#536471';
+                    totalTab.style.fontWeight = '500';
+                    totalTab.classList.remove('active');
+                    console.log('자산 현황 탭 강제 비활성화');
+                }
                 
                 // 로딩 표시
                 contentArea.innerHTML = '<div style="text-align: center; padding: 40px; color: #536471;">로딩 중...</div>';
@@ -211,15 +233,23 @@
                         // 포트폴리오 페이지
                         else if (tabName === 'portfolio') {
                             contentElement = doc.querySelector('.portfolio-main-content');
+                            if (!contentElement) {
+                                // 대안: portfolio.html의 전체 콘텐츠 사용
+                                contentElement = doc.querySelector('body');
+                                console.log('portfolio-main-content를 찾을 수 없어 body 사용');
+                            }
                         }
                         
                         console.log('찾은 콘텐츠 요소:', !!contentElement);
                         console.log('콘텐츠 요소 클래스:', contentElement?.className);
+                        console.log('콘텐츠 요소 태그명:', contentElement?.tagName);
                         
                         if (contentElement) {
+                            console.log('콘텐츠 요소 HTML 길이:', contentElement.outerHTML.length);
                             contentArea.innerHTML = contentElement.outerHTML;
                         } else {
                             console.log('콘텐츠 영역을 찾을 수 없어 전체 HTML 사용');
+                            console.log('전체 HTML 길이:', html.length);
                             contentArea.innerHTML = html;
                         }
                         
@@ -271,6 +301,40 @@
                                         console.error('initializeAssetTypeButtons 함수가 정의되지 않음');
                                     }
                                 }
+                                
+                                // 포트폴리오 페이지의 자산 타입 버튼 상태 초기화
+                                setTimeout(() => {
+                                    // 모든 자산 타입 버튼에서 active 클래스 제거
+                                    document.querySelectorAll('[data-type]').forEach(btn => {
+                                        btn.classList.remove('active');
+                                    });
+                                    
+                                    // 주식 버튼만 활성화
+                                    const stockButton = document.querySelector('[data-type="stock"]');
+                                    const propertyButton = document.querySelector('[data-type="real_estate"]');
+                                    
+                                    if (stockButton) {
+                                        stockButton.classList.add('active');
+                                        console.log('주식 버튼 활성화');
+                                    }
+                                    if (propertyButton) {
+                                        propertyButton.classList.remove('active');
+                                        console.log('부동산 버튼 비활성화');
+                                    }
+                                    
+                                    // 포트폴리오 콘텐츠 표시 상태 초기화
+                                    const stockPortfolio = document.getElementById('stockPortfolio');
+                                    const propertyPortfolio = document.getElementById('propertyPortfolio');
+                                    
+                                    if (stockPortfolio) {
+                                        stockPortfolio.style.display = 'block';
+                                        console.log('주식 포트폴리오 표시');
+                                    }
+                                    if (propertyPortfolio) {
+                                        propertyPortfolio.style.display = 'none';
+                                        console.log('부동산 포트폴리오 숨김');
+                                    }
+                                }, 200);
                                 if (typeof initializeStockPortfolio === 'function') {
                                     initializeStockPortfolio();
                                 }

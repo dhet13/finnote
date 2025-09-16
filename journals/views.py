@@ -182,13 +182,16 @@ def stock_search_api(request):
     return JsonResponse({'results': results})
 
 
-@login_required
 @require_http_methods(["GET"])
 def portfolio_summary_api(request):
     """
     GET /api/stock/portfolio-summary/?ticker=...
     Returns summary data for a user's existing stock journal.
     """
+    # 로그인 확인
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
     ticker = request.GET.get('ticker', '').strip().upper()
     if not ticker:
         return JsonResponse({'error': 'Ticker is required'}, status=400)
@@ -200,11 +203,11 @@ def portfolio_summary_api(request):
         )
         # If journal is found, return its data
         data = {
-            'net_quantity': journal.net_qty,
-            'average_buy_price': journal.avg_buy_price,
-            'average_sell_price': journal.avg_sell_price,
-            'realized_pnl': journal.realized_pnl,
-            'return_rate': journal.return_rate,
+            'net_quantity': float(journal.net_qty) if journal.net_qty else 0,
+            'average_buy_price': float(journal.avg_buy_price) if journal.avg_buy_price else None,
+            'average_sell_price': float(journal.avg_sell_price) if journal.avg_sell_price else None,
+            'realized_pnl': float(journal.realized_pnl) if journal.realized_pnl else None,
+            'return_rate': float(journal.return_rate) if journal.return_rate else None,
             'status': journal.status,
         }
         return JsonResponse(data)
@@ -218,6 +221,8 @@ def portfolio_summary_api(request):
             'return_rate': None,
             'status': 'new',  # A custom status to indicate no position
         })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @require_http_methods(["GET"])

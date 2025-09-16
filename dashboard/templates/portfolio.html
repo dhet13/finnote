@@ -4,6 +4,7 @@
 {% block title %}포트폴리오 분석{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'dashboard/css/dashboard_portfolio.css' %}">
 <style>
 /* 포트폴리오 페이지 전용 스타일 */
 .portfolio-content {
@@ -20,13 +21,148 @@
     padding: 24px;
     border-radius: 8px;
 }
+
+/* 원형 그래프 컨테이너 스타일 */
+.portfolio-chart {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+/* 섹터 카드 그리드 스타일 */
+.sector-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.sector-card {
+    background: #f7f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    border-left: 4px solid #1d9bf0;
+}
+
+.sector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.sector-header h4 {
+    margin: 0;
+    color: #0f1419;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.sector-value {
+    color: #0f1419;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.sector-holdings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.holding-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eff3f4;
+}
+
+.holding-item:last-child {
+    border-bottom: none;
+}
+
+.holding-name {
+    color: #0f1419;
+    font-size: 14px;
+}
+
+.holding-value {
+    color: #536471;
+    font-size: 12px;
+}
+
+/* 부동산 카드 그리드 스타일 */
+.property-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.property-card {
+    background: #f7f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    border-left: 4px solid #17bf63;
+}
+
+.property-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.property-header h4 {
+    margin: 0;
+    color: #0f1419;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.property-value {
+    color: #0f1419;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.property-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.property-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.detail-label {
+    color: #536471;
+    font-size: 12px;
+}
+
+.detail-value {
+    color: #0f1419;
+    font-size: 12px;
+    font-weight: 500;
+}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js 라이브러리 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- 포트폴리오 성과 차트 JavaScript -->
+<script src="{% static 'dashboard/js/portfolio_performance_charts.js' %}"></script>
 {% endblock %}
 
 {% block content %}
 
 <!-- 포트폴리오 전체 콘텐츠 -->
-<div class="portfolio-main-content">
+<div class="portfolio-main-content" style="padding: 20px;">
     <!-- 자산 타입 선택 버튼 (주식/부동산) - 자산 현황 페이지와 동일한 위치와 스타일 -->
     <div style="display: flex;justify-content: space-between;align-items: center;margin-top: 20px;margin-bottom: 16px;">
         <div></div> <!-- 왼쪽 빈 공간 -->
@@ -78,7 +214,7 @@
     </div>
 
     <!-- 부동산 포트폴리오 콘텐츠 -->
-    <div id="realEstatePortfolio" class="portfolio-content" style="display: none;">
+    <div id="propertyPortfolio" class="portfolio-content" style="display: none;">
         <!-- 물건별 자산 배분 원형 차트 -->
         <div class="portfolio-chart-container">
             <h3>물건별 자산 배분 현황</h3>
@@ -103,6 +239,16 @@
             </div>
         </div>
 
+        <!-- 지역별 카드뷰 -->
+        <div class="property-cards-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>지역별 보유 부동산</h3>
+            </div>
+            <div class="property-cards-grid">
+                <!-- JavaScript로 동적 생성 -->
+            </div>
+        </div>
+
         <!-- 물건별 카드뷰와 수익률 -->
         <div class="property-cards-container">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -119,7 +265,6 @@
     </div>
 {% endblock %}
 
-{% block extra_js %}
 <!-- JavaScript는 base.html에서 로드됨 -->
 <script>
 // 포트폴리오 페이지 전용 JavaScript
@@ -151,34 +296,77 @@ function initializePortfolioPage() {
     console.log('포트폴리오 페이지 초기화 완료');
 }
 
-// 페이지 로드 시 즉시 실행
-initializePortfolioPage();
-
+// 페이지 로드 시 즉시 실행 (로그인 상태 확인 후)
+// DOM이 로드된 후에 실행하도록 변경
 document.addEventListener('DOMContentLoaded', function() {
+    // 포트폴리오 페이지 직접 접근 시 로그인 확인
+    if (typeof checkPortfolioPageAccess === 'function') {
+        checkPortfolioPageAccess().then((isLoggedIn) => {
+            if (isLoggedIn) {
+                // 로그인된 경우에만 초기화
+                if (typeof initializePortfolioPageWithAuth === 'function') {
+                    initializePortfolioPageWithAuth();
+                } else {
+                    // fallback
+                    if (typeof initializePortfolioPage === 'function') {
+                        initializePortfolioPage();
+                    }
+                }
+            } else {
+                console.log('포트폴리오 페이지 직접 접근: 로그인 안내 표시');
+            }
+        });
+    } else {
+        // fallback
+        if (typeof initializePortfolioPageWithAuth === 'function') {
+            initializePortfolioPageWithAuth();
+        } else if (typeof initializePortfolioPage === 'function') {
+            initializePortfolioPage();
+        }
+    }
+});
+
     // 약간의 지연을 두고 초기화 (DOM이 완전히 로드된 후)
     setTimeout(() => {
-        // 포트폴리오 페이지 초기화
-        initializeAssetTypeButtons();
-        initializeStockPortfolio();
-        initializeRealEstatePortfolio();
-        
-        // 선그래프 및 수익률 버튼 초기화 (portfolio_performance_charts.js에서 정의)
-        if (typeof initializeStockPerformanceChart === 'function') {
-            initializeStockPerformanceChart();
-        }
-        if (typeof initializePropertyPerformanceChart === 'function') {
-            initializePropertyPerformanceChart();
-        }
-        if (typeof initializeSectorReturnButtons === 'function') {
-            initializeSectorReturnButtons();
-        }
-        if (typeof initializePropertyReturnButtons === 'function') {
-            initializePropertyReturnButtons();
-        }
-        
-        // 차트 초기화도 함께 실행
-        if (typeof initializeTotalPage === 'function') {
-            initializeTotalPage();
+        // 로그인 상태 확인 후 포트폴리오 초기화
+        if (typeof initializePortfolioPageWithAuth === 'function') {
+            initializePortfolioPageWithAuth().then((isLoggedIn) => {
+                if (isLoggedIn) {
+                    // 로그인된 경우에만 추가 초기화
+                    initializeAssetTypeButtons();
+                    initializeStockPortfolio();
+                    initializeRealEstatePortfolio();
+                    
+                    // 차트 초기화도 함께 실행
+                    if (typeof initializeTotalPage === 'function') {
+                        initializeTotalPage();
+                    }
+                } else {
+                    console.log('포트폴리오 페이지: 로그인되지 않은 사용자 - 추가 초기화 건너뜀');
+                }
+            });
+        } else {
+            // 기존 방식 (fallback)
+            initializeAssetTypeButtons();
+            initializeStockPortfolio();
+            initializeRealEstatePortfolio();
+            
+            if (typeof initializeStockPerformanceChart === 'function') {
+                initializeStockPerformanceChart();
+            }
+            if (typeof initializePropertyPerformanceChart === 'function') {
+                initializePropertyPerformanceChart();
+            }
+            if (typeof initializeSectorReturnButtons === 'function') {
+                initializeSectorReturnButtons();
+            }
+            if (typeof initializePropertyReturnButtons === 'function') {
+                initializePropertyReturnButtons();
+            }
+            
+            if (typeof initializeTotalPage === 'function') {
+                initializeTotalPage();
+            }
         }
     }, 100);
     
@@ -250,11 +438,7 @@ function initializeStockPortfolio() {
                     display: false
                 },
                 tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': ' + context.parsed + '%';
-                        }
-                    }
+                    enabled: false
                 },
                 datalabels: {
                     display: true,
@@ -320,11 +504,7 @@ function initializeRealEstatePortfolio() {
                     display: false
                 },
                 tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': ' + context.parsed + '%';
-                        }
-                    }
+                    enabled: false
                 },
                 datalabels: {
                     display: true,
@@ -495,4 +675,3 @@ function createPropertyCards_REMOVED() {
 </script>
 
 </div> <!-- portfolio-main-content 닫기 -->
-{% endblock %}

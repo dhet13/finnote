@@ -99,12 +99,13 @@ p.dashboard-subtitle {
 
 /* 통계 카드 행(row) 설정 */
 .stats-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3개의 카드를 동일한 너비로 배치 */
-    gap: 2px; /* 카드 사이의 간격 최소화 */
-    margin-bottom: 20px; /* 하단 간격 줄임 */
+    display: flex;
+    justify-content: center; /* 카드들을 중앙 정렬 */
+    align-items: center;
+    gap: 8px; /* 카드 사이의 간격 */
+    margin: 0 auto 20px auto; /* 중앙 정렬 및 하단 간격 */
     width: 100%; /* 전체 너비 사용 */
-    max-width: 560px; /* feed(600px) - padding(40px) = 560px */
+    max-width: 600px; /* 최대 너비 설정 */
 }
 
 /* 개별 통계 카드 스타일 */
@@ -116,9 +117,10 @@ p.dashboard-subtitle {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03); /* 그림자 최소화 */
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     min-width: 0; /* 카드가 축소될 수 있도록 */
-    overflow: hidden; /* 내용이 넘치지 않도록 */
+    overflow: visible !important; /* 툴팁이 카드 밖으로 나올 수 있도록 */
     max-width: 180px; /* 카드 최대 너비를 더 줄임 */
-    width: 100%; /* 그리드 내에서 가득 채우기 */
+    width: 180px; /* 고정 너비로 설정 */
+    flex-shrink: 0; /* 카드가 축소되지 않도록 */
     box-sizing: border-box; /* padding과 border를 width에 포함 */
 }
 
@@ -128,28 +130,30 @@ p.dashboard-subtitle {
 }
 
 .stat-card-title {
-    font-size: 13px; /* 제목 크기 극도로 줄임 */
+    font-size: 8px; /* 제목 크기 극도로 줄임 */
     color: #536471; /* 옅은 회색 글자 */
-    margin-bottom: 10px; /* 간격 극도로 줄임 */
+    margin-bottom: 4px; /* 간격 극도로 줄임 */
     font-weight: 500;
 }
 
 .stat-value {
-    font-size: 18px; /* 값 크기 극도로 줄임 */
+    font-size: 12px; /* 값 크기 극도로 줄임 */
     font-weight: 700;
     color: #0f1419; /* 진한 검정색 글자 */
-    line-height: 0.8; /* 줄간격 극도로 줄임 */
+    line-height: 1; /* 줄간격 극도로 줄임 */
+    margin-bottom: 2px; /* 하단 간격 추가 */
 }
 
 /* 수익률 표시 스타일 */
 .stat-change {
-    font-size: 12px; /* 수익률 글자 크기 더욱 줄임 */
-    font-weight: 100;
-    display: inline-flex;
+    font-size: 9px; /* 수익률 글자 크기 더욱 줄임 */
+    font-weight: 500;
+    display: inline-block;
     align-items: center;
-    padding: 1px 3px; /* 패딩 더욱 줄임 */
-    border-radius: 3px; /* 둥근 모서리 더욱 줄임 */
-    margin-top: 1px; /* 간격 더욱 줄임 */
+    padding: 1px 4px; /* 패딩 더욱 줄임 */
+    border-radius: 2px; /* 둥근 모서리 더욱 줄임 */
+    margin-top: 4px; /* 간격 더욱 줄임 */
+    background: rgba(23, 191, 99, 0.1); /* 배경색 추가 */
 }
 
 .stat-change.positive {
@@ -312,47 +316,79 @@ p.dashboard-subtitle {
     background-color: #ffffff;
 }
 
-/* Chart.js 툴팁 z-index 강제 설정 - 모든 가능한 선택자 */
-.chartjs-tooltip,
-div[role="tooltip"],
-.chart-tooltip,
-[class*="tooltip"],
-[id*="tooltip"],
-div[style*="position: absolute"],
-div[style*="background-color: rgba(0, 0, 0"],
-div[style*="background: rgba(0, 0, 0"] {
-    z-index: 999999 !important;
-    position: fixed !important;
-    transform: translateY(-120px) !important;
-    transition: all 0.3s ease !important;
-    pointer-events: none !important;
-}
+/* Chart.js 툴팁 기본 설정 - 강제 스타일 제거 */
 
-/* Chart.js v3+ 툴팁 선택자 */
-.chartjs-tooltip-element,
-.chart-tooltip-element {
-    z-index: 999999 !important;
-    position: fixed !important;
-    transform: translateY(-120px) !important;
-}
-
-/* 미니 차트 컨테이너 상대 위치 설정 */
+/* 미니 차트 컨테이너 설정 */
 .mini-chart {
-    position: relative !important;
+    position: relative;
     z-index: 1;
-    overflow: visible !important;  /* 툴팁이 잘리지 않도록 */
+    overflow: visible;
+}
+
+/* 자산현황 카드 컨테이너 설정 */
+.asset-card {
+    position: relative;
+    overflow: visible;
+    z-index: 1;
+}
+
+.asset-card .card-body {
+    overflow: visible;
+}
+
+.asset-card .mini-chart {
+    overflow: visible;
+    position: relative;
+}
+
+.asset-card canvas {
+    position: relative;
+    z-index: 2;
 }
 
 .mini-chart canvas {
-    position: relative !important;
+    position: relative;
     z-index: 2;
 }
 
 /* 통계 카드 z-index 조정 */
 .stat-card, .stats-row {
     position: relative;
-    z-index: 1;
+    z-index: 0; /* 툴팁이 카드 위에 표시되도록 낮춤 */
     overflow: visible !important;
+}
+
+/* 툴팁이 카드 밖으로 나올 수 있도록 강제 설정 */
+.stat-card * {
+    overflow: visible !important;
+}
+
+.stat-card canvas {
+    overflow: visible !important;
+}
+
+/* 모든 카드 관련 요소의 overflow 강제 설정 */
+.stat-card,
+.stat-card > *,
+.stat-card .mini-chart,
+.stat-card .mini-chart canvas {
+    overflow: visible !important;
+}
+
+/* Chart.js 툴팁이 카드 밖으로 나올 수 있도록 */
+.chartjs-tooltip {
+    z-index: 99999 !important;
+    position: absolute !important;
+}
+
+/* 모든 툴팁 요소의 z-index 최고 우선순위 */
+#chartjs-tooltip,
+#chartjs-tooltip-stock,
+#chartjs-tooltip-property,
+#chartjs-tooltip-clear {
+    z-index: 999999 !important;
+    position: absolute !important;
+    pointer-events: none !important;
 }
 
 /* 카드 컨테이너들의 z-index 낮춤 */
@@ -373,4 +409,144 @@ body {
 /* 특별히 카드 영역의 overflow 강제 설정 */
 div[style*="overflow: hidden"] {
     overflow: visible !important;
+}
+
+/* 섹터별 카드 헤더 스타일 */
+.sector-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 4px solid var(--sector-color, #6b7280);
+}
+
+.sector-group-title {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    font-size: 16px;
+    color: #1f2937;
+}
+
+.sector-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.sector-group-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.sector-total-value {
+    font-weight: 600;
+    font-size: 14px;
+    color: #374151;
+}
+
+.sector-return {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.sector-return.positive {
+    color: #059669;
+    background: #d1fae5;
+}
+
+.sector-return.negative {
+    color: #dc2626;
+    background: #fee2e2;
+}
+
+.sector-return.neutral {
+    color: #6b7280;
+    background: #f3f4f6;
+}
+
+/* 개별 주식 아이템 상세 정보 스타일 */
+.portfolio-item-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 8px 0;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.holding-value {
+    font-weight: 500;
+    color: #374151;
+}
+
+.current-price {
+    color: #6b7280;
+}
+
+.return-rate {
+    font-weight: 500;
+}
+
+.return-rate.positive {
+    color: #059669;
+}
+
+.return-rate.negative {
+    color: #dc2626;
+}
+
+/* 포트폴리오 아이템 레이아웃 개선 */
+.portfolio-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    transition: background-color 0.2s;
+}
+
+.portfolio-item:hover {
+    background-color: #f9fafb;
+}
+
+.portfolio-item-name {
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.portfolio-item-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    min-width: 80px;
+}
+
+/* 데이터 없음 메시지 스타일 */
+.no-data-message {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+.no-data-message h3 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #374151;
+}
+
+.no-data-message p {
+    font-size: 16px;
+    line-height: 1.5;
 }

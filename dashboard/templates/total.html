@@ -22,33 +22,33 @@
 </div>
 
 <!-- 통계 카드들 -->
-<div class="stats-row" style="display: flex; gap: 2px; justify-content: space-between; margin-bottom: 20px; max-width: 560px; width: 100%;">
+<div class="stats-row">
     <!-- 총 투자 자산 카드 -->
-    <div class="stat-card" style="background: #f7f9fa; padding: 4px; border-radius: 4px; min-width: 0; overflow: hidden; max-width: 180px; width: 100%; box-sizing: border-box;">
-        <div class="stat-card-title" style="font-size: 8px; font-weight: 500; color: #536471; margin-bottom: 4px;">총 투자 자산</div>
-        <div class="stat-value" id="total-asset-value" style="font-size: 12px; font-weight: 700; color: #0f1419; margin-bottom: 2px; line-height: 1;">117.34k</div>
-        <div class="stat-change" id="total-asset-change" style="font-size: 9px; font-weight: 500; color: #17bf63; background: rgba(23, 191, 99, 0.1); padding: 1px 4px; border-radius: 2px; display: inline-block; margin-top: 4px;">+2.5%</div>
-        <div class="mini-chart" style="margin-top: 8px; height: 25px;">
+    <div class="stat-card">
+        <div class="stat-card-title">총 투자 자산</div>
+        <div class="stat-value" id="total-asset-value">117.34k</div>
+        <div class="stat-change" id="total-asset-change">+2.5%</div>
+        <div class="mini-chart">
             <canvas id="totalBarChart" width="100" height="25"></canvas>
         </div>
     </div>
 
     <!-- 주식 자산 카드 -->
-    <div class="stat-card" id="stock-asset-card" style="background: #f7f9fa; padding: 4px; border-radius: 4px; min-width: 0; overflow: hidden; max-width: 180px; width: 100%; box-sizing: border-box;">
-        <div class="stat-card-title" style="font-size: 8px; font-weight: 500; color: #536471; margin-bottom: 4px;">주식 자산</div>
-        <div class="stat-value" id="stock-asset-value" style="font-size: 12px; font-weight: 700; color: #0f1419; margin-bottom: 2px; line-height: 1;">82.15k</div>
-        <div class="stat-change" id="stock-asset-change" style="font-size: 9px; font-weight: 500; color: #17bf63; background: rgba(23, 191, 99, 0.1); padding: 1px 4px; border-radius: 2px; display: inline-block; margin-top: 4px;">+3.2%</div>
-        <div class="mini-chart" style="margin-top: 8px; height: 25px;">
+    <div class="stat-card" id="stock-asset-card">
+        <div class="stat-card-title">주식 자산</div>
+        <div class="stat-value" id="stock-asset-value">82.15k</div>
+        <div class="stat-change" id="stock-asset-change">+3.2%</div>
+        <div class="mini-chart">
             <canvas id="stockAssetChart" width="100" height="25"></canvas>
         </div>
     </div>
 
     <!-- 부동산 자산 카드 -->
-    <div class="stat-card" id="property-asset-card" style="background: #f7f9fa; padding: 4px; border-radius: 4px; min-width: 0; overflow: hidden; max-width: 180px; width: 100%; box-sizing: border-box;">
-        <div class="stat-card-title" style="font-size: 8px; font-weight: 500; color: #536471; margin-bottom: 4px;">부동산 자산</div>
-        <div class="stat-value" id="property-asset-value" style="font-size: 12px; font-weight: 700; color: #0f1419; margin-bottom: 2px; line-height: 1;">35.19k</div>
-        <div class="stat-change" id="property-asset-change" style="font-size: 9px; font-weight: 500; color: #17bf63; background: rgba(23, 191, 99, 0.1); padding: 1px 4px; border-radius: 2px; display: inline-block; margin-top: 4px;">+1.8%</div>
-        <div class="mini-chart" style="margin-top: 8px; height: 25px;">
+    <div class="stat-card" id="property-asset-card">
+        <div class="stat-card-title">부동산 자산</div>
+        <div class="stat-value" id="property-asset-value">35.19k</div>
+        <div class="stat-change" id="property-asset-change">+1.8%</div>
+        <div class="mini-chart">
             <canvas id="propertyAssetChart" width="100" height="25"></canvas>
         </div>
     </div>

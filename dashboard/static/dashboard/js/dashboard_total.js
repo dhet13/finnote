@@ -70,7 +70,23 @@ function drawMiniBarChart(seriesData) {
             // ... (차트 옵션은 이전 미니차트 예제와 유사하게 설정)
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            plugins: { 
+                legend: { display: false }, 
+                tooltip: { 
+                    enabled: false,
+                    displayColors: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#ffffff',
+                    borderWidth: 1,
+                    cornerRadius: 6,
+                    padding: 8
+                },
+                datalabels: {
+                    display: false
+                } 
+            },
             scales: { x: { display: false }, y: { display: false } }
         }
     });
