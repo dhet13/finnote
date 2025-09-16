@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}내가 작성한 게시물{% endblock %}
+
+{% block feed %}
+{% load static %}
+{% load humanize %}
+<div style="width: 100%; margin: 0 auto; background-color: #fff; border-radius: 16px; box-shadow: 0 0 10px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #ebeef0; box-sizing: border-box;">
+    <!-- Profile Header -->
+    <div style="height: 160px; position: relative; background-color: #cfd9de;">
+        {% if user_to_view.background_picture %}
+            <img src="{{ user_to_view.background_picture.url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+        {% else %}
+            <div style="height: 100%; background-color: #cfd9de;"></div>
+        {% endif %}
+    </div>
+
+    <div style="padding: 16px; display: flex; flex-direction: column; align-items: center;">
+        <div style="margin-top: -80px; margin-left: -360px; width: 130px; height: 130px; border-radius: 50%; background-color: #fff; border: 4px solid #fff; z-index: 2; position: relative; overflow: hidden;">
+            {% if user_to_view.profile_picture %}
+                <img src="{{ user_to_view.profile_picture.url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+            {% else %}
+                <div style="background-color: #e1e8ed; border: 4px solid #e1e8ed; width: 100%; height: 100%; border-radius: 50%;"></div>
+            {% endif %}
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; margin-top: -40px; margin-bottom: 16px; z-index: 1; position: relative; padding-right: 16px; width: 100%;">
+            {% if request.user.my_ID == user_to_view.my_ID %}
+                <a href="{% url 'user_profile:edit_profile' %}" style="background-color: #fff; color: #1da1f2; border: 1px solid #1da1f2; padding: 8px 16px; border-radius: 9999px; text-decoration: none; font-weight: bold; font-size: 14px; white-space: nowrap; transition: background-color 0.2s, color 0.2s;">프로필 수정</a>
+            {% endif %}
+        </div>
+        
+        <div style="margin-top: 20px; width: 100%;">
+            <div style="display: flex; align-items: center;">                                                                                     
+                <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #14171a; margin-right: 8px;">{{ user_to_view.nickname }}</h2>        
+                {% if user_to_view.is_private %}                                                                                                      
+                    <img src="{% static 'icon/lock.svg' %}" alt="Private" style="width: 20px; height: 20px;">                                         
+                {% endif %}                                                                                                                           
+            </div> 
+            <p style="color: #657786; font-size: 15px; margin-top: 4px;">@{{ user_to_view.my_ID }}</p>
+            
+            <div style="display: flex; align-items: center; color: #657786; font-size: 15px; margin-top: 8px; width: 100%;">
+                <p style="margin: 0; margin-right: 16px;"><span style="margin-right: 4px;">🗓️</span><span style="margin-right: 4px;">가입일: {{ user_to_view.created_at|date:"Y년 n월 j일" }}</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display: flex; justify-content: space-around; border-bottom: 1px solid #ebeef0; padding: 12px 0; margin-top: 16px;">
+        <a href="{% url 'user_profile:profile' my_ID=request.user.my_ID %}" style="text-decoration: none; color: #657786; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s;">자산 현황</a>
+        <a href="{% url 'user_profile:liked_posts' %}" style="text-decoration: none; color: #657786; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s;">좋아요</a>
+        <a href="{% url 'user_profile:bookmarked_posts' %}" style="text-decoration: none; color: #657786; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s;">북마크</a>
+        <a href="{% url 'user_profile:my_posts' %}" style="text-decoration: none; color: #1da1f2; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s; border-bottom: 2px solid #1da1f2;">게시물</a>
+    </div>
+
+    <!-- My Posts -->
+    <div style="padding: 16px;">
+        {% for post in posts %}
+            <div class="post-card" style="border: 1px solid #eee; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <div class="post-header" style="display: flex; align-items: center; margin-bottom: 12px;">
+                    <img src="{% if post.user.profile_picture %}{{ post.user.profile_picture.url }}{% else %}{% static 'icon/profile.svg' %}{% endif %}" alt="{{ post.user.nickname }}" style="width: 48px; height: 48px; border-radius: 50%; margin-right: 12px;">
+                    <div>
+                        <div style="font-weight: bold;">{{ post.user.nickname }}</div>
+                        <div style="color: #657786; font-size: 14px;">@{{ post.user.my_ID }} · {{ post.created_at|naturaltime }}</div>
+                    </div>
+                </div>
+                <div class="post-content">
+                    <p>{{ post.content }}</p>
+                    {% if post.image %}
+                        <img src="{{ post.image.url }}" alt="Post image" style="max-width: 100%; border-radius: 8px; margin-top: 12px;">
+                    {% endif %}
+                </div>
+                <div class="post-footer" style="display: flex; justify-content: space-around; margin-top: 12px; color: #657786;">
+                    <span>좋아요 {{ post.likes.count }}</span>
+                    <span>댓글 {{ post.comments.count }}</span>
+                    <span>북마크 {{ post.bookmarks.count }}</span>
+                </div>
+            </div>
+        {% empty %}
+            <p style="text-align: center; color: #657786;">작성한 게시물이 없습니다.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
