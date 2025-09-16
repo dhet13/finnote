@@ -534,26 +534,67 @@ def realty_deals_api(request):
 
     user = request.user
 
-    # Required minimal fields
+    # Fields from the simplified form
+    # payload에서 각 필드의 값을 가져옵니다. 만약 값이 없으면 빈 문자열('')을 기본값으로 사용하고, strip()으로 양쪽 공백을 제거합니다.
     building_name = (payload.get('building_name') or '').strip()
     address_base = (payload.get('address_base') or '').strip()
-    property_type = (payload.get('property_type') or 'apartment').strip()
-    lawd_cd = (payload.get('lawd_cd') or '').strip()[:5]
-    dong = (payload.get('dong') or '').strip()
-    lat = Decimal(str(payload.get('lat') or '0'))
-    lng = Decimal(str(payload.get('lng') or '0'))
 
+    # [수정] 'dong' 값을 address_base 필드에서 추출 시도합니다.
+    dong = ''
+    for part in address_base.split():
+        if part.endswith('동') or part.endswith('읍') or part.endswith('면'):
+            dong = part
+            break # 첫 번째 일치하는 부분을 찾으면 중단
+
+    # [수정] 만약 주소에서 '동'을 찾지 못했다면(도로명 주소 등), 임시로 '-'를 기본값으로 사용합니다.
+    # 이렇게 하면 데이터베이스의 NOT NULL 제약조건을 만족시키면서 모든 주소 유형을 저장할 수 있습니다.
+    if not dong:
+        dong = '-'
+
+    property_type = (payload.get('property_type') or 'apartment').strip()
     deal_type = (payload.get('deal_type') or '매매').strip()
     contract_date = parse_date(payload.get('contract_date') or '')
-    if not (building_name and address_base and contract_date):
-        return JsonResponse({'error': 'Missing required fields.'}, status=400)
+    amount_main = Decimal(str(payload.get('amount_main') or '0'))
+    area_m2 = Decimal(str(payload.get('area_m2') or '0'))
+    floor = int(payload.get('floor') or 0)
+
+    # Basic validation for required fields
+    # [수정] 필수 정보 검사에서 'dong'을 제외합니다. 위에서 자동으로 채워주기 때문입니다.
+    if not (building_name and address_base and contract_date and amount_main):
+        return JsonResponse({'error': '필수 정보를 입력해주세요 (건물명, 주소, 계약일, 주요 금액).'}, status=400)
+
+    # Set optional fields to None if not provided by the simplified form
+    # These fields were previously in the form but are now removed
+    # They are still in the model, so we need to provide a value (e.g., None or default)
+    lawd_cd = None
+    # [삭제] dong = None  <- 이 줄을 삭제하고 위에서 payload로부터 값을 받도록 수정했습니다.
+    
+    # [수정] 위도(lat)와 경도(lng) 값도 payload에서 가져오도록 수정했습니다. 
+    # 카카오 API 등을 통해 주소를 선택했을 때 받아온 위도, 경도 값이 있다면 그 값을 사용하고, 없다면 기본값 '0'을 사용합니다.
+    lat = Decimal(str(payload.get('lat') or '0'))
+    lng = Decimal(str(payload.get('lng') or '0'))
+    amount_deposit = Decimal('0')
+    amount_monthly = Decimal('0')
+    loan_amount = None
+    loan_rate = None
+    fees_broker = None
+    tax_acq = None
+    reg_fee = None
+    misc_cost = None
+    content = '' # Memo field
 
     try:
-        amount_main = Decimal(str(payload.get('amount_main') or '0'))
-        amount_deposit = Decimal(str(payload.get('amount_deposit') or '0'))
-        amount_monthly = Decimal(str(payload.get('monthly_amount') or '0')) # Corrected: 'amount_monthly' to 'monthly_amount'
-        area_m2 = Decimal(str(payload.get('area_m2') or '0'))
-        floor = int(payload.get('floor') or 0)
+        # Numeric fields that are now optional in the form but required by model/logic
+        # Ensure they are Decimal or int, even if from payload they might be None
+        amount_main = Decimal(str(amount_main))
+        area_m2 = Decimal(str(area_m2))
+        floor = int(floor)
+
+        # Handle optional numeric fields that are not in the simplified form
+        # but are in the model. Ensure they are Decimal or int.
+        amount_deposit = Decimal(str(amount_deposit))
+        amount_monthly = Decimal(str(amount_monthly))
+
     except Exception:
         return JsonResponse({'error': 'Invalid numeric fields.'}, status=400)
 
@@ -579,13 +620,19 @@ def realty_deals_api(request):
             amount_monthly=amount_monthly,
             area_m2=area_m2,
             floor=floor,
+            loan_amount=loan_amount,
+            loan_rate=loan_rate,
+            fees_broker=fees_broker,
+            tax_acq=tax_acq,
+            reg_fee=reg_fee,
+            misc_cost=misc_cost,
         )
         post = JournalPost.objects.create(
             user=user,
             asset_class=JournalPost.AssetClass.REAL_ESTATE,
             re_deal=deal,
-            title=payload.get('title') or f'{building_name} {deal_type} 계약',
-            content=payload.get('content') or '',
+            title=f'{building_name} {deal_type} 계약',
+            content=content,
         )
 
     card_html = render_to_string('_card_realty.html', {'post': post})

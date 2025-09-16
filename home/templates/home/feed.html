@@ -255,7 +255,6 @@
 <script>
 // 매매일지 인터페이스 추상화 레이어
 const TradingJournalInterface = {
-    // 설정 (팀원과 합의된 부분)
     config: {
         modalUrl: '/journals/compose/?modal=1',
         modalWidth: 800,
@@ -288,7 +287,10 @@ const TradingJournalInterface = {
                 
                 overlay.innerHTML = html;
                 document.body.appendChild(overlay);
-                
+
+                // ★ JavaScript 수동 로드 및 실행
+                this.loadJournalScripts();
+
                 // 닫기 버튼 이벤트
                 const closeBtn = overlay.querySelector('.close-modal');
                 if (closeBtn) {
@@ -309,6 +311,30 @@ const TradingJournalInterface = {
                 alert('매매일지 작성 창을 열 수 없습니다.');
             });
     },
+    
+    loadJournalScripts: function() {
+        // Chart.js 로드
+        if (!window.Chart) {
+            const chartScript = document.createElement('script');
+            chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+            document.head.appendChild(chartScript);
+        }
+        
+        // journal_lookup.js 로드 및 실행
+        const journalScript = document.createElement('script');
+        journalScript.src = '/static/journals/journal_lookup.js';
+        journalScript.onload = () => {
+            console.log('Journal script loaded');
+            
+            // ★ DOMContentLoaded 이벤트를 수동으로 트리거
+            setTimeout(() => {
+                const event = new Event('DOMContentLoaded');
+                document.dispatchEvent(event);
+            }, 100);
+        };
+        document.head.appendChild(journalScript);
+    },
+    
     // 모달 닫기
     closeModal: function() {
         const overlay = document.getElementById('trading-modal-overlay');
