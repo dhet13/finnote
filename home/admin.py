@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import JournalPost, Like, Bookmark, Comment, Share, Tag
+from .models import Post, Like, Bookmark, Comment, Share, Tag
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
@@ -11,8 +11,8 @@ class TagAdmin(admin.ModelAdmin):
         return obj.posts.count()
     posts_count.short_description = "사용된 포스트 수"
 
-@admin.register(JournalPost)
-class JournalPostAdmin(admin.ModelAdmin):
+@admin.register(Post)
+class PostAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'content_preview', 'tags_preview', 'created_at']
     list_filter = ['embed_style', 'created_at', 'tags']
     search_fields = ['content', 'user__my_ID']

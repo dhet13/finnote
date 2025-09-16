@@ -371,14 +371,31 @@ const TradingJournalInterface = {
     
     // 모달 닫기
     closeModal: function() {
+        this.forceCloseModal();
+    },
+
+    // 새로운 강제 닫기 함수 추가
+    forceCloseModal: function() {
+        // 1. ID로 찾기
         const overlay = document.getElementById('trading-modal-overlay');
         if (overlay) {
             overlay.remove();
+            console.log('ID로 모달 제거 완료');
+            return;
         }
+        
+        // 2. 클래스로 찾기 (대안)
+        const modals = document.querySelectorAll('[id*="modal"], [class*="modal"]');
+        modals.forEach(modal => {
+            if (modal.innerHTML && modal.innerHTML.includes('매매일지')) {
+                modal.remove();
+                console.log('매매일지 모달 강제 제거');
+            }
+        });
+        
         if (this.keyHandler) {
             document.removeEventListener('keydown', this.keyHandler);
         }
-        console.log('매매일지 모달 닫힘');
     },
     
     // 완료 결과 처리 (팀원 시스템에서 호출)
@@ -481,13 +498,6 @@ const TradingJournalInterface = {
         if (!postsContainer) return;
         
         console.log('카드 추가 payload:', payload);
-        
-        // 백엔드에서 생성된 card_html 우선 사용
-        if (payload.card_html) {
-            postsContainer.insertAdjacentHTML('afterbegin', payload.card_html);
-            console.log('백엔드 card_html 사용됨');
-            return;
-        }
         
         console.log('백엔드 카드 없음, 프론트엔드에서 생성');
         // 받은 form 데이터 활용 (API 호출 없음)
@@ -648,6 +658,8 @@ function openTradingJournal() {
     });
 }
 // 페이지 로드시 메시지 리스너 설정
+TradingJournalInterface.setupMessageListener();
+
 document.addEventListener('DOMContentLoaded', function() {
     TradingJournalInterface.setupMessageListener();
 });
