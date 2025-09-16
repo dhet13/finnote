@@ -13,7 +13,7 @@ class Tag(models.Model):
     def __str__(self):
         return f"#{self.name}"
 
-class JournalPost(models.Model):
+class Post(models.Model):
 
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -42,7 +42,7 @@ class JournalPost(models.Model):
 
 
 class Like(models.Model):
-    journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='likes')
+    journal = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='likes')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)  # CREATE_AT
     
@@ -51,7 +51,7 @@ class Like(models.Model):
         db_table = 'likes_table'
 
 class Bookmark(models.Model):
-    journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='bookmarks')
+    journal = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='bookmarks')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)  # CREATE_AT
     
@@ -60,7 +60,7 @@ class Bookmark(models.Model):
         db_table = 'bookmarks_table'
 
 class Share(models.Model):
-    journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='shares')
+    journal = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='shares')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -69,7 +69,7 @@ class Share(models.Model):
         db_table = 'shares_table'
 
 class Comment(models.Model):
-    journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='comments')
+    journal = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True)  # PARENT_ID
     content = models.TextField()
@@ -90,7 +90,7 @@ class PostReport(models.Model):
     ]
     
     reporter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reports_made')
-    journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='reports')
+    journal = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reports')
     reason = models.CharField(max_length=20, choices=REPORT_REASONS)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -102,7 +102,7 @@ class PostReport(models.Model):
 
 class HiddenPost(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='hidden_posts')
-    journal = models.ForeignKey(JournalPost, on_delete=models.CASCADE, related_name='hidden_by_users')
+    journal = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='hidden_by_users')
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

@@ -1,4 +1,3 @@
-
 console.log("✅ journal_lookup.js loaded and running!");
 
 document.addEventListener('DOMContentLoaded', function () {

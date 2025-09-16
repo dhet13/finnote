@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import JournalPost, Like, Comment, Bookmark, Share, Tag
+from .models import Post, Like, Comment, Bookmark, Share, Tag
 from django.core.paginator import Paginator
 import feedparser
 from datetime import datetime
@@ -20,7 +20,7 @@ def load_more_posts(request):
     page = request.GET.get('page', 1)
     posts_per_page = 10
     
-    posts = JournalPost.objects.select_related('user').prefetch_related('likes', 'comments', 'tags').order_by('-created_at')
+    posts = Post.objects.select_related('user').prefetch_related('likes', 'comments', 'tags').order_by('-created_at')
     paginator = Paginator(posts, posts_per_page)
     
     try:
@@ -124,7 +124,7 @@ def create_post_view(request):
 @require_http_methods(["GET", "POST"])
 def edit_post(request, post_id):
     """포스트 수정"""
-    post = get_object_or_404(JournalPost, id=post_id)
+    post = get_object_or_404(Post, id=post_id)
     
     # 작성자 확인
     if post.user != request.user:
@@ -186,7 +186,7 @@ def edit_post(request, post_id):
 @require_http_methods(["POST"])
 def hide_post(request, post_id):
     """포스트 숨기기"""
-    post = get_object_or_404(JournalPost, id=post_id)
+    post = get_object_or_404(Post, id=post_id)
     
     hidden, created = HiddenPost.objects.get_or_create(
         user=request.user,
@@ -203,7 +203,7 @@ def hide_post(request, post_id):
 @require_http_methods(["POST"])
 def report_post(request, post_id):
     """포스트 신고"""
-    post = get_object_or_404(JournalPost, id=post_id)
+    post = get_object_or_404(Post, id=post_id)
     
     try:
         data = json.loads(request.body)
@@ -246,7 +246,7 @@ def create_simple_post(request):
             clean_content = re.sub(hashtag_pattern, '', content).strip()
             clean_content = re.sub(r'\s+', ' ', clean_content)  # 중복 공백 제거
             
-            post = JournalPost.objects.create(
+            post = Post.objects.create(
                 user=request.user,
                 content=clean_content,
                 embed_payload_json={},
@@ -302,7 +302,7 @@ def create_trading_post(request):
             'price': trading_price
         }
         
-        post = JournalPost.objects.create(
+        post = Post.objects.create(
             user=request.user,
             content=content,
             embed_payload_json=embed_data,
@@ -325,7 +325,7 @@ def create_image_post(request):
         content = request.POST.get('content')
         # 이미지 처리는 나중에 구현
         
-        post = JournalPost.objects.create(
+        post = Post.objects.create(
             user=request.user,
             content=content,
             embed_payload_json={}
@@ -369,7 +369,7 @@ def create_reply(request, comment_id):
         return JsonResponse({'error': '잘못된 요청입니다.'}, status=400)
     
 def home_view(request):
-    posts = JournalPost.objects.select_related('user').prefetch_related('likes', 'comments', 'tags')[:10]
+    posts = Post.objects.select_related('user').prefetch_related('likes', 'comments', 'tags')[:10]
     
     # 사용자 좋아요 상태 추가
     if request.user.is_authenticated:
@@ -394,7 +394,7 @@ def home_view(request):
 @login_required
 def post_detail(request, post_id):
     """포스트 상세보기"""
-    post = get_object_or_404(JournalPost, id=post_id)
+    post = get_object_or_404(Post, id=post_id)
     comments = post.comments.select_related('user')
     
     context = {
@@ -405,8 +405,8 @@ def post_detail(request, post_id):
 
 def test_view(request):
     """테스트용 간단한 뷰"""
-    posts_count = JournalPost.objects.count()
-    users_count = JournalPost.objects.values('user').distinct().count()
+    posts_count = Post.objects.count()
+    users_count = Post.objects.values('user').distinct().count()
     
     return render(request, 'home/test.html', {
         'posts_count': posts_count,
@@ -416,7 +416,7 @@ def test_view(request):
 @require_http_methods(["POST"])
 def delete_post(request, post_id):
     """포스트 삭제"""
-    post = get_object_or_404(JournalPost, id=post_id)
+    post = get_object_or_404(Post, id=post_id)
     
     # 작성자 확인
     if post.user != request.user:
@@ -898,7 +898,7 @@ def get_financial_data(request):
 @require_http_methods(["POST"])
 def toggle_like(request, post_id):
     """좋아요 토글 API"""
-    post = get_object_or_404(JournalPost, id=post_id)
+    post = get_object_or_404(Post, id=post_id)
     
     like, created = Like.objects.get_or_create(
         journal=post,
@@ -924,7 +924,7 @@ def toggle_like(request, post_id):
 @require_http_methods(["POST"])
 def toggle_bookmark(request, post_id):
     """북마크 토글 API"""
-    post = get_object_or_404(JournalPost, id=post_id)
+    post = get_object_or_404(Post, id=post_id)
     
     bookmark, created = Bookmark.objects.get_or_create(
         journal=post,
@@ -950,7 +950,7 @@ def toggle_bookmark(request, post_id):
 @require_http_methods(["POST"])
 def toggle_share(request, post_id):
     """공유 토글 API"""
-    post = get_object_or_404(JournalPost, id=post_id)
+    post = get_object_or_404(Post, id=post_id)
     
     share, created = Share.objects.get_or_create(
         journal=post,
@@ -976,7 +976,7 @@ def toggle_share(request, post_id):
 @require_http_methods(["POST"])
 def create_comment(request, post_id):
     """댓글 작성 API"""
-    post = get_object_or_404(JournalPost, id=post_id)
+    post = get_object_or_404(Post, id=post_id)
     
     try:
         data = json.loads(request.body)
@@ -1012,7 +1012,7 @@ def create_comment(request, post_id):
 @require_http_methods(["GET"])
 def get_comments(request, post_id):
     """댓글 목록 조회 API"""
-    post = get_object_or_404(JournalPost, id=post_id)
+    post = get_object_or_404(Post, id=post_id)
     comments = Comment.objects.filter(journal=post, parent=None).select_related('user').order_by('created_at')
     
     comments_data = []
