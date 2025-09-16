@@ -8,6 +8,7 @@ from journals.models import StockInfo, StockJournal, StockTrade, REDeal, REPrope
 from decimal import Decimal
 from django.http import JsonResponse
 import json
+from home.models import JournalPost, Like, Bookmark
 
 # 프로필 보기 페이지
 @login_required
@@ -179,3 +180,50 @@ def user_likes_view(request):
             #       # 'liked_items': liked_items,
             #   }
               return render(request, 'user_profile/user_likes.html')
+
+@login_required
+def my_posts_view(request):
+    """
+    사용자가 작성한 게시물 목록 뷰
+    """
+    user = request.user
+    my_posts = JournalPost.objects.filter(user=user).order_by('-created_at')
+    
+    context = {
+        'posts': my_posts,
+        'title': '내가 작성한 게시물',
+        'user_to_view': user
+    }
+    return render(request, 'user_profile/my_posts.html', context)
+
+@login_required
+def liked_posts_view(request):
+    """
+    사용자가 좋아요를 누른 게시물 목록 뷰
+    """
+    user = request.user
+    liked_posts_ids = Like.objects.filter(user=user).values_list('journal_id', flat=True)
+    liked_posts = JournalPost.objects.filter(id__in=liked_posts_ids).order_by('-created_at')
+    
+    context = {
+        'posts': liked_posts,
+        'title': '좋아요 누른 게시물',
+        'user_to_view': user
+    }
+    return render(request, 'user_profile/liked_posts.html', context)
+
+@login_required
+def bookmarked_posts_view(request):
+    """
+    사용자가 북마크한 게시물 목록 뷰
+    """
+    user = request.user
+    bookmarked_posts_ids = Bookmark.objects.filter(user=user).values_list('journal_id', flat=True)
+    bookmarked_posts = JournalPost.objects.filter(id__in=bookmarked_posts_ids).order_by('-created_at')
+    
+    context = {
+        'posts': bookmarked_posts,
+        'title': '북마크한 게시물',
+        'user_to_view': user
+    }
+    return render(request, 'user_profile/bookmarked_posts.html', context)

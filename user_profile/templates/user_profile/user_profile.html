@@ -47,11 +47,12 @@
     </div>
 
     <div style="display: flex; justify-content: space-around; border-bottom: 1px solid #ebeef0; padding: 12px 0; margin-top: 16px;">
-        <a href="{% url 'user_profile:profile' my_ID=request.user.my_ID %}" style="text-decoration: none; color: #657786; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s;">자산 현황</a>
-        <a href="{% url 'user_profile:user_likes' %}" style="text-decoration: none; color: #657786; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s;">좋아요</a>
-        <a href="#" style="text-decoration: none; color: #657786; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s;">북마크</a>
-        <a href="#" style="text-decoration: none; color: #657786; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s;">게시물</a>
+        <a href="{% url 'user_profile:profile' my_ID=request.user.my_ID %}" style="text-decoration: none; color: #1da1f2; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s; border-bottom: 2px solid #1da1f2;">자산 현황</a>
+        <a href="{% url 'user_profile:liked_posts' %}" style="text-decoration: none; color: #657786; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s;">좋아요</a>
+        <a href="{% url 'user_profile:bookmarked_posts' %}" style="text-decoration: none; color: #657786; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s;">북마크</a>
+        <a href="{% url 'user_profile:my_posts' %}" style="text-decoration: none; color: #657786; font-weight: bold; padding: 8px 16px; border-radius: 9999px; transition: background-color 0.2s;">게시물</a>
     </div>
+
     <div style="padding: 16px; border-top: 1px solid #ebeef0; margin-top: 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h3 style="margin: 0; font-size: 18px; font-weight: bold;">보유 주식</h3>
