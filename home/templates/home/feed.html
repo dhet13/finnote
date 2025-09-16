@@ -5,30 +5,22 @@
 {% block content %}
 <div style="display: none;" id="auth-data" data-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"></div>
 
+{% if user.is_authenticated %}
+    <meta name="current-user" content="{{ user.my_ID }}">
+{% endif %}
 
-<!-- 탭 영역 -->
-<div style="border-bottom: 1px solid #eff3f4;">
-    <div style="display: flex;">
-        <button class="feed-tab active-tab" onclick="switchTab('foryou')" style="flex: 1; padding: 16px; background: none; border: none; font-weight: bold; font-size: 15px; cursor: pointer; position: relative; color: #0f1419;">
-            For you
-        </button>
-        <button class="feed-tab" onclick="switchTab('following')" style="flex: 1; padding: 16px; background: none; border: none; font-weight: bold; font-size: 15px; cursor: pointer; position: relative; color: #536471;">
-            Following
-        </button>
-    </div>
-</div>
 
 <!-- 포스트 작성 영역 -->
 <form method="POST" action="{% url 'home:create_simple_post' %}" enctype="multipart/form-data" style="border-bottom: 1px solid #eff3f4; padding: 15px;" onsubmit="submitPost(event)">
     {% csrf_token %}
     <div style="display: flex; align-items: flex-start; gap: 12px;">
-        {% if post.user.my_ID %}
-            <a href="{% url 'user_profile:profile' my_ID=post.user.my_ID %}" style="text-decoration: none;">
-                {% if post.user.profile_picture %}
-                    <img src="{{ post.user.profile_picture.url }}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+        {% if user.is_authenticated %}
+            <a href="{% url 'user_profile:profile' my_ID=user.my_ID %}" style="text-decoration: none;">
+                {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
                 {% else %}
                     <div style="width: 40px; height: 40px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px;">
-                        {{ post.user.my_ID|first|upper }}
+                        {{ user.my_ID|first|upper }}
                     </div>
                 {% endif %}
             </a>
@@ -212,7 +204,7 @@
                     </span>
                     <span id="likes-count-{{ post.id }}">{{ post.likes.count }}</span>
                 </div>
-                                
+          
                 <div class="action-btn" data-action="bookmark" data-post-id="{{ post.id }}">
                     <span class="material-symbols-outlined {% if user.is_authenticated and post.is_bookmarked_by_user %}bookmarked{% endif %}">
                         {% if user.is_authenticated and post.is_bookmarked_by_user %}bookmark{% else %}bookmark_border{% endif %}
@@ -274,74 +266,49 @@ const TradingJournalInterface = {
     openModal: function(callback) {
         this.resultCallback = callback;
         
-        // 모달 오버레이 생성
-        const overlay = document.createElement('div');
-        overlay.id = 'trading-modal-overlay';
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        `;
-        
-        // 모달 컨테이너
-        const modal = document.createElement('div');
-        modal.style.cssText = `
-            background: white;
-            border-radius: 8px;
-            width: ${this.config.modalWidth}px;
-            height: ${this.config.modalHeight}px;
-            max-width: 95vw;
-            max-height: 95vh;
-            overflow: hidden;
-            position: relative;
-        `;
-        
-        // iframe으로 매매일지 로드
-        const iframe = document.createElement('iframe');
-        iframe.src = this.config.modalUrl;
-        iframe.style.cssText = `
-            width: 100%;
-            height: 100%;
-            border: none;
-        `;
-        
-        // 닫기 버튼
-        const closeBtn = document.createElement('button');
-        closeBtn.innerHTML = '&times;';
-        closeBtn.style.cssText = `
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 1;
-            color: #666;
-        `;
-        closeBtn.onclick = () => this.closeModal();
-        
-        modal.appendChild(iframe);
-        modal.appendChild(closeBtn);
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-        
-        // ESC 키로 닫기
-        this.keyHandler = (e) => {
-            if (e.key === 'Escape') this.closeModal();
-        };
-        document.addEventListener('keydown', this.keyHandler);
-        
-        console.log('매매일지 모달 열림');
+        // fetch로 modal HTML 가져오기
+        fetch(this.config.modalUrl)
+            .then(response => response.text())
+            .then(html => {
+                // 모달 오버레이 생성
+                const overlay = document.createElement('div');
+                overlay.id = 'trading-modal-overlay';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                `;
+                
+                overlay.innerHTML = html;
+                document.body.appendChild(overlay);
+                
+                // 닫기 버튼 이벤트
+                const closeBtn = overlay.querySelector('.close-modal');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => this.closeModal());
+                }
+                
+                // 배경 클릭으로 닫기
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) {
+                        this.closeModal();
+                    }
+                });
+                
+                console.log('매매일지 모달 열림');
+            })
+            .catch(error => {
+                console.error('매매일지 모달 로드 실패:', error);
+                alert('매매일지 작성 창을 열 수 없습니다.');
+            });
     },
-    
     // 모달 닫기
     closeModal: function() {
         const overlay = document.getElementById('trading-modal-overlay');
@@ -462,22 +429,6 @@ function openTradingJournal() {
 document.addEventListener('DOMContentLoaded', function() {
     TradingJournalInterface.setupMessageListener();
 });
-
-// 탭 전환 기능
-function switchTab(tabType) {
-    // 모든 탭 비활성화
-    document.querySelectorAll('.feed-tab').forEach(tab => {
-        tab.classList.remove('active-tab');
-        tab.style.color = '#536471';
-    });
-    
-    // 클릭된 탭 활성화
-    event.target.classList.add('active-tab');
-    event.target.style.color = '#0f1419';
-    
-    // 여기에 실제 필터링 로직 추가 예정
-    console.log('Tab switched to:', tabType);
-}
 
 // 포스트 버튼 활성화/비활성화
 function togglePostButton() {
@@ -695,49 +646,49 @@ function addNewPostToFeed(postData) {
                     <div class="post-content">
                         ${postData.content}
                     </div>
-                </div>
-            </div>
-            
-            ${postData.image_url ? `
-            <div style="margin: 10px 0;">
-                <div style="width: 100%; aspect-ratio: 16/9; overflow: hidden; border-radius: 12px; border: 1px solid #eff3f4; cursor: pointer;" onclick="openImageModal('${postData.image_url}')">
-                    <img data-src="${postData.image_url}" 
-                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' fill='%23999'%3E이미지 로딩중...%3C/text%3E%3C/svg%3E"
-                        alt="첨부 이미지" 
-                        class="lazy-image"
-                        style="width: 100%; height: 100%; object-fit: cover;">
-                </div>
-            </div>
-            ` : ''}
-            ${tagsHtml}
-            <div class="action-buttons">
-                <div class="action-btn">
-                    <span class="material-symbols-outlined">chat_bubble</span>
-                    <span>0</span>
-                </div>
-                
-                <div class="action-btn">
-                    <span class="material-symbols-outlined">favorite</span>
-                    <span>0</span>
-                </div>
-                
-                <div class="action-btn">
-                    <span class="material-symbols-outlined">bookmark</span>
-                    <span>0</span>
-                </div>
-                
-                <div class="action-btn">
-                    <span class="material-symbols-outlined">share</span>
-                    <span>0</span>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // 피드 맨 위에 새 포스트 추가
-    postsContainer.insertAdjacentHTML('afterbegin', newPostHTML);
-    LazyLoader.observeNewImages();
-}
+
+                    ${postData.image_url ? `
+                    <div style="margin: 10px 0;">
+                        <div style="width: 100%; aspect-ratio: 16/9; overflow: hidden; border-radius: 12px; border: 1px solid #eff3f4; cursor: pointer;" onclick="openImageModal('${postData.image_url}')">
+                            <img data-src="${postData.image_url}" 
+                                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' fill='%23999'%3E이미지 로딩중...%3C/text%3E%3C/svg%3E"
+                                alt="첨부 이미지" 
+                                class="lazy-image"
+                                style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${tagsHtml}
+                    <div class="action-buttons">
+                        <div class="action-btn">
+                            <span class="material-symbols-outlined">chat_bubble</span>
+                            <span>0</span>
+                        </div>
+                        
+                        <div class="action-btn">
+                            <span class="material-symbols-outlined">favorite</span>
+                            <span>0</span>
+                        </div>
+                        
+                        <div class="action-btn">
+                            <span class="material-symbols-outlined">bookmark</span>
+                            <span>0</span>
+                        </div>
+                        
+                        <div class="action-btn">
+                            <span class="material-symbols-outlined">share</span>
+                            <span>0</span>
+                        </div>
+                    </div>
+                                    </div> 
+                                </div>
+                            </div>
+                        `;
+                        
+                        // 피드 맨 위에 새 포스트 추가
+                        postsContainer.insertAdjacentHTML('afterbegin', newPostHTML);
+                        LazyLoader.observeNewImages();
+                    }
 // 무한 스크롤용 포스트 추가 (기존 함수 재사용)
 function addPostToFeed(postData) {
     const postsContainer = document.getElementById('posts-container');
@@ -1047,7 +998,6 @@ function submitComment(postId) {
     });
 }
 
-// 댓글 표시
 function displayComments(postId, comments) {
     const commentsList = document.getElementById('comments-list-' + postId);
     
@@ -1059,11 +1009,12 @@ function displayComments(postId, comments) {
     let commentsHTML = '';
     comments.forEach(comment => {
         const timeAgo = getRelativeTime(comment.created_at);
+        const isMyComment = isUserAuthenticated() && comment.my_ID === getCurrentUserId();
         
         commentsHTML += `
-            <div class="comment" style="margin-bottom: 12px;">
+            <div class="comment" style="margin-bottom: 12px;" id="comment-${comment.id}">
                 <div style="display: flex; align-items: flex-start; gap: 8px;">
-                    <!-- 댓글 작성자 프로필 아이콘 (클릭 가능) -->
+                    <!-- 댓글 작성자 프로필 아이콘 -->
                     <a href="/profile/${comment.my_ID}/" style="text-decoration: none;">
                         <div style="width: 24px; height: 24px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; flex-shrink: 0;">
                             ${comment.my_ID ? comment.my_ID.charAt(0).toUpperCase() : 'U'}
@@ -1079,8 +1030,83 @@ function displayComments(postId, comments) {
                             </a>
                             <span style="color: #536471; font-size: 12px;">·</span>
                             <span style="color: #536471; font-size: 12px;">${timeAgo}</span>
+                            ${comment.is_edited ? '<span style="color: #536471; font-size: 11px; margin-left: 4px;">(수정됨)</span>' : ''}
                         </div>
-                        <div style="color: #0f1419; line-height: 1.4; font-size: 14px;">${comment.content}</div>
+                        
+                        <div class="comment-content" style="color: #0f1419; line-height: 1.4; font-size: 14px; margin-bottom: 8px;">
+                            ${comment.content}
+                        </div>
+                        
+                        <!-- 댓글 액션 버튼들 -->
+                        <div style="display: flex; gap: 16px; font-size: 13px; color: #536471;">
+                            <button onclick="showReplyForm(${comment.id})" style="background: none; border: none; color: #536471; cursor: pointer; font-size: 13px;">
+                                답글
+                            </button>
+                            
+                            ${isMyComment ? `
+                                <button onclick="editComment(${comment.id})" style="background: none; border: none; color: #536471; cursor: pointer; font-size: 13px;">
+                                    수정
+                                </button>
+                                <button onclick="deleteComment(${comment.id})" style="background: none; border: none; color: #536471; cursor: pointer; font-size: 13px;">
+                                    삭제
+                                </button>
+                            ` : ''}
+                        </div>
+                        <!-- 기존 대댓글들 표시 -->
+                        ${comment.replies && comment.replies.length > 0 ? comment.replies.map(reply => {
+                            const isMyReply = isUserAuthenticated() && reply.my_ID === getCurrentUserId();
+                            const replyTimeAgo = getRelativeTime(reply.created_at);
+                            
+                            return `
+                                <div class="reply" style="margin-left: 32px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0;" id="reply-${reply.id}">
+                                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                                        <a href="/profile/${reply.my_ID}/" style="text-decoration: none;">
+                                            <div style="width: 20px; height: 20px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px; flex-shrink: 0;">
+                                                ${reply.my_ID.charAt(0).toUpperCase()}
+                                            </div>
+                                        </a>
+                                        
+                                        <div style="flex: 1;">
+                                            <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                                                <a href="/profile/${reply.my_ID}/" style="text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                                                    <span style="font-weight: bold; color: #0f1419; font-size: 13px;">${reply.nickname || reply.my_ID}</span>
+                                                    <span style="color: #536471; font-size: 11px; font-weight: normal;">@${reply.my_ID}</span>
+                                                </a>
+                                                <span style="color: #536471; font-size: 11px;">·</span>
+                                                <span style="color: #536471; font-size: 11px;">${replyTimeAgo}</span>
+                                                ${reply.is_edited ? '<span style="color: #536471; font-size: 10px; margin-left: 4px;">(수정됨)</span>' : ''}
+                                            </div>
+                                            
+                                            <div class="reply-content" style="color: #0f1419; line-height: 1.4; font-size: 13px; margin-bottom: 6px;">
+                                                ${reply.content}
+                                            </div>
+                                            
+                                            ${isMyReply ? `
+                                                <div style="display: flex; gap: 12px; font-size: 12px; color: #536471;">
+                                                    <button onclick="editReply(${reply.id})" style="background: none; border: none; color: #536471; cursor: pointer; font-size: 12px;">수정</button>
+                                                    <button onclick="deleteReply(${reply.id})" style="background: none; border: none; color: #536471; cursor: pointer; font-size: 12px;">삭제</button>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('') : ''}
+                        <!-- 대댓글 작성 폼 (처음에는 숨김) -->
+                        <div id="reply-form-${comment.id}" style="display: none; margin-top: 12px;">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="reply-input-${comment.id}" placeholder="답글을 입력하세요..." 
+                                       style="flex: 1; padding: 6px 12px; border: 1px solid #eff3f4; border-radius: 20px; outline: none; font-size: 13px;">
+                                <button onclick="submitReply(${postId}, ${comment.id})" 
+                                        style="padding: 6px 12px; background: #1d9bf0; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 13px;">
+                                    작성
+                                </button>
+                                <button onclick="hideReplyForm(${comment.id})" 
+                                        style="padding: 6px 12px; background: #f0f0f0; color: #333; border: none; border-radius: 20px; cursor: pointer; font-size: 13px;">
+                                    취소
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1088,6 +1114,13 @@ function displayComments(postId, comments) {
     });
     
     commentsList.innerHTML = commentsHTML;
+}
+
+// 현재 사용자 ID 가져오기 함수 추가
+function getCurrentUserId() {
+    // 페이지에서 현재 사용자 정보를 가져오는 방법
+    // 방법 1: HTML에 숨겨진 데이터로 추가
+    return document.querySelector('meta[name="current-user"]')?.content || null;
 }
 // 공유 기능
 function sharePost(postId) {
@@ -1855,14 +1888,6 @@ function togglePostMenu(postId, isMyPost) {
     } else {
         // 다른 사람 포스트 메뉴
         menuItems = `
-            <div class="menu-item" onclick="followUser(${postId})">
-                <span class="material-symbols-outlined" style="font-size: 18px;">person_add</span>
-                사용자 팔로우
-            </div>
-            <div class="menu-item" onclick="toggleTradingAlert(${postId})">
-                <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
-                매매 알림 받기
-            </div>
             <div class="menu-item" onclick="copyPostLink(${postId})">
                 <span class="material-symbols-outlined" style="font-size: 18px;">link</span>
                 링크 복사
@@ -1956,18 +1981,6 @@ function copyPostLink(postId) {
     });
 }
 
-function followUser(postId) {
-    closePostMenu();
-    Toast.warning('팔로우 기능은 준비 중입니다.');
-    console.log('사용자 팔로우:', postId);
-}
-
-function toggleTradingAlert(postId) {
-    closePostMenu();
-    Toast.success('매매 알림이 설정되었습니다!');
-    console.log('매매 알림 토글:', postId);
-}
-
 function hidePost(postId) {
     closePostMenu();
     
@@ -2002,7 +2015,216 @@ function closePostMenu() {
         existingMenu.remove();
     }
 }
+// 댓글 수정 함수
+function editComment(commentId) {
+    const commentDiv = document.getElementById(`comment-${commentId}`);
+    const contentDiv = commentDiv.querySelector('.comment-content');
+    const currentContent = contentDiv.textContent;
+    
+    // 수정 폼으로 교체
+    contentDiv.innerHTML = `
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" id="edit-comment-input-${commentId}" value="${currentContent}" 
+                   style="flex: 1; padding: 6px 12px; border: 1px solid #eff3f4; border-radius: 20px; outline: none; font-size: 13px;">
+            <button onclick="saveCommentEdit(${commentId})" 
+                    style="padding: 6px 12px; background: #1d9bf0; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 13px;">
+                저장
+            </button>
+            <button onclick="cancelCommentEdit(${commentId}, '${currentContent}')" 
+                    style="padding: 6px 12px; background: #f0f0f0; color: #333; border: none; border-radius: 20px; cursor: pointer; font-size: 13px;">
+                취소
+            </button>
+        </div>
+    `;
+}
 
+// 댓글 수정 저장
+function saveCommentEdit(commentId) {
+    const newContent = document.getElementById(`edit-comment-input-${commentId}`).value.trim();
+    
+    if (!newContent) {
+        Toast.warning('댓글 내용을 입력해주세요.');
+        return;
+    }
+    
+    fetch(`/home/comment/${commentId}/edit/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
+        },
+        body: JSON.stringify({ content: newContent })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const commentDiv = document.getElementById(`comment-${commentId}`);
+            const contentDiv = commentDiv.querySelector('.comment-content');
+            contentDiv.innerHTML = `${data.comment.content}`;
+            
+            // (수정됨) 표시 추가
+            const timeSpan = commentDiv.querySelector('.comment-time');
+            if (timeSpan && !timeSpan.querySelector('.edited-label')) {
+                timeSpan.insertAdjacentHTML('afterend', '<span class="edited-label" style="color: #536471; font-size: 11px; margin-left: 4px;">(수정됨)</span>');
+            }
+            
+            Toast.success('댓글이 수정되었습니다.');
+        } else {
+            Toast.error(data.error);
+        }
+    })
+    .catch(error => {
+        Toast.error('댓글 수정 중 오류가 발생했습니다.');
+    });
+}
+
+// 댓글 수정 취소
+function cancelCommentEdit(commentId, originalContent) {
+    const commentDiv = document.getElementById(`comment-${commentId}`);
+    const contentDiv = commentDiv.querySelector('.comment-content');
+    contentDiv.innerHTML = originalContent;
+}
+
+// 댓글 삭제
+function deleteComment(commentId) {
+    if (!confirm('댓글을 삭제하시겠습니까?')) return;
+    
+    fetch(`/home/comment/${commentId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCSRFToken(),
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById(`comment-${commentId}`).remove();
+            Toast.success('댓글이 삭제되었습니다.');
+        } else {
+            Toast.error(data.error);
+        }
+    })
+    .catch(error => {
+        Toast.error('댓글 삭제 중 오류가 발생했습니다.');
+    });
+}
+
+// 답글 폼 표시
+function showReplyForm(commentId) {
+    const replyForm = document.getElementById(`reply-form-${commentId}`);
+    replyForm.style.display = 'block';
+    document.getElementById(`reply-input-${commentId}`).focus();
+}
+
+// 답글 폼 숨기기
+function hideReplyForm(commentId) {
+    const replyForm = document.getElementById(`reply-form-${commentId}`);
+    replyForm.style.display = 'none';
+    document.getElementById(`reply-input-${commentId}`).value = '';
+}
+
+// 답글 작성
+function submitReply(postId, parentCommentId) {
+    const replyInput = document.getElementById(`reply-input-${parentCommentId}`);
+    const content = replyInput.value.trim();
+    
+    if (!content) {
+        Toast.warning('답글 내용을 입력해주세요.');
+        return;
+    }
+    
+    fetch(`/home/comment/${parentCommentId}/reply/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
+        },
+        body: JSON.stringify({ content: content })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.reply_id) {
+            // 답글 추가
+            addReplyToComment(parentCommentId, data);
+            
+            // 댓글 수 업데이트
+            const commentsCountElement = document.querySelector(`[data-post-id="${postId}"][data-action="comments"] span:last-child`);
+            commentsCountElement.textContent = data.comments_count;
+            
+            // 입력창 초기화 및 숨기기
+            replyInput.value = '';
+            hideReplyForm(parentCommentId);
+            
+            Toast.success('답글이 작성되었습니다.');
+        } else {
+            Toast.error(data.error || '답글 작성 중 오류가 발생했습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('답글 작성 오류:', error);
+        Toast.error('답글 작성 중 오류가 발생했습니다.');
+    });
+}
+// 댓글에 답글 추가
+function addReplyToComment(parentCommentId, replyData) {
+    const commentDiv = document.getElementById(`comment-${parentCommentId}`);
+    const timeAgo = '방금 전';
+    const currentUserId = getCurrentUserId();
+    const isMyReply = replyData.my_ID === currentUserId;
+    
+    // 대댓글 HTML 생성
+    const replyHTML = `
+        <div class="reply" style="margin-left: 32px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0;" id="reply-${replyData.reply_id}">
+            <div style="display: flex; align-items: flex-start; gap: 8px;">
+                <!-- 답글 작성자 프로필 아이콘 -->
+                <a href="/profile/${replyData.my_ID}/" style="text-decoration: none;">
+                    <div style="width: 20px; height: 20px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px; flex-shrink: 0;">
+                        ${replyData.my_ID.charAt(0).toUpperCase()}
+                    </div>
+                </a>
+                
+                <!-- 답글 내용 -->
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                        <a href="/profile/${replyData.my_ID}/" style="text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                            <span style="font-weight: bold; color: #0f1419; font-size: 13px;">${replyData.nickname || replyData.my_ID}</span>
+                            <span style="color: #536471; font-size: 11px; font-weight: normal;">@${replyData.my_ID}</span>
+                        </a>
+                        <span style="color: #536471; font-size: 11px;">·</span>
+                        <span style="color: #536471; font-size: 11px;">${timeAgo}</span>
+                    </div>
+                    
+                    <div class="reply-content" style="color: #0f1419; line-height: 1.4; font-size: 13px; margin-bottom: 6px;">
+                        ${replyData.content}
+                    </div>
+                    
+                    <!-- 답글 액션 버튼들 -->
+                    ${isMyReply ? `
+                        <div style="display: flex; gap: 12px; font-size: 12px; color: #536471;">
+                            <button onclick="editReply(${replyData.reply_id})" style="background: none; border: none; color: #536471; cursor: pointer; font-size: 12px;">
+                                수정
+                            </button>
+                            <button onclick="deleteReply(${replyData.reply_id})" style="background: none; border: none; color: #536471; cursor: pointer; font-size: 12px;">
+                                삭제
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 기존 대댓글들 뒤에 추가
+    const existingReplies = commentDiv.querySelectorAll('.reply');
+    if (existingReplies.length > 0) {
+        // 마지막 대댓글 뒤에 추가
+        existingReplies[existingReplies.length - 1].insertAdjacentHTML('afterend', replyHTML);
+    } else {
+        // 첫 번째 대댓글이면 답글 폼 앞에 추가
+        const replyForm = document.getElementById(`reply-form-${parentCommentId}`);
+        replyForm.insertAdjacentHTML('beforebegin', replyHTML);
+    }
+}
 // 이벤트 리스너 등록
 document.addEventListener('DOMContentLoaded', function() {
     showSlide(0);
