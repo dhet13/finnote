@@ -1,31 +1,31 @@
 {% extends "base.html" %}
 
 {% block feed %}
+<!-- Updated: 2025-09-16 - Design consistency with compose modal -->
 <style>
 :root {
-    --primary-color: #3b82f6; /* Blue */
-    --primary-text-color: #ffffff;
-    --buy-color-alt: #fae8e8; /* Light Red BG */
-    --buy-color: #ef4444; /* Red */
-    --sell-color: #16a34a; /* Green */
-    --sell-color-alt: #e8f5e9; /* Light Green BG */
-    --border-color: #e5e7eb;
-    --background-color: #f9fafb;
-    --card-background-color: #ffffff;
-    --text-color-primary: #111827;
-    --text-color-secondary: #6b7280;
-    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --primary-color: #3b82f6 !important; /* Blue */
+    --primary-text-color: #ffffff !important;
+    --buy-color-alt: #fae8e8 !important; /* Light Red BG */
+    --buy-color: #ef4444 !important; /* Red */
+    --sell-color: #16a34a !important; /* Green */
+    --sell-color-alt: #e8f5e9 !important; /* Light Green BG */
+    --border-color: #e5e7eb !important;
+    --background-color: #f9fafb !important;
+    --card-background-color: #ffffff !important;
+    --text-color-primary: #111827 !important;
+    --text-color-secondary: #6b7280 !important;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
 }
 
 .journal-container { /* Adapting .compose-card styles */
     font-family: var(--font-family);
     background-color: var(--card-background-color);
+    padding: 24px 32px;
     border-radius: 16px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     max-width: 600px;
-    padding: 0;
-    margin: 2rem auto; /* Consistent top margin */
-    box-sizing: border-box; /* Added for correct width calculation */
+    margin: 2rem auto;
 }
 
 .journal-container h1 { /* Adapting .section-title */
@@ -38,9 +38,26 @@
     border-bottom: none;
 }
 
-.tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 24px; }
-.tab-item { padding: 12px 20px; cursor: pointer; font-size: 16px; font-weight: 500; color: var(--text-color-secondary); position: relative; border-bottom: 2px solid transparent; }
-.tab-item.active { color: var(--text-color-primary); border-bottom-color: var(--primary-color); } /* Use primary color for active tab */
+.journal-container .compose-tabs {
+    display: flex !important;
+    border-bottom: 2px solid var(--border-color) !important;
+    margin-bottom: 24px !important;
+}
+.journal-container .compose-tab-item {
+    padding: 12px 20px !important;
+    cursor: pointer !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    color: var(--text-color-secondary) !important;
+    position: relative !important;
+    border-bottom: 2px solid transparent !important;
+    transition: all 0.2s !important;
+}
+.journal-container .compose-tab-item.active {
+    color: var(--primary-color) !important;
+    border-bottom-color: var(--primary-color) !important;
+    background-color: transparent !important; /* Override navbar.css */
+}
 
 .search-bar { display: flex; gap: 8px; margin-bottom: 24px; }
 .search-bar input { flex-grow: 1; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--background-color); font-size: 1rem; color: var(--text-color-primary); } /* Adapted from form-control */
@@ -76,19 +93,23 @@
 .pnl-positive { color: var(--sell-color) !important; }
 .pnl-negative { color: var(--buy-color) !important; }
 
-.tab-content { display: none; }
-.tab-content.active { display: block; }
+.journal-container .compose-tab-content {
+    display: none !important;
+}
+.journal-container .compose-tab-content.active {
+    display: block !important;
+}
 </style>
 
 <div class="journal-container">
     <h1>매매일지</h1>
 
-    <div class="tabs">
-        <div class="tab-item active" data-tab="stocks">내 투자 주식 종목</div>
-        <div class="tab-item" data-tab="realty">내 투자 부동산</div>
+    <div class="compose-tabs">
+        <div class="compose-tab-item active" data-tab="stocks">내 투자 주식 종목</div>
+        <div class="compose-tab-item" data-tab="realty">내 투자 부동산</div>
     </div>
 
-    <div id="tab-stocks" class="tab-content active">
+    <div id="tab-stocks" class="compose-tab-content active">
         <form method="get" class="search-bar">
             <input type="text" name="q" placeholder="티커/종목명/메모 검색" value="{{ request.GET.q }}">
             <button type="submit">검색</button>
@@ -129,7 +150,7 @@
         </div>
     </div>
 
-    <div id="tab-realty" class="tab-content">
+    <div id="tab-realty" class="compose-tab-content">
         <div class="post-list">
             {% for deal in re_deals %}
                 {# The anchor tag for the detail page will be added later #}
@@ -145,13 +166,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const tabs = document.querySelectorAll('.tab-item');
-    const tabContents = document.querySelectorAll('.tab-content');
+    const composeTabs = document.querySelectorAll('.compose-tab-item');
+    const composeTabContents = document.querySelectorAll('.compose-tab-content');
 
-    tabs.forEach(tab => {
+    composeTabs.forEach(tab => {
         tab.addEventListener('click', function() {
-            tabs.forEach(item => item.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
+            composeTabs.forEach(item => item.classList.remove('active'));
+            composeTabContents.forEach(content => content.classList.remove('active'));
 
             this.classList.add('active');
             document.getElementById('tab-' + this.dataset.tab).classList.add('active');

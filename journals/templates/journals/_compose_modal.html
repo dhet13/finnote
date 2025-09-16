@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+
 {% load static %}
 
 {% block feed %}
@@ -401,12 +401,12 @@
 
         <div id="stock-tab-content" class="compose-tab-content active">
             <h1 class="section-title">주식 매매일지 작성</h1>
-            {% include '_stock_journal_form_content.html' %}
+            {% include 'journals/_stock_journal_form_content.html' %}
         </div>
 
         <div id="realestate-tab-content" class="compose-tab-content">
             <h1 class="section-title">부동산 매매일지 작성</h1>
-            {% include '_realty_journal_form_content.html' %}
+            {% include 'journals/_realty_journal_form_content.html' %}
         </div>
 
         <div class="form-actions">

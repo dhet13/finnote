@@ -29,9 +29,9 @@ def compose(request):
     - no query -> compose_page.html
     """
     if request.GET.get('modal') == '1':
-        template_name = '_compose_modal.html'
+        template_name = 'journals/_compose_modal.html'
     else:
-        template_name = 'compose_page_clean.html'
+        template_name = 'journals/compose_page_clean.html'
 
     asset_type = request.GET.get('asset', 'stock')
     return render(request, template_name, {'asset_type': asset_type})
@@ -111,7 +111,7 @@ def my_journal_list(request):
         're_deals': re_deals,
         'query': query,
     }
-    return render(request, 'my_journal_list.html', context)
+    return render(request, 'journals/my_journal_list.html', context)
 
 @login_required
 def stock_detail_view(request, pk):
@@ -126,7 +126,7 @@ def stock_detail_view(request, pk):
         'trades': trades,
         'journal_posts': journal_posts,
     }
-    return render(request, 'stock_detail.html', context)
+    return render(request, 'journals/stock_detail.html', context)
 
 
 @login_required
@@ -153,7 +153,7 @@ def stock_summary_detail(request, ticker_symbol):
         'stock_journals': stock_journals, # Individual StockJournal objects
         # You might want to pass the aggregated summary here too if needed
     }
-    return render(request, 'stock_summary_detail.html', context) # A new template will be needed
+    return render(request, 'journals/stock_summary_detail.html', context) # A new template will be needed
 
 
 @require_http_methods(["GET"])
@@ -194,9 +194,15 @@ def portfolio_summary_api(request):
         return JsonResponse({'error': 'Ticker is required'}, status=400)
 
     try:
+        # StockInfo가 없으면 먼저 생성
+        stock_info, created = StockInfo.objects.get_or_create(
+            ticker_symbol=ticker,
+            defaults={'stock_name': ticker}
+        )
+
         journal = StockJournal.objects.get(
             user=request.user,
-            ticker_symbol__ticker_symbol=ticker
+            ticker_symbol=stock_info
         )
         # If journal is found, return its data
         data = {
@@ -414,7 +420,7 @@ def stock_journals_api(request):
     # Reload the journal to get the final aggregated values
     journal.refresh_from_db()
 
-    card_html = render_to_string('_card_stock.html', {'post': post})
+    card_html = render_to_string('journals/_card_stock.html', {'post': post})
     return JsonResponse({
         'post_id': post.id,
         'card_html': card_html,
@@ -635,7 +641,7 @@ def realty_deals_api(request):
             content=content,
         )
 
-    card_html = render_to_string('_card_realty.html', {'post': post})
+    card_html = render_to_string('journals/_card_realty.html', {'post': post})
     return JsonResponse({'post_id': post.id, 'card_html': card_html}, status=201)
 
 

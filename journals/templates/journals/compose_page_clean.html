@@ -62,6 +62,13 @@
     box-sizing: border-box;
 }
 
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-color-primary);
+}
+
 .input-group {
     margin-bottom: 16px;
     width: 100%;
@@ -78,29 +85,6 @@
     color: var(--text-color-primary);
     transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
-}
-
-.section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: var(--text-color-primary);
-}
-
-
-
-.form-section {
-    margin-bottom: 24px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-
-.section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: var(--text-color-primary);
 }
 
 .input-group-icon {
@@ -401,12 +385,12 @@
 
         <div id="stock-tab-content" class="compose-tab-content active">
             <h1 class="section-title">주식 매매일지 작성</h1>
-            {% include '_stock_journal_form_content.html' %}
+            {% include 'journals/_stock_journal_form_content.html' %}
         </div>
 
         <div id="realestate-tab-content" class="compose-tab-content">
             <h1 class="section-title">부동산 매매일지 작성</h1>
-            {% include '_realty_journal_form_content.html' %}
+            {% include 'journals/_realty_journal_form_content.html' %}
         </div>
 
         <div class="form-actions">

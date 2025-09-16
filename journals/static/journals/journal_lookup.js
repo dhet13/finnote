@@ -287,20 +287,31 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             const data = await response.json();
             if (response.ok) {
-    // home 앱으로 데이터 전달
-    if (window.parent !== window) {
-        window.parent.postMessage({
-            type: 'trading-journal-complete',
-            payload: {
-                success: true,
-                journal_data: data,
-                card_html: data.card_html || null
-            }
-        }, '*');
-    }
+                // home 앱으로 데이터 전달
+                if (window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'trading-journal-complete',
+                        payload: {
+                            success: true,
+                            // 추가: 사용자가 입력한 폼 데이터
+                            form_data: {
+                                ticker_symbol: state.selectedTicker,
+                                side: state.side,
+                                price: tradePriceInput.value,
+                                quantity: tradeQuantityInput.value,
+                                date: tradeDateInput.value,
+                                target_price: targetPriceInput.value,
+                                stop_price: stopPriceInput.value,
+                                trade_reason: tradeReasonInput.value
+                            },
+                            journal_data: data,
+                            card_html: data.card_html || null
+                        }
+                    }, '*');
+                }
 
-    alert('매매일지가 성공적으로 작성되었습니다.');
-} else {
+                alert('매매일지가 성공적으로 작성되었습니다.');
+            } else {
                 alert(`작성 실패: ${data.error || '알 수 없는 오류'}`);
             }
         } catch (error) {
@@ -308,7 +319,6 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('데이터 전송 중 오류가 발생했습니다.');
         }
     }
-
     // --- INITIALIZATION ---
     const searchIcon = document.getElementById('journal-search-icon');
 
