@@ -12,9 +12,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-temp-key-for-development-only-change-in-production')
-DEBUG = config('DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = ['*']
 
+DEBUG = config('DEBUG', default=True, cast=bool)
+
+CSRF_TRUSTED_ORIGINS = ['*']
+ALLOWED_HOSTS = ['*']
 # ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
