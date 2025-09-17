@@ -93,10 +93,14 @@ function initializeTotalPage() {
 // 로그인 상태 확인 및 데이터 로드
 async function checkLoginStatusAndLoadData() {
     try {
+        console.log('로그인 상태 확인 시작');
+        
         // 먼저 간단한 API 호출로 로그인 상태 확인
         const response = await fetch('/dashboard/api/total/?interval=weekly', {
             credentials: 'same-origin'
         });
+        
+        console.log('API 응답 상태:', response.status);
         
         if (response.status === 401) {
             console.log('로그인되지 않은 사용자입니다. 로그인 안내를 표시합니다.');
@@ -111,6 +115,8 @@ async function checkLoginStatusAndLoadData() {
             disablePortfolioTab();
             return false;
         }
+        
+        console.log('로그인 상태 확인 완료 - 사용자 인증됨');
         
         // 로그인된 경우 데이터 로드
         await loadDashboardData();
@@ -338,9 +344,9 @@ function initializeCharts() {
         totalChartData = timeseries.slice(-7).map(item => item.market_value || 0);
         totalChartLabels = generateDailyLabels(totalChartData.length);
     } else {
-        // 더미 데이터 사용
-        totalChartData = generateDailyData(7);
-        totalChartLabels = generateDailyLabels(7);
+        // API 데이터가 없으면 빈 차트
+        totalChartData = [];
+        totalChartLabels = [];
     }
     
     const totalBarContext = totalBarCtx.getContext('2d');
@@ -420,9 +426,9 @@ function initializeCharts() {
     dayLineChart = new Chart(dayLineContext, {
         type: 'line',
         data: {
-            labels: generateDailyLabels(7), // 동적 라벨
+            labels: [], // API 데이터 사용
             datasets: [{
-                data: generateDailyData(7).map(v => v * 0.8), // 동적 데이터
+                data: [], // API 데이터 사용
                 borderColor: '#00ba7c',
                 backgroundColor: 'transparent',
                 borderWidth: 2,
@@ -452,9 +458,9 @@ function initializeCharts() {
     monthAreaChart = new Chart(monthAreaContext, {
         type: 'line',
         data: {
-            labels: generateDailyLabels(7), // 동적 라벨
+            labels: [], // API 데이터 사용
             datasets: [{
-                data: generateDailyData(7).map(v => v * 1.2), // 동적 데이터
+                data: [], // API 데이터 사용
                 borderColor: '#00ba7c',
                 backgroundColor: 'rgba(0, 186, 124, 0.1)',
                 borderWidth: 2,
@@ -548,24 +554,30 @@ let dashboardData = null;
 // API 데이터에서 기간별 데이터 추출
 function getApiDataForPeriod(period, dataPoints) {
     if (!dashboardData?.timeseries) {
+        console.log(`getApiDataForPeriod: API 데이터 없음, ${dataPoints}개 0으로 채움`);
         return Array(dataPoints).fill(0);
     }
     
     const apiData = dashboardData.timeseries;
     const dataLength = apiData.length;
+    console.log(`getApiDataForPeriod: ${period}, 요청 포인트 ${dataPoints}, API 데이터 길이 ${dataLength}`);
+    console.log('API 데이터 샘플:', apiData.slice(0, 3));
     
     switch (period) {
         case '1D':
             return apiData.slice(-dataPoints).map(item => {
-                return item.cumulative_return_rate || 0;
+                const rate = item.cumulative_return_rate || 0;
+                // -100% 이상의 음수 값은 0으로 처리 (데이터 오류 방지)
+                return rate < -100 ? 0 : rate;
             });
         case '1W':
             const weeklyData = [];
             for (let i = 0; i < dataPoints && i * 7 < dataLength; i++) {
                 const index = dataLength - 1 - (i * 7);
                 if (index >= 0) {
-                    const cumulativeReturnRate = apiData[index].cumulative_return_rate || 0;
-                    weeklyData.unshift(cumulativeReturnRate);
+                    const rate = apiData[index].cumulative_return_rate || 0;
+                    const safeRate = rate < -100 ? 0 : rate;
+                    weeklyData.unshift(safeRate);
                 }
             }
             return weeklyData.length > 0 ? weeklyData : Array(dataPoints).fill(0);
@@ -574,8 +586,9 @@ function getApiDataForPeriod(period, dataPoints) {
             for (let i = 0; i < dataPoints && i * 30 < dataLength; i++) {
                 const index = dataLength - 1 - (i * 30);
                 if (index >= 0) {
-                    const cumulativeReturnRate = apiData[index].cumulative_return_rate || 0;
-                    monthlyData.unshift(cumulativeReturnRate);
+                    const rate = apiData[index].cumulative_return_rate || 0;
+                    const safeRate = rate < -100 ? 0 : rate;
+                    monthlyData.unshift(safeRate);
                 }
             }
             return monthlyData.length > 0 ? monthlyData : Array(dataPoints).fill(0);
@@ -584,15 +597,17 @@ function getApiDataForPeriod(period, dataPoints) {
             for (let i = 0; i < dataPoints && i * 365 < dataLength; i++) {
                 const index = dataLength - 1 - (i * 365);
                 if (index >= 0) {
-                    const cumulativeReturnRate = apiData[index].cumulative_return_rate || 0;
-                    yearlyData.unshift(cumulativeReturnRate);
+                    const rate = apiData[index].cumulative_return_rate || 0;
+                    const safeRate = rate < -100 ? 0 : rate;
+                    yearlyData.unshift(safeRate);
                 }
             }
             return yearlyData.length > 0 ? yearlyData : Array(dataPoints).fill(0);
         default:
             return apiData.slice(-dataPoints).map(item => {
-                return item.cumulative_return_rate || 0;
-    });
+                const rate = item.cumulative_return_rate || 0;
+                return rate < -100 ? 0 : rate;
+            });
     }
 }
 
@@ -824,14 +839,9 @@ function updateCardCharts(period) {
             cardLabels = generateWeeklyLabels(cardData.length);
         }
     } else {
-        // API 데이터가 없을 때 더미 데이터 사용
-        if (period === 'daily') {
-            cardLabels = generateDailyLabels(7);
-            cardData = generateDailyData(7);
-        } else {
-            cardLabels = generateWeeklyLabels(7);
-            cardData = generateWeeklyData(7);
-        }
+        // API 데이터가 없으면 빈 차트
+        cardLabels = [];
+        cardData = [];
     }
     
     // 총 투자 자산 막대 차트 업데이트
@@ -889,12 +899,12 @@ function updateMainPortfolioChart(period, periodRange = currentPeriodRange) {
             // 사용자 정의 기간: 일봉 (1/15, 1/16, 1/17)
             dataPoints = Math.min(periodRange, 365);
             mainLabels = generateDailyLabels(dataPoints);
-            mainData = generatePortfolioData(dataPoints, 22000, 'daily_sequence');
+            mainData = getApiDataForPeriod('1D', dataPoints);
             break;
         default:
             dataPoints = Math.min(periodRange, 365);
             mainLabels = generateActualDateLabels(dataPoints);
-            mainData = generatePortfolioData(dataPoints, 22000, 'daily_sequence');
+            mainData = getApiDataForPeriod('1D', dataPoints);
     }
     
     // 메인 포트폴리오 차트 업데이트
@@ -1391,8 +1401,16 @@ function updateMainPortfolioChartWithCustomPeriod(startDate, endDate, days, peri
             mainLabels = generateDailyLabelsFromDateRange(startDate, endDate);
     }
     
-    // 데이터 생성
-    mainData = generatePortfolioData(mainLabels.length, 22000, 'daily_sequence');
+    // 실제 API 데이터 사용
+    if (dashboardData && dashboardData.timeseries && dashboardData.timeseries.length > 0) {
+        // API 데이터에서 기간에 맞는 데이터 추출
+        mainData = getApiDataForPeriod(period, mainLabels.length);
+        console.log(`기간 ${period} API 데이터:`, mainData);
+    } else {
+        // API 데이터가 없으면 빈 차트
+        mainData = Array(mainLabels.length).fill(0);
+        console.log(`기간 ${period} - API 데이터 없음, 빈 차트 사용`);
+    }
     
     // 메인 포트폴리오 차트 업데이트
     mainPortfolioChart.data.labels = mainLabels;
@@ -2252,17 +2270,27 @@ function clearStockAssetChart() {
     const canvas = document.getElementById('stockAssetChart');
     if (!canvas) return;
     
-    // 더미 데이터로 차트 생성
-    const dummyData = Array(30).fill(0).map((_, i) => 1000000 + (i * 10000) + Math.random() * 50000);
-    const dummyLabels = generateMiniChartLabels(dummyData.length, currentCardPeriod);
+    // API 데이터 사용 (없으면 빈 차트)
+    let chartData, chartLabels;
+    
+    if (stockCardData && stockCardData.timeseries) {
+        // 실제 API 데이터 사용
+        const timeseries = stockCardData.timeseries;
+        chartData = timeseries.slice(-30).map(item => item.market_value || 0);
+        chartLabels = generateMiniChartLabels(chartData.length, currentCardPeriod);
+    } else {
+        // API 데이터가 없으면 빈 차트
+        chartData = [];
+        chartLabels = [];
+    }
     
     const ctx = canvas.getContext('2d');
     stockAssetMiniChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: dummyLabels,
+            labels: chartLabels,
             datasets: [{
-                data: dummyData,
+                data: chartData,
                 borderColor: '#17bf63',
                 borderWidth: 2,
                 fill: false,
@@ -2428,3 +2456,38 @@ function startLoginStatusCheck() {
 }
 
 // 포트폴리오 페이지 전용 함수들 (중복 제거됨 - 기존 함수들 사용)
+
+// 페이지 로드 시 자동 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('대시보드 페이지 로드됨 - 자동 초기화 시작');
+    
+    // 현재 페이지 확인
+    const currentPath = window.location.pathname;
+    console.log('현재 경로:', currentPath);
+    
+    if (currentPath.includes('/dashboard/') || currentPath === '/dashboard/') {
+        // 대시보드 메인 페이지 초기화
+        console.log('대시보드 메인 페이지 초기화');
+        initializeTotalPage();
+    } else if (currentPath.includes('/portfolio/')) {
+        // 포트폴리오 페이지 초기화
+        console.log('포트폴리오 페이지 초기화');
+        if (typeof initializePortfolioPage === 'function') {
+            initializePortfolioPage();
+        }
+    }
+});
+
+// 페이지 로드 완료 후에도 초기화 (혹시 놓친 경우)
+window.addEventListener('load', function() {
+    console.log('페이지 완전 로드됨 - 추가 초기화 확인');
+    
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/dashboard/') || currentPath === '/dashboard/') {
+        // 차트가 아직 초기화되지 않았다면 초기화
+        if (!totalBarChart) {
+            console.log('차트가 초기화되지 않음 - 재초기화');
+            initializeTotalPage();
+        }
+    }
+});
