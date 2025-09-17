@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_http_methods
 from django.utils.dateparse import parse_date
+from django.utils import timezone
 from django.db import transaction, models
 from django.db.models import Q, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value
 from django.db.models.functions import Coalesce
@@ -137,6 +138,40 @@ def stock_summary_detail(request, ticker_symbol):
         ticker_symbol__ticker_symbol=ticker_symbol
     ).select_related('ticker_symbol').order_by('-created_at')
 
+    # Optional: filters for the list (not affecting the top summary)
+    period = (request.GET.get('period') or 'ALL').upper()
+    sort = (request.GET.get('sort') or 'created_desc').lower()
+    pnl = (request.GET.get('pnl') or 'all').lower()  # all | positive | negative | zero
+
+    # Period filtering by created_at
+    now = timezone.now()
+    period_map = {
+        '1M': now - timezone.timedelta(days=30),
+        '3M': now - timezone.timedelta(days=90),
+        '6M': now - timezone.timedelta(days=180),
+        '1Y': now - timezone.timedelta(days=365),
+    }
+    if period in period_map:
+        stock_journals = stock_journals.filter(created_at__gte=period_map[period])
+
+    # Return filter based on return_rate
+    if pnl == 'positive':
+        stock_journals = stock_journals.filter(return_rate__gt=0)
+    elif pnl == 'negative':
+        stock_journals = stock_journals.filter(return_rate__lt=0)
+    elif pnl == 'zero':
+        stock_journals = stock_journals.filter(return_rate=0)
+
+    # Sorting
+    if sort == 'created_asc':
+        stock_journals = stock_journals.order_by('created_at')
+    elif sort == 'return_desc':
+        stock_journals = stock_journals.order_by('-return_rate', '-created_at')
+    elif sort == 'return_asc':
+        stock_journals = stock_journals.order_by('return_rate', '-created_at')
+    else:
+        stock_journals = stock_journals.order_by('-created_at')
+
     # If no journals found for this ticker, handle appropriately (e.g., 404 or empty list)
     if not stock_journals.exists():
         # Optionally, raise Http404 or render a specific message
@@ -147,13 +182,90 @@ def stock_summary_detail(request, ticker_symbol):
     if stock_journals.first():
         stock_name = stock_journals.first().ticker_symbol.stock_name
 
+    # Aggregate across all journals for this ticker (per current user)
+    agg = stock_journals.aggregate(
+        total_buy_qty_sum=Coalesce(Sum('total_buy_qty'), Decimal(0)),
+        total_sell_qty_sum=Coalesce(Sum('total_sell_qty'), Decimal(0)),
+        # Sum of avg_buy_price * total_buy_qty, guarded when avg_buy_price is null
+        total_buy_value_sum=Coalesce(Sum(
+            Case(
+                When(avg_buy_price__isnull=False,
+                     then=ExpressionWrapper(F('avg_buy_price') * F('total_buy_qty'), output_field=DecimalField())) ,
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ), Decimal(0)),
+    )
+
+    total_buy_qty = agg.get('total_buy_qty_sum') or Decimal(0)
+    total_sell_qty = agg.get('total_sell_qty_sum') or Decimal(0)
+    net_qty = total_buy_qty - total_sell_qty
+
+    avg_buy_price = None
+    if total_buy_qty and total_buy_qty > 0:
+        # average entry price across all journals (based on gross buy value)
+        avg_buy_price = (agg.get('total_buy_value_sum') or Decimal(0)) / total_buy_qty
+
+    # Principal (cost basis) for the currently held shares only
+    principal = None
+    if avg_buy_price is not None and net_qty and net_qty > 0:
+        principal = avg_buy_price * net_qty
+
+    # Try to use last_close_price from StockInfo as a quick current price
+    current_price = None
+    if stock_journals.first():
+        current_price = stock_journals.first().ticker_symbol.last_close_price
+
+    current_value = None
+    if current_price is not None and net_qty and net_qty > 0:
+        current_value = current_price * net_qty
+
+    return_rate = None
+    if principal and principal > 0 and current_value is not None:
+        try:
+            return_rate = (current_value - principal) / principal * 100
+        except Exception:
+            return_rate = None
+
     context = {
         'ticker_symbol': ticker_symbol,
         'stock_name': stock_name,
         'stock_journals': stock_journals, # Individual StockJournal objects
+        'summary': {
+            'avg_buy_price': avg_buy_price,
+            'net_qty': net_qty,
+            'principal': principal,
+            'current_price': current_price,
+            'current_value': current_value,
+            'return_rate': return_rate,
+        },
+        'filters': {
+            'period': period,
+            'sort': sort,
+            'pnl': pnl,
+        }
         # You might want to pass the aggregated summary here too if needed
     }
     return render(request, 'journals/stock_summary_detail.html', context) # A new template will be needed
+
+
+@login_required
+def realty_detail(request, pk):
+    """
+    부동산 매매일지 상세 페이지.
+    - 사용자의 특정 REDeal 단건 상세
+    - 관련 속성 정보(REPropertyInfo)와 연결된 포스트(JournalPost) 표시
+    """
+    deal = get_object_or_404(REDeal.objects.select_related('property_info'), pk=pk, user=request.user)
+    property_info = deal.property_info
+    posts = JournalPost.objects.filter(re_deal=deal).order_by('-created_at')
+
+    context = {
+        'deal': deal,
+        'property': property_info,
+        'posts': posts,
+    }
+    return render(request, 'journals/realty_detail.html', context)
 
 
 @require_http_methods(["GET"])

@@ -153,9 +153,25 @@
     <div id="tab-realty" class="compose-tab-content">
         <div class="post-list">
             {% for deal in re_deals %}
-                {# The anchor tag for the detail page will be added later #}
-                <a href="#" class="journal-card">
-                    <p>부동산 매매일지: {{ deal.property_info.building_name }}</p>
+                <a href="{% url 'journals:realty_detail' deal.pk %}" class="journal-card">
+                    <div class="card-header">
+                        <span class="card-title">{{ deal.property_info.building_name }}</span>
+                        <span class="card-meta">{{ deal.contract_date|date:"Y년 m월 d일" }} · {{ deal.deal_type }}</span>
+                    </div>
+                    <div class="stats-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                        <div class="stat-box">
+                            <div class="stat-label">거래금액</div>
+                            <div class="stat-value">{{ deal.amount_main|floatformat:0 }}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">전용면적(m²)</div>
+                            <div class="stat-value">{{ deal.area_m2|floatformat:2 }}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">층</div>
+                            <div class="stat-value">{{ deal.floor }}</div>
+                        </div>
+                    </div>
                 </a>
             {% empty %}
                 <p>작성한 부동산 매매일지가 없습니다.</p>

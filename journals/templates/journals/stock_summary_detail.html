@@ -2,37 +2,158 @@
 
 {% block feed %}
 <style>
-        .journal-container { padding: 20px; max-width: 600px; margin: auto; }
+    .journal-container { padding: 20px; max-width: 760px; margin: auto; }
 
-    .header-section { margin-bottom: 24px; border-bottom: 2px solid #f0f0f0; padding-bottom: 16px; }
-    .header-section h1 { font-size: 2rem; color: #333; margin-bottom: 8px; }
-    .header-section p { font-size: 1rem; color: #666; }
-    .journal-card { background-color: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 16px; text-decoration: none; color: inherit; display: block; }
+    .header-section { margin-bottom: 16px; border-bottom: 2px solid #f0f0f0; padding-bottom: 12px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .header-title { display:flex; flex-direction:column; }
+    .header-section h1 { font-size: 1.75rem; color: #333; margin: 0 0 6px 0; }
+    .header-section p { font-size: 0.95rem; color: #666; margin: 0; }
+
+    .back-button { display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border:1px solid #e5e7eb; border-radius: 8px; text-decoration:none; color:#374151; background:#fff; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+    .back-button:hover { border-color:#cbd5e1; background:#f8fafc; }
+
+    .summary-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+    .summary-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .summary-title { font-size: 1.15rem; font-weight:700; color:#111827; letter-spacing:-0.01em; }
+    .summary-note { font-size: 0.85rem; color:#6b7280; }
+    .summary-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; }
+    .summary-hero { display:flex; align-items:center; justify-content:space-between; gap:14px; color:#fff; border-radius:12px; padding:14px 16px; margin: 6px 0 10px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15); }
+    .summary-hero.neutral { background: linear-gradient(135deg, #64748b, #94a3b8); }
+    .summary-hero.positive { background: linear-gradient(135deg, #16a34a, #22c55e); }
+    .summary-hero.negative { background: linear-gradient(135deg, #ef4444, #f97316); }
+    .hero-left { display:flex; align-items:center; gap:12px; }
+    .ticker-chip { width:42px; height:42px; border-radius:50%; background: rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-weight:800; letter-spacing:0.02em; }
+    .hero-title { display:flex; flex-direction:column; }
+    .hero-title .name { font-size:1.05rem; font-weight:700; line-height:1.1; }
+    .hero-title .ticker { font-size:0.85rem; opacity:0.9; }
+    .hero-right { display:flex; align-items:center; gap:10px; }
+    .price-big { font-size:1.25rem; font-weight:800; text-shadow: 0 1px 0 rgba(0,0,0,0.12); }
+    .pill { padding:6px 10px; border-radius:9999px; background: rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.35); font-weight:700; letter-spacing:0.01em; }
+    .summary-item { background:linear-gradient(180deg, #f9fafb, #ffffff); border:1px solid #e5e7eb; border-radius:10px; padding:12px; text-align:center; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+    .summary-label { font-size:0.75rem; color:#6b7280; margin-bottom:4px; }
+    .summary-value { font-size:1.1rem; font-weight:700; color:#0f172a; letter-spacing: -0.01em; }
+    .pnl-positive { color: #16a34a !important; }
+    .pnl-negative { color: #ef4444 !important; }
+    .sparkline-wrap { width:100%; height:56px; margin: 8px 0 4px 0; }
+    .sparkline-canvas { width:100%; height:56px; display:block; }
+    .filter-bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin: 12px 0; padding:12px; background:#fff; border:1px solid #eee; border-radius:12px; }
+    .filter-bar label { font-size:0.85rem; color:#6b7280; margin-right:6px; }
+    .filter-bar select { padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; color:#111827; }
+    .filter-bar button { padding:8px 12px; border:1px solid #e5e7eb; border-radius:8px; background:#f9fafb; color:#374151; cursor:pointer; }
+    .filter-bar button:hover { background:#f3f4f6; }
+
+    .journal-card { background-color: #fff; border: 1px solid #eee; border-radius: 8px; padding: 16px; margin-bottom: 12px; text-decoration: none; color: inherit; display: block; box-shadow:0 2px 8px rgba(0,0,0,0.03); }
     .journal-card:hover { border-color: #ccc; }
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .card-title { font-size: 1.2rem; font-weight: bold; }
-    .card-meta { font-size: 0.85rem; color: #666; }
-    .card-content { font-size: 0.95rem; color: #555; margin-bottom: 12px; }
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
-    .stat-box { background-color: #f9f9f9; border-radius: 4px; padding: 10px; text-align: center; }
+    .card-meta { font-size: 0.85rem; color: #666; margin-left:auto; }
+    .card-content { font-size: 0.95rem; color: #555; margin-bottom: 8px; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 8px; }
+    .stat-box { background-color: #f9f9f9; border-radius: 8px; padding: 10px; text-align: center; border:1px solid #eee; }
     .stat-label { font-size: 0.75rem; color: #777; margin-bottom: 4px; }
-    .stat-value { font-size: 1.1rem; font-weight: 500; }
-    .pnl-positive { color: #28a745 !important; }
-    .pnl-negative { color: #dc3545 !important; }
+    .stat-value { font-size: 1.05rem; font-weight: 500; }
 </style>
 
 <div class="journal-container">
     <div class="header-section">
-        <h1>{{ stock_name }} ({{ ticker_symbol }}) 매매일지</h1>
-        <p>이 페이지에서는 {{ stock_name }} 종목에 대한 모든 개별 매매일지를 확인할 수 있습니다.</p>
+        <div class="header-title">
+            <h1>{{ stock_name }} ({{ ticker_symbol }})</h1>
+            <p>{{ stock_name }} 종목에 대한 개별 매매일지를 한곳에서 확인합니다.</p>
+        </div>
+        <a href="{% url 'journals:my_list' %}" class="back-button" aria-label="뒤로 가기">
+            &#8592; 목록으로
+        </a>
     </div>
+
+    <div class="summary-card" id="summary-card" data-net-qty="{% if summary.net_qty %}{{ summary.net_qty }}{% else %}0{% endif %}" data-principal="{% if summary.principal %}{{ summary.principal }}{% else %}0{% endif %}">
+        <div class="summary-header">
+            <div class="summary-title">보유 현황 요약</div>
+            <div class="summary-note">여러 일지의 수치를 종합해 보여줍니다.</div>
+        </div>
+        <div id="summary-hero" class="summary-hero {% if summary.return_rate %}{% if summary.return_rate > 0 %}positive{% elif summary.return_rate < 0 %}negative{% else %}neutral{% endif %}{% else %}neutral{% endif %}">
+          <div class="hero-left">
+            <div class="ticker-chip">{{ ticker_symbol|slice:":1" }}</div>
+            <div class="hero-title">
+              <div class="name">{{ stock_name }}</div>
+              <div class="ticker">{{ ticker_symbol }}</div>
+            </div>
+          </div>
+          <div class="hero-right">
+            <div class="price-big" id="price-big">{% if summary.current_price %}{{ summary.current_price|floatformat:2 }}{% else %}—{% endif %}</div>
+            <div class="pill" id="return-pill">{% if summary.return_rate %}{{ summary.return_rate|floatformat:2 }}%{% else %}—{% endif %}</div>
+          </div>
+        </div>
+        <div class="sparkline-wrap">
+            <canvas id="sparkline" class="sparkline-canvas"></canvas>
+        </div>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="summary-label">현재가</div>
+                <div class="summary-value" id="current-price">{% if summary.current_price %}{{ summary.current_price|floatformat:2 }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">1주 평균금액</div>
+                <div class="summary-value">{% if summary.avg_buy_price %}{{ summary.avg_buy_price|floatformat:2 }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">보유수량</div>
+                <div class="summary-value" id="net-qty">{% if summary.net_qty %}{{ summary.net_qty|floatformat:2 }}{% else %}0{% endif %}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">총금액(평가)</div>
+                <div class="summary-value" id="current-value">{% if summary.current_value %}{{ summary.current_value|floatformat:2 }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">투자원금</div>
+                <div class="summary-value">{% if summary.principal %}{{ summary.principal|floatformat:2 }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">수익률</div>
+                <div class="summary-value {% if summary.return_rate and summary.return_rate > 0 %}pnl-positive{% elif summary.return_rate and summary.return_rate < 0 %}pnl-negative{% endif %}" id="return-rate">
+                    {% if summary.return_rate %}{{ summary.return_rate|floatformat:2 }}%{% else %}—{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form class="filter-bar" method="get" action="">
+        <div>
+            <label for="period">기간</label>
+            <select name="period" id="period">
+                <option value="ALL" {% if filters.period == 'ALL' %}selected{% endif %}>전체</option>
+                <option value="1M" {% if filters.period == '1M' %}selected{% endif %}>1개월</option>
+                <option value="3M" {% if filters.period == '3M' %}selected{% endif %}>3개월</option>
+                <option value="6M" {% if filters.period == '6M' %}selected{% endif %}>6개월</option>
+                <option value="1Y" {% if filters.period == '1Y' %}selected{% endif %}>1년</option>
+            </select>
+        </div>
+        <div>
+            <label for="pnl">수익률</label>
+            <select name="pnl" id="pnl">
+                <option value="all" {% if filters.pnl == 'all' %}selected{% endif %}>전체</option>
+                <option value="positive" {% if filters.pnl == 'positive' %}selected{% endif %}>양수</option>
+                <option value="negative" {% if filters.pnl == 'negative' %}selected{% endif %}>음수</option>
+                <option value="zero" {% if filters.pnl == 'zero' %}selected{% endif %}>0%</option>
+            </select>
+        </div>
+        <div>
+            <label for="sort">정렬</label>
+            <select name="sort" id="sort">
+                <option value="created_desc" {% if filters.sort == 'created_desc' %}selected{% endif %}>최신순</option>
+                <option value="created_asc" {% if filters.sort == 'created_asc' %}selected{% endif %}>오래된순</option>
+                <option value="return_desc" {% if filters.sort == 'return_desc' %}selected{% endif %}>수익률 높은순</option>
+                <option value="return_asc" {% if filters.sort == 'return_asc' %}selected{% endif %}>수익률 낮은순</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit">적용</button>
+        </div>
+    </form>
 
     <div class="journal-list">
         {% if stock_journals %}
             {% for journal in stock_journals %}
                 <a href="{% url 'journals:stock_detail' journal.pk %}" class="journal-card">
                     <div class="card-header">
-                        <span class="card-title">매매일지 #{{ forloop.counter }}</span>
                         <span class="card-meta">{{ journal.created_at|date:"Y년 m월 d일" }}</span>
                     </div>
                     <div class="card-content">
@@ -66,4 +187,84 @@
         {% endif %}
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const ticker = '{{ ticker_symbol }}';
+  const card = document.getElementById('summary-card');
+  const sparkCanvas = document.getElementById('sparkline');
+  const elPrice = document.getElementById('current-price');
+  const priceBig = document.getElementById('price-big');
+  const elValue = document.getElementById('current-value');
+  const elReturn = document.getElementById('return-rate');
+  const returnPill = document.getElementById('return-pill');
+  const hero = document.getElementById('summary-hero');
+  const netQty = parseFloat(card.getAttribute('data-net-qty') || '0');
+  const principal = parseFloat(card.getAttribute('data-principal') || '0');
+
+  function drawSparkline(canvas, data) {
+    if (!canvas || !data || data.length < 2) return;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    ctx.scale(dpr, dpr);
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const padX = 2, padY = 4;
+    const innerW = width - padX * 2;
+    const innerH = height - padY * 2;
+    ctx.clearRect(0, 0, width, height);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#3b82f6';
+    ctx.beginPath();
+    data.forEach((v, i) => {
+      const x = padX + (i / (data.length - 1)) * innerW;
+      const t = (max - min) || 1;
+      const y = padY + innerH - ((v - min) / t) * innerH;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  // Sparkline: fetch history and draw last 30 closes
+  fetch(`/api/stock/${encodeURIComponent(ticker)}/history/`)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(json => {
+      const closes = (json.history || []).map(p => parseFloat(p.Close || p.close || 0)).filter(n => !isNaN(n));
+      const last30 = closes.slice(-30);
+      drawSparkline(sparkCanvas, last30);
+    })
+    .catch(() => {});
+
+  // Live quote: update price, valuation, and return rate
+  fetch(`/api/stock/quote?ticker=${encodeURIComponent(ticker)}`)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(json => {
+      const price = parseFloat(json.price);
+      if (!isNaN(price)) {
+        elPrice.textContent = price.toFixed(2);
+        if (priceBig) priceBig.textContent = price.toFixed(2);
+        if (netQty > 0) {
+          const curVal = price * netQty;
+          elValue.textContent = curVal.toFixed(2);
+          if (principal > 0) {
+            const rr = ((curVal - principal) / principal) * 100;
+            elReturn.textContent = rr.toFixed(2) + '%';
+            if (returnPill) returnPill.textContent = rr.toFixed(2) + '%';
+            elReturn.classList.remove('pnl-positive', 'pnl-negative');
+            if (rr > 0) elReturn.classList.add('pnl-positive');
+            else if (rr < 0) elReturn.classList.add('pnl-negative');
+            if (hero) {
+              hero.classList.remove('positive','negative','neutral');
+              hero.classList.add(rr > 0 ? 'positive' : (rr < 0 ? 'negative' : 'neutral'));
+            }
+          }
+        }
+      }
+    })
+    .catch(() => {});
+});
+</script>
 {% endblock %}
