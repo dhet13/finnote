@@ -398,6 +398,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // initializeAssetTypeButtons와 switchAssetType 함수는 dashboard.js로 이동됨
 
+// 주식 클릭 시 journal 앱으로 이동하는 함수 (전역 정의)
+window.navigateToStockJournal = function(ticker) {
+    console.log('navigateToStockJournal 호출됨, ticker:', ticker);
+    
+    if (!ticker || ticker.trim() === '') {
+        console.warn('Ticker symbol not found');
+        return;
+    }
+    
+    const encodedTicker = encodeURIComponent(ticker);
+    const journalUrl = `/journals/stock/summary/${encodedTicker}/`;
+    
+    console.log('이동할 URL:', journalUrl);
+    window.location.href = journalUrl;
+};
+
+// 주식 상세 페이지로 이동하는 함수 (전역 정의)
+window.navigateToStockDetail = function(stockName) {
+    console.log('navigateToStockDetail 호출됨, stockName:', stockName);
+    
+    const ticker = stockName;
+    const encodedTicker = encodeURIComponent(ticker);
+    const journalUrl = `/journals/stock/summary/${encodedTicker}/`;
+    
+    console.log('이동할 URL:', journalUrl);
+    window.location.href = journalUrl;
+};
+
 function initializeStockPortfolio() {
     // 기존 차트 제거 (안전한 체크)
     if (typeof stockSectorChart !== 'undefined' && stockSectorChart) {

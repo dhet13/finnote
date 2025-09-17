@@ -614,10 +614,15 @@ function getApiDataForPeriod(period, dataPoints) {
 // 대시보드 데이터 로드
 async function loadDashboardData() {
     try {
+        console.log('API 호출 시작: /dashboard/api/total/?interval=weekly');
+        
         // API에서 데이터 로드
         const response = await fetch('/dashboard/api/total/?interval=weekly', {
             credentials: 'same-origin'  // 쿠키 포함하여 요청
         });
+        
+        console.log('API 응답 상태:', response.status);
+        console.log('API 응답 OK:', response.ok);
         
         if (!response.ok) {
             if (response.status === 401) {
@@ -630,6 +635,7 @@ async function loadDashboardData() {
         }
         
         const data = await response.json();
+        console.log('API 응답 데이터:', data);
 
         if (data.status === 'error') {
             throw new Error(data.error || 'Unknown error');
@@ -650,7 +656,7 @@ async function loadDashboardData() {
         const totalChangeElement = document.getElementById('total-asset-change');
         
         if (totalAssetElement) {
-            totalAssetElement.textContent = '₩' + (totalValue / 1000).toFixed(2) + 'k';
+            totalAssetElement.textContent = formatCurrency(totalValue);
         }
         
         if (totalChangeElement) {
@@ -663,7 +669,7 @@ async function loadDashboardData() {
         // 주식과 부동산 카드 데이터 먼저 로드
         await loadCardData();
 
-        // 자산 데이터 업데이트
+        // 자산 데이터 업데이트 (API 데이터 사용)
         updateAssetCards();
         
         // 미니 차트 직접 업데이트 (초기화 시 필수) - loadCardData 완료 후
@@ -1897,26 +1903,40 @@ function updateStockAssetCard() {
     const valueElement = document.getElementById('stock-asset-value');
     const changeElement = document.getElementById('stock-asset-change');
     
-    if (assetData.hasStock) {
-        // 주식 자산이 있는 경우
-        const currentData = assetData.stock[currentCardPeriod];
+    // API 데이터가 있는지 확인
+    if (stockCardData && stockCardData.holdings) {
+        const holdings = stockCardData.holdings;
+        
+        // 총 시장 가치 포맷팅
+        const marketValue = holdings.total_market_value || 0;
+        const formattedValue = formatCurrency(marketValue);
         
         if (valueElement) {
-            valueElement.textContent = currentData.value;
+            valueElement.textContent = formattedValue;
             valueElement.style.color = '#0f1419';
         }
         
+        // 수익률 계산 및 표시
+        const returnRate = holdings.return_rate || 0;
+        const returnAmount = holdings.return_amount || 0;
+        const formattedReturn = formatReturnRate(returnRate);
+        
         if (changeElement) {
-            changeElement.textContent = currentData.change;
-            changeElement.style.color = currentData.changeValue >= 0 ? '#17bf63' : '#f91880';
-            changeElement.style.background = currentData.changeValue >= 0 ? 'rgba(23, 191, 99, 0.1)' : 'rgba(249, 24, 128, 0.1)';
+            changeElement.textContent = formattedReturn;
+            changeElement.style.color = returnRate >= 0 ? '#17bf63' : '#f91880';
+            changeElement.style.background = returnRate >= 0 ? 'rgba(23, 191, 99, 0.1)' : 'rgba(249, 24, 128, 0.1)';
             changeElement.style.display = 'inline-block';
         }
         
         // 주식 자산 차트 업데이트
         updateStockAssetChart();
+        
+        console.log('주식 자산 카드 업데이트 완료:', {
+            marketValue: formattedValue,
+            returnRate: formattedReturn
+        });
     } else {
-        // 주식 자산이 없는 경우 - 하이픈 표시
+        // API 데이터가 없는 경우 - 하이픈 표시
         if (valueElement) {
             valueElement.textContent = '-';
             valueElement.style.color = '#536471';
@@ -1926,8 +1946,10 @@ function updateStockAssetCard() {
             changeElement.style.display = 'none';
         }
         
-        // 차트 영역 비우기 (더미 데이터로 차트 생성)
+        // 차트 영역 비우기
         clearStockAssetChart();
+        
+        console.log('주식 자산 카드: API 데이터 없음');
     }
 }
 
@@ -1936,26 +1958,40 @@ function updatePropertyAssetCard() {
     const valueElement = document.getElementById('property-asset-value');
     const changeElement = document.getElementById('property-asset-change');
     
-    if (assetData.hasProperty) {
-        // 부동산 자산이 있는 경우
-        const currentData = assetData.property[currentCardPeriod];
+    // API 데이터가 있는지 확인
+    if (propertyCardData && propertyCardData.holdings) {
+        const holdings = propertyCardData.holdings;
+        
+        // 총 시장 가치 포맷팅
+        const marketValue = holdings.total_market_value || 0;
+        const formattedValue = formatCurrency(marketValue);
         
         if (valueElement) {
-            valueElement.textContent = currentData.value;
+            valueElement.textContent = formattedValue;
             valueElement.style.color = '#0f1419';
         }
         
+        // 수익률 계산 및 표시
+        const returnRate = holdings.return_rate || 0;
+        const returnAmount = holdings.return_amount || 0;
+        const formattedReturn = formatReturnRate(returnRate);
+        
         if (changeElement) {
-            changeElement.textContent = currentData.change;
-            changeElement.style.color = currentData.changeValue >= 0 ? '#17bf63' : '#f91880';
-            changeElement.style.background = currentData.changeValue >= 0 ? 'rgba(23, 191, 99, 0.1)' : 'rgba(249, 24, 128, 0.1)';
+            changeElement.textContent = formattedReturn;
+            changeElement.style.color = returnRate >= 0 ? '#17bf63' : '#f91880';
+            changeElement.style.background = returnRate >= 0 ? 'rgba(23, 191, 99, 0.1)' : 'rgba(249, 24, 128, 0.1)';
             changeElement.style.display = 'inline-block';
         }
         
         // 부동산 자산 차트 업데이트
         updatePropertyAssetChart();
+        
+        console.log('부동산 자산 카드 업데이트 완료:', {
+            marketValue: formattedValue,
+            returnRate: formattedReturn
+        });
     } else {
-        // 부동산 자산이 없는 경우 - 하이픈 표시
+        // API 데이터가 없는 경우 - 하이픈 표시
         if (valueElement) {
             valueElement.textContent = '-';
             valueElement.style.color = '#536471';
@@ -1967,6 +2003,8 @@ function updatePropertyAssetCard() {
         
         // 차트 영역 비우기
         clearPropertyAssetChart();
+        
+        console.log('부동산 자산 카드: API 데이터 없음');
     }
 }
 
@@ -2456,6 +2494,35 @@ function startLoginStatusCheck() {
 }
 
 // 포트폴리오 페이지 전용 함수들 (중복 제거됨 - 기존 함수들 사용)
+
+// 통화 포맷팅 함수 (통일된 형식)
+function formatCurrency(amount) {
+    if (amount === 0 || amount === null || amount === undefined) {
+        return '0원';
+    }
+    
+    const absAmount = Math.abs(amount);
+    
+    if (absAmount >= 100000000) {
+        return (amount / 100000000).toFixed(1) + '억원';
+    } else if (absAmount >= 10000) {
+        return (amount / 10000).toFixed(1) + '만원';
+    } else if (absAmount >= 1000) {
+        return (amount / 1000).toFixed(1) + 'k원';
+    } else {
+        return Math.round(amount).toLocaleString() + '원';
+    }
+}
+
+// 수익률 포맷팅 함수
+function formatReturnRate(rate) {
+    if (rate === 0 || rate === null || rate === undefined) {
+        return '0.0%';
+    }
+    
+    const sign = rate > 0 ? '+' : '';
+    return `${sign}${rate.toFixed(2)}%`;
+}
 
 // 페이지 로드 시 자동 초기화
 document.addEventListener('DOMContentLoaded', function() {
