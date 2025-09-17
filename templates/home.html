@@ -1,32 +1,217 @@
-{% extends 'base.html' %}
 
-{% block feed %}
-<div class="what-is-happening" style="padding: var(--spacing-medium); border-bottom: 1px solid var(--border-color);">
-    <h2>What's happening?</h2>
-    <!-- Calendar Icon to trigger modal -->
-    <span id="compose-trigger" style="cursor: pointer; font-size: 24px;" title="매매일지 작성">🗓️</span>
-    <div style="font-size: 14px; color: var(--dark-gray); margin-top: var(--spacing-small);">클릭하여 매매일지를 작성하세요.</div>
-</div>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FINNOTE - 투자의 새로운 시작</title>
+</head>
+<body>
+    <div class="landing-container">
+        <!-- 왼쪽 영역 - 로고 -->
+        <div class="logo-section">
+            <div class="logo-icon">
+                📝
+            </div>
+        </div>
 
-<div id="feed-content">
-    <!-- New cards will be inserted here -->
-</div>
-{% endblock %}
+        <!-- 오른쪽 영역 - 가입/로그인 -->
+        <div class="auth-section">
+            <div class="auth-content">
+                <h1 class="main-title">투자의 새로운 시작</h1>
+                <h2 class="sub-title">FINNOTE와 함께 시작하세요</h2>
+                
+                <div class="auth-buttons">
+                    <button class="btn-primary" onclick="goToSignup()">
+                        계정 만들기
+                    </button>
+                    
+                    <div class="login-section">
+                        <p class="login-text">이미 계정이 있으신가요?</p>
+                        <button class="btn-secondary" onclick="goToLogin()">
+                            로그인
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const composeTrigger = document.getElementById('compose-trigger');
-    if (composeTrigger) {
-        composeTrigger.addEventListener('click', () => {
-            if (window.innerWidth < 768) {
-                window.location.href = "/journals/compose/?asset=stock";
-            } else {
-                openModal('/journals/compose/?asset=stock&modal=1');
-            }
-        });
+    <script>
+    function goToSignup() {
+        // 회원가입 페이지로 이동
+        window.location.href = "/accounts/signup/";
     }
-});
-</script>
-{% endblock %}
 
+    function goToLogin() {
+        // 로그인 페이지로 이동  
+        window.location.href = "/accounts/login/";
+    }
+    </script>
+</body>
+</html>
+
+<style>
+.landing-container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #E6F3FF;
+}
+
+/* 왼쪽 로고 영역 */
+.logo-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #E6F3FF;
+}
+
+.logo-icon {
+    font-size: 280px;
+    color: #fff;
+    user-select: none;
+}
+
+/* 오른쪽 인증 영역 */
+.auth-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    background-color: #E6F3FF;
+    padding: 20px;
+}
+
+.auth-content {
+    max-width: 400px;
+    width: 100%;
+}
+
+.main-title {
+    font-size: 64px;
+    font-weight: 700;
+    color: #000000;
+    margin: 0 0 48px 0;
+    line-height: 84px;
+    letter-spacing: -1.2px;
+    white-space: nowrap;
+}
+
+.sub-title {
+    font-size: 31px;
+    font-weight: 700;
+    color: #000000;
+    margin: 0 0 32px 0;
+    line-height: 36px;
+}
+
+.auth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.btn-primary {
+    background-color: #1d9bf0;
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    height: 40px;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #1a8cd8;
+}
+
+.login-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.login-text {
+    font-size: 17px;
+    font-weight: 700; 
+    color: #000000;
+    margin: 0;
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: #1d9bf0;
+    border: 1px solid #536471;
+    border-radius: 50px;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    height: 40px;
+    transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: rgba(29, 155, 240, 0.1);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1000px) {
+    .landing-container {
+        flex-direction: column;
+    }
+    
+    .logo-section {
+        flex: none;
+        height: 40vh;
+    }
+    
+    .logo-icon {
+        font-size: 120px;
+    }
+    
+    .auth-section {
+        flex: none;
+        justify-content: center;
+        padding: 40px 20px;
+    }
+    
+    .main-title {
+        font-size: 48px;
+        line-height: 56px;
+        margin-bottom: 32px;
+    }
+    
+    .sub-title {
+        font-size: 24px;
+        line-height: 28px;
+        margin-bottom: 24px;
+    }
+}
+
+@media (max-width: 600px) {
+    .logo-icon {
+        font-size: 80px;
+    }
+    
+    .main-title {
+        font-size: 32px;
+        line-height: 36px;
+    }
+    
+    .sub-title {
+        font-size: 20px;
+        line-height: 24px;
+    }
+    
+    .auth-section {
+        padding: 20px;
+    }
+}
+</style>
