@@ -113,7 +113,35 @@ def api_portfolio(request: HttpRequest) -> JsonResponse:
             'real_estate_holdings': calculator.get_real_estate_holdings(),
             'sector_breakdown': calculator.get_sector_breakdown(),
             'region_breakdown': calculator.get_region_breakdown(),
-            'timeseries_data': calculator.get_timeseries_data()
+            'timeseries_data': calculator.get_timeseries_data(),
+            'recent_journal_entries': calculator.get_recent_journal_entries(),
+            'journal_statistics': calculator.get_journal_statistics()
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def api_journal_entries(request: HttpRequest) -> JsonResponse:
+    """매매일지 데이터 API"""
+    from .services import DashboardDataCalculator
+    
+    limit = int(request.GET.get('limit', 10))
+    
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    try:
+        calculator = DashboardDataCalculator(
+            user_id=request.user.id, 
+            asset_type=None,
+            interval='weekly'
+        )
+        
+        data = {
+            'recent_entries': calculator.get_recent_journal_entries(limit),
+            'statistics': calculator.get_journal_statistics()
         }
         
         return JsonResponse(data)

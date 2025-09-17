@@ -45,7 +45,22 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadCardData(interval) {
     try {
         // 1. 선택된 interval을 URL 파라미터로 붙여 API에 데이터를 요청합니다.
-        const response = await fetch(`/dashboard/api/total/?interval=${interval}`);
+        const response = await fetch(`/dashboard/api/total/?interval=${interval}`, {
+            credentials: 'same-origin'
+        });
+
+        if (response.status === 401) {
+            console.log('카드 데이터 로드 실패: 로그인 필요');
+            showLoginRequired();
+            return;
+        }
+
+        if (!response.ok) {
+            console.error('카드 데이터 로드 실패:', response.status, response.statusText);
+            showLoginRequired();
+            return;
+        }
+
         const data = await response.json();
 
         // 2. 받아온 데이터로 카드 내용을 업데이트합니다.
@@ -59,11 +74,63 @@ async function loadCardData(interval) {
         changeEl.className = `stat-change ${changePercent >= 0 ? 'positive' : 'negative'}`;
 
         // 3. 막대 그래프를 그립니다.
-        drawMiniBarChart(data.series);
+        if (data.series && data.series.length > 0) {
+            drawMiniBarChart(data.series);
+        } else {
+            // 데이터가 없으면 빈 차트 표시
+            showEmptyChart();
+        }
 
     } catch (error) {
         console.error('카드 데이터를 불러오는 중 오류 발생:', error);
+        showLoginRequired();
     }
+}
+
+// 로그인 안내 표시 함수
+function showLoginRequired() {
+    const totalValueEl = document.getElementById('total-asset-value');
+    const changeEl = document.getElementById('asset-change-pct');
+    
+    if (totalValueEl) {
+        totalValueEl.textContent = '-';
+        totalValueEl.style.color = '#536471';
+    }
+    
+    if (changeEl) {
+        changeEl.textContent = '-';
+        changeEl.style.display = 'none';
+    }
+    
+    // 빈 차트 표시
+    showEmptyChart();
+    
+    console.log('로그인 안내 표시 완료');
+}
+
+// 빈 차트 표시 함수
+function showEmptyChart() {
+    const canvas = document.getElementById('mini-bar-chart');
+    if (!canvas) return;
+    
+    // 기존 차트 제거
+    if (miniBarChart) {
+        miniBarChart.destroy();
+        miniBarChart = null;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 회색 점선으로 "데이터 없음" 표시
+    ctx.strokeStyle = '#d1d5db';
+    ctx.setLineDash([2, 2]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(5, canvas.height / 2);
+    ctx.lineTo(canvas.width - 5, canvas.height / 2);
+    ctx.stroke();
+    ctx.setLineDash([]); // 점선 해제
 }
 
 // 막대 그래프를 그리는 함수

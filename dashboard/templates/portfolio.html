@@ -262,6 +262,19 @@
                 <!-- JavaScript로 동적 생성 -->
             </div>
         </div>
+
+        <!-- 최근 매매일지 섹션 -->
+        <div class="recent-journal-container" style="margin-top: 40px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>최근 매매일지</h3>
+                <div class="journal-stats" id="journal-stats">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+            <div class="journal-entries-list" id="journal-entries-list">
+                <!-- JavaScript로 동적 생성 -->
+            </div>
+        </div>
     </div>
 {% endblock %}
 
@@ -270,7 +283,7 @@
 // 포트폴리오 페이지 전용 JavaScript
 // currentAssetType, stockSectorChart, realEstateChart는 dashboard.js에서 정의됨
 
-// 포트폴리오 페이지 즉시 초기화 함수 (AJAX 로딩 시에도 작동)
+    // 포트폴리오 페이지 즉시 초기화 함수 (AJAX 로딩 시에도 작동)
 function initializePortfolioPage() {
     console.log('포트폴리오 페이지 즉시 초기화 시작');
     
@@ -291,6 +304,11 @@ function initializePortfolioPage() {
     // 차트 초기화
     if (typeof initializeTotalPage === 'function') {
         initializeTotalPage();
+    }
+    
+    // 매매일지 데이터 로드
+    if (typeof loadJournalEntries === 'function') {
+        loadJournalEntries();
     }
     
     console.log('포트폴리오 페이지 초기화 완료');

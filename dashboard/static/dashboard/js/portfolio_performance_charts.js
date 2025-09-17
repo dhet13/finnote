@@ -80,6 +80,58 @@ function showPortfolioLoginRequired() {
     console.log('포트폴리오 페이지 로그인 안내 표시 완료');
 }
 
+// 포트폴리오 빈 상태 표시
+function showEmptyPortfolioState() {
+    const container = document.querySelector('.sector-cards-grid');
+    if (!container) {
+        console.log('sector-cards-grid 컨테이너를 찾을 수 없음');
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="no-data-message" style="
+            background: #f7f9fa;
+            padding: 40px 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        ">
+            <div style="font-size: 24px; color: #0f1419; margin-bottom: 12px; font-weight: 600;">
+                📈 포트폴리오 데이터 없음
+            </div>
+            <div style="font-size: 16px; color: #536471; margin-bottom: 20px;">
+                아직 보유한 주식이 없습니다
+            </div>
+            <div style="font-size: 14px; color: #536471; margin-bottom: 24px; max-width: 400px; line-height: 1.5;">
+                매매일지를 작성하여 주식을 추가하면<br>
+                포트폴리오 분석을 확인할 수 있습니다
+            </div>
+            <a href="/journals/compose/" style="
+                display: inline-block;
+                background: #1d9bf0;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 6px;
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 14px;
+                transition: all 0.2s;
+                box-shadow: 0 2px 6px rgba(29, 155, 240, 0.3);
+            " onmouseover="this.style.background='#1a8cd8'; this.style.transform='translateY(-1px)'" 
+               onmouseout="this.style.background='#1d9bf0'; this.style.transform='translateY(0)'">
+                매매일지 작성하기
+            </a>
+        </div>
+    `;
+    
+    console.log('포트폴리오 빈 상태 표시 완료');
+}
+
 // 포트폴리오 페이지 초기화 (로그인된 경우)
 function initializePortfolioPage() {
     console.log('포트폴리오 페이지 초기화 시작');
@@ -147,6 +199,13 @@ async function loadPortfolioData() {
         
         if (response.status === 401) {
             console.log('포트폴리오 데이터 로드 실패: 로그인 필요');
+            showPortfolioLoginRequired();
+            return;
+        }
+        
+        if (!response.ok) {
+            console.error('포트폴리오 API 호출 실패:', response.status, response.statusText);
+            showPortfolioLoginRequired();
             return;
         }
         
@@ -164,19 +223,21 @@ async function loadPortfolioData() {
         }
         
         // 주식 보유 자산으로 섹터 카드 업데이트
-        if (data.stock_holdings) {
+        if (data.stock_holdings && data.stock_holdings.length > 0) {
             updateSectorCards(data.stock_holdings);
         } else {
-            updateSectorCards();
+            // API 데이터가 없으면 빈 상태 표시
+            showEmptyPortfolioState();
         }
         
         // 부동산 보유 자산으로 부동산 카드 업데이트
-        if (data.real_estate_holdings) {
+        if (data.real_estate_holdings && data.real_estate_holdings.length > 0) {
             updatePropertyCards(data.real_estate_holdings);
         }
         
     } catch (error) {
         console.error('포트폴리오 데이터 로드 오류:', error);
+        showPortfolioLoginRequired();
     }
 }
 
@@ -1226,34 +1287,34 @@ function updateSectorCards(stockHoldings) {
     const isDaily = currentSectorReturnPeriod === 'daily';
     const returnSuffix = isDaily ? '일간' : '주간';
     
-    // API 데이터가 있으면 사용, 없으면 기본 데이터 사용
-    let dataToUse;
-    if (stockHoldings && Array.isArray(stockHoldings)) {
-        console.log('API 데이터 받음:', stockHoldings);
-        console.log('첫 번째 항목 구조:', stockHoldings[0]);
-        
-        // API 데이터를 섹터별로 그룹화
-        const sectorGroups = {};
-        stockHoldings.forEach(holding => {
-            const sector = holding.sector || holding.sector_name || '기타';
-            if (!sectorGroups[sector]) {
-                sectorGroups[sector] = [];
-            }
-            sectorGroups[sector].push(holding);
-        });
-        
-        // 섹터가 없으면 모든 데이터를 '기타'로 그룹화
-        if (Object.keys(sectorGroups).length === 0 || (Object.keys(sectorGroups).length === 1 && sectorGroups['기타'])) {
-            console.log('섹터 정보가 없어서 모든 데이터를 기타로 그룹화');
-            sectorGroups['기타'] = stockHoldings;
-        }
-        
-        dataToUse = sectorGroups;
-        console.log('API 데이터 섹터별 그룹화 완료:', dataToUse);
-    } else {
-        dataToUse = dynamicStockData;
-        console.log('기본 데이터 사용:', dataToUse);
+    // API 데이터가 없으면 빈 상태 표시
+    if (!stockHoldings || !Array.isArray(stockHoldings) || stockHoldings.length === 0) {
+        console.log('API 데이터가 없어서 빈 상태 표시');
+        showEmptyPortfolioState();
+        return;
     }
+    
+    console.log('API 데이터 받음:', stockHoldings);
+    console.log('첫 번째 항목 구조:', stockHoldings[0]);
+    
+    // API 데이터를 섹터별로 그룹화
+    const sectorGroups = {};
+    stockHoldings.forEach(holding => {
+        const sector = holding.sector || holding.sector_name || '기타';
+        if (!sectorGroups[sector]) {
+            sectorGroups[sector] = [];
+        }
+        sectorGroups[sector].push(holding);
+    });
+    
+    // 섹터가 없으면 모든 데이터를 '기타'로 그룹화
+    if (Object.keys(sectorGroups).length === 0 || (Object.keys(sectorGroups).length === 1 && sectorGroups['기타'])) {
+        console.log('섹터 정보가 없어서 모든 데이터를 기타로 그룹화');
+        sectorGroups['기타'] = stockHoldings;
+    }
+    
+    const dataToUse = sectorGroups;
+    console.log('API 데이터 섹터별 그룹화 완료:', dataToUse);
     
     // 데이터를 기반으로 섹터 카드 생성
     const sectors = Object.keys(dataToUse);

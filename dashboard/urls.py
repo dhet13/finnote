@@ -5,7 +5,7 @@ from django.shortcuts import redirect
 # 페이지 뷰 import
 from .views.pages import total_page, portfolio_page, total_content, portfolio_content
 # API 뷰 import
-from .views.api import api_total, api_stock, api_real_estate, api_total_timeseries, api_portfolio
+from .views.api import api_total, api_stock, api_real_estate, api_total_timeseries, api_portfolio, api_journal_entries
 
 def dashboard_index(request):
     """대시보드 메인 페이지 - 자산 현황으로 리다이렉트"""
@@ -29,4 +29,5 @@ urlpatterns = [
     path("api/stock/", api_stock, name="api_stock"),
     path("api/real_estate/", api_real_estate, name="api_real_estate"),
     path("api/portfolio/", api_portfolio, name="api_portfolio"),
+    path("api/journal_entries/", api_journal_entries, name="api_journal_entries"),
 ]

@@ -607,7 +607,7 @@ function getApiDataForPeriod(period, dataPoints) {
             return apiData.slice(-dataPoints).map(item => {
                 const rate = item.cumulative_return_rate || 0;
                 return rate < -100 ? 0 : rate;
-            });
+    });
     }
 }
 
@@ -696,10 +696,16 @@ async function loadCardData() {
             credentials: 'same-origin'
         });
         
-        if (stockResponse.ok) {
+        if (stockResponse.status === 401) {
+            console.log('주식 카드 데이터 로드 실패: 로그인 필요');
+            stockCardData = null;
+        } else if (stockResponse.ok) {
             const stockData = await stockResponse.json();
             stockCardData = stockData;
             console.log('주식 카드 데이터 로드 완료:', stockData);
+        } else {
+            console.error('주식 카드 데이터 로드 실패:', stockResponse.status);
+            stockCardData = null;
         }
         
         // 부동산 데이터 로드
@@ -707,10 +713,16 @@ async function loadCardData() {
             credentials: 'same-origin'
         });
         
-        if (propertyResponse.ok) {
+        if (propertyResponse.status === 401) {
+            console.log('부동산 카드 데이터 로드 실패: 로그인 필요');
+            propertyCardData = null;
+        } else if (propertyResponse.ok) {
             const propertyData = await propertyResponse.json();
             propertyCardData = propertyData;
             console.log('부동산 카드 데이터 로드 완료:', propertyData);
+        } else {
+            console.error('부동산 카드 데이터 로드 실패:', propertyResponse.status);
+            propertyCardData = null;
         }
         
     } catch (error) {

@@ -2,7 +2,7 @@
 from django.db.models import Sum, Q
 from decimal import Decimal
 from datetime import datetime, timedelta
-from dashboard.models import PortfolioHolding, PortfolioSnapshot
+from dashboard.models import PortfolioHolding, PortfolioSnapshot, AssetLogUnified
 import requests
 
 
@@ -207,29 +207,6 @@ class DashboardDataCalculator:
                 })
         
         return timeseries
-
-
-def build_total_card_payload(user_id, interval='weekly'):
-    """총자산 카드 데이터 생성"""
-    calculator = DashboardDataCalculator(user_id, None, interval)
-    return calculator.get_data_payload()
-
-
-def build_asset_line_payload(user_id, asset_type, interval='weekly'):
-    """자산별 라인 차트 데이터 생성"""
-    calculator = DashboardDataCalculator(user_id, asset_type, interval)
-    return calculator.get_data_payload()
-
-
-def build_total_timeseries_payload(user_id, interval='weekly'):
-    """총자산 시계열 데이터 생성"""
-    calculator = DashboardDataCalculator(user_id, None, interval)
-    return calculator.get_data_payload()
-
-
-# DashboardDataCalculator에 필요한 메서드들 추가
-def add_portfolio_methods():
-    """포트폴리오 관련 메서드들을 DashboardDataCalculator에 추가"""
     
     def get_total_value(self):
         """총 자산 가치 반환"""
@@ -324,15 +301,220 @@ def add_portfolio_methods():
         """시계열 데이터 반환"""
         return self._get_timeseries_data()
     
-    # 메서드들을 클래스에 추가
-    DashboardDataCalculator.get_total_value = get_total_value
-    DashboardDataCalculator.get_total_change = get_total_change
-    DashboardDataCalculator.get_total_change_percent = get_total_change_percent
-    DashboardDataCalculator.get_stock_holdings = get_stock_holdings
-    DashboardDataCalculator.get_real_estate_holdings = get_real_estate_holdings
-    DashboardDataCalculator.get_sector_breakdown = get_sector_breakdown
-    DashboardDataCalculator.get_region_breakdown = get_region_breakdown
-    DashboardDataCalculator.get_timeseries_data = get_timeseries_data
+    def get_recent_journal_entries(self, limit=10):
+        """최근 매매일지 항목 반환"""
+        from home.models import Post
+        
+        # AssetLogUnified에서 매매일지 관련 데이터만 필터링
+        journal_logs = AssetLogUnified.objects.filter(
+            user_id=self.user_id,
+            source_table='journal_posts'
+        ).order_by('-created_at')[:limit]
+        
+        journal_entries = []
+        for log in journal_logs:
+            # Post 모델에서 실제 매매일지 데이터 가져오기
+            try:
+                post = Post.objects.get(id=log.log_id)
+                journal_entries.append({
+                    'id': post.id,
+                    'content': post.content,
+                    'asset_name': log.asset_name,
+                    'asset_type': log.asset_type,
+                    'total_amount': float(log.total_amount) if log.total_amount else 0,
+                    'trade_date': log.trade_date,
+                    'created_at': post.created_at,
+                    'embed_payload': post.embed_payload_json
+                })
+            except Post.DoesNotExist:
+                continue
+        
+        return journal_entries
+    
+    def get_journal_statistics(self):
+        """매매일지 통계 반환"""
+        journal_logs = AssetLogUnified.objects.filter(
+            user_id=self.user_id,
+            source_table='journal_posts'
+        )
+        
+        total_entries = journal_logs.count()
+        stock_entries = journal_logs.filter(asset_type='stock').count()
+        real_estate_entries = journal_logs.filter(asset_type='real_estate').count()
+        
+        # 최근 30일간 작성한 매매일지 수
+        from datetime import datetime, timedelta
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        recent_entries = journal_logs.filter(created_at__gte=thirty_days_ago).count()
 
-# 메서드들 추가
-add_portfolio_methods()
+        return {
+            'total_entries': total_entries,
+            'stock_entries': stock_entries,
+            'real_estate_entries': real_estate_entries,
+            'recent_entries': recent_entries
+        }
+
+
+def build_total_card_payload(user_id, interval='weekly'):
+    """총자산 카드 데이터 생성"""
+    calculator = DashboardDataCalculator(user_id, None, interval)
+    return calculator.get_data_payload()
+
+
+def build_asset_line_payload(user_id, asset_type, interval='weekly'):
+    """자산별 라인 차트 데이터 생성"""
+    calculator = DashboardDataCalculator(user_id, asset_type, interval)
+    return calculator.get_data_payload()
+
+
+def build_total_timeseries_payload(user_id, interval='weekly'):
+    """총자산 시계열 데이터 생성"""
+    calculator = DashboardDataCalculator(user_id, None, interval)
+    return calculator.get_data_payload()
+
+
+    def get_total_value(self):
+        """총 자산 가치 반환"""
+        holdings = PortfolioHolding.objects.filter(user_id=self.user_id)
+        total_value = Decimal('0')
+        for holding in holdings:
+            converted_amount = CurrencyConverter.convert_to_krw(holding.invested_amount, holding.currency_code)
+            total_value += converted_amount
+        return float(total_value)
+    
+    def get_total_change(self):
+        """총 자산 변화량 반환"""
+        snapshots = PortfolioSnapshot.objects.filter(user_id=self.user_id).order_by('-snapshot_date')[:2]
+        if len(snapshots) >= 2:
+            # market_value 차이로 변화량 계산 (통화 변환 적용)
+            current_value = float(CurrencyConverter.convert_to_krw(snapshots[0].market_value or 0, snapshots[0].currency_code))
+            previous_value = float(CurrencyConverter.convert_to_krw(snapshots[1].market_value or 0, snapshots[1].currency_code))
+            return current_value - previous_value
+        return 0.0
+    
+    def get_total_change_percent(self):
+        """총 자산 변화율 반환"""
+        snapshots = PortfolioSnapshot.objects.filter(user_id=self.user_id).order_by('-snapshot_date')[:2]
+        if len(snapshots) >= 2:
+            # market_value 차이로 변화율 계산 (통화 변환 적용)
+            current_value = float(CurrencyConverter.convert_to_krw(snapshots[0].market_value or 0, snapshots[0].currency_code))
+            previous_value = float(CurrencyConverter.convert_to_krw(snapshots[1].market_value or 0, snapshots[1].currency_code))
+            if previous_value > 0:
+                return ((current_value - previous_value) / previous_value) * 100
+        return 0.0
+    
+    def get_stock_holdings(self):
+        """주식 보유 자산 반환"""
+        holdings = PortfolioHolding.objects.filter(user_id=self.user_id, asset_type='stock')
+        return [
+            {
+                'name': h.asset_name,
+                'ticker': h.stock_ticker_symbol or '',
+                'sector': h.sector_or_region,
+                'quantity': float(h.total_quantity),
+                'market_value': float(CurrencyConverter.convert_to_krw(h.invested_amount, h.currency_code)),
+                'currency': 'KRW'  # 모든 값을 원화로 변환
+            }
+            for h in holdings
+        ]
+    
+    def get_real_estate_holdings(self):
+        """부동산 보유 자산 반환"""
+        holdings = PortfolioHolding.objects.filter(user_id=self.user_id, asset_type='real_estate')
+        return [
+            {
+                'name': h.asset_name,
+                'region': h.sector_or_region,
+                'quantity': float(h.total_quantity),
+                'market_value': float(CurrencyConverter.convert_to_krw(h.invested_amount, h.currency_code)),
+                'currency': 'KRW'  # 모든 값을 원화로 변환
+            }
+            for h in holdings
+        ]
+    
+    def get_sector_breakdown(self):
+        """섹터별 분해 반환"""
+        holdings = PortfolioHolding.objects.filter(user_id=self.user_id, asset_type='stock')
+        sector_data = {}
+        
+        for holding in holdings:
+            sector = holding.sector_or_region
+            if sector not in sector_data:
+                sector_data[sector] = 0
+            # 통화 변환 적용
+            converted_amount = CurrencyConverter.convert_to_krw(holding.invested_amount, holding.currency_code)
+            sector_data[sector] += float(converted_amount)
+        
+        return sector_data
+    
+    def get_region_breakdown(self):
+        """지역별 분해 반환"""
+        holdings = PortfolioHolding.objects.filter(user_id=self.user_id, asset_type='real_estate')
+        region_data = {}
+        
+        for holding in holdings:
+            region = holding.sector_or_region
+            if region not in region_data:
+                region_data[region] = 0
+            # 통화 변환 적용
+            converted_amount = CurrencyConverter.convert_to_krw(holding.invested_amount, holding.currency_code)
+            region_data[region] += float(converted_amount)
+        
+        return region_data
+    
+    def get_timeseries_data(self):
+        """시계열 데이터 반환"""
+        return self._get_timeseries_data()
+    
+    def get_recent_journal_entries(self, limit=10):
+        """최근 매매일지 항목 반환"""
+        from home.models import Post
+        
+        # AssetLogUnified에서 매매일지 관련 데이터만 필터링
+        journal_logs = AssetLogUnified.objects.filter(
+            user_id=self.user_id,
+            source_table='journal_posts'
+        ).order_by('-created_at')[:limit]
+        
+        journal_entries = []
+        for log in journal_logs:
+            # Post 모델에서 실제 매매일지 데이터 가져오기
+            try:
+                post = Post.objects.get(id=log.log_id)
+                journal_entries.append({
+                    'id': post.id,
+                    'content': post.content,
+                    'asset_name': log.asset_name,
+                    'asset_type': log.asset_type,
+                    'total_amount': float(log.total_amount) if log.total_amount else 0,
+                    'trade_date': log.trade_date,
+                    'created_at': post.created_at,
+                    'embed_payload': post.embed_payload_json
+                })
+            except Post.DoesNotExist:
+                continue
+        
+        return journal_entries
+    
+    def get_journal_statistics(self):
+        """매매일지 통계 반환"""
+        journal_logs = AssetLogUnified.objects.filter(
+            user_id=self.user_id,
+            source_table='journal_posts'
+        )
+        
+        total_entries = journal_logs.count()
+        stock_entries = journal_logs.filter(asset_type='stock').count()
+        real_estate_entries = journal_logs.filter(asset_type='real_estate').count()
+        
+        # 최근 30일간 작성한 매매일지 수
+        from datetime import datetime, timedelta
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        recent_entries = journal_logs.filter(created_at__gte=thirty_days_ago).count()
+
+        return {
+            'total_entries': total_entries,
+            'stock_entries': stock_entries,
+            'real_estate_entries': real_estate_entries,
+            'recent_entries': recent_entries
+        }
