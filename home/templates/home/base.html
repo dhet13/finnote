@@ -425,6 +425,27 @@
             font-size: 20px;
             color: #536471;
         }
+        /* 네비게이션 링크 스타일 완전 제거 */
+        .nav-menu a,
+        .nav-menu a:link,
+        .nav-menu a:visited,
+        .nav-menu a:hover,
+        .nav-menu a:active,
+        .nav-menu a:focus {
+            text-decoration: none !important;
+            color: inherit !important;
+            outline: none !important;
+            border: none !important;
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .nav-menu a:hover {
+            background-color: rgba(29, 155, 240, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -432,7 +453,7 @@
     <div class="header-placeholder">
         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 1200px;">
             <div style="font-weight: bold; font-size: 20px;">
-                <a href="{% url 'home' %}" style="text-decoration: none; color: #0f1419;">Home</a>
+                <a href="{% url 'home:home_feed' %}" style="text-decoration: none; color: var(--black);">Home</a>
             </div>
             <div style="text-align: center;">
                 <input type="text" placeholder="Search" style="width: 400px; height: 40px; border-radius: 20px; border: 1px solid #eff3f4; padding: 0 16px;">
@@ -456,50 +477,58 @@
         <!-- 좌측 사이드바 placeholder -->
         <div class="left-sidebar-placeholder">
             <div style="font-size: 30px; margin-bottom: 20px;">
-                🦁
+                📝
             </div>
             <nav>
                 <ul class="nav-menu">
-                    <li class="nav-item active" data-target="home">
-                        <span class="icon">
-                            <img src="{% static 'icon/home.svg' %}" alt="홈">
-                        </span>
-                        <span class="text">홈</span>
+                    <li class="nav-item active">
+                        <a href="{% url 'home:home_feed' %}"style="text-decoration: none; color: inherit;">
+                            <span class="icon">
+                                <img src="{% static 'icon/home.svg' %}" alt="홈">
+                            </span>
+                            <span class="text">홈</span>
+                        </a>
                     </li>
-                    <li class="nav-item" data-target="dashboard">
-                        <span class="icon">
-                            <img src="{% static 'icon/dashboard.svg' %}" alt="대시보드">
-                        </span>
-                        <span class="text">대시 보드</span>
+                    <li class="nav-item">
+                        <a href="/dashboard/"style="text-decoration: none; color: inherit;">
+                            <span class="icon">
+                                <img src="{% static 'icon/dashboard.svg' %}" alt="대시보드">
+                            </span>
+                            <span class="text">대시 보드</span>
+                        </a>
                     </li>
-                    <li class="nav-item" data-target="trading journal">
-                        <span class="icon">
-                            <img src="{% static 'icon/journal.svg' %}" alt="매매일지">
-                        </span>
-                        <span class="text">매매 일지</span>
+                    <li class="nav-item">
+                        <a href="/journals/my-list/"style="text-decoration: none; color: inherit;">
+                            <span class="icon">
+                                <img src="{% static 'icon/journal.svg' %}" alt="매매일지">
+                            </span>
+                            <span class="text">매매 일지</span>
+                        </a>
                     </li>
-                    <li class="nav-item" data-target="bookmarks">
-                        <span class="icon">
-                            <img src="{% static 'icon/bookmarks.svg' %}" alt="북마크">
-                        </span>
-                        <span class="text">북마크</span>
+                    <li class="nav-item">
+                        <a href="#" onclick="alert('북마크 기능 준비중')">
+                            <span class="icon">
+                                <img src="{% static 'icon/bookmarks.svg' %}" alt="북마크">
+                            </span>
+                            <span class="text">북마크</span>
+                        </a>
                     </li>
                     {% if user.is_authenticated %}
-                    <li class="nav-item" data-target="profile">
+                    <li class="nav-item">
                         <a href="{% url 'user_profile:profile' my_ID=request.user.my_ID %}">
-                        <span class="icon">
-                            <img src="{% static 'icon/profile.svg' %}" alt="프로필">
-                        </span>
-                        <span class="text">프로필</span>
+                            <span class="icon">
+                                <img src="{% static 'icon/profile.svg' %}" alt="프로필">
+                            </span>
+                            <span class="text">프로필</span>
                         </a>
                     </li>
                     {% else %}
-                    <li class="nav-item" data-target="profile">
+                    <li class="nav-item">
                         <a href="{% url 'login' %}">
-                        <span class="icon">
-                            <img src="{% static 'icon/profile.svg' %}" alt="프로필">
-                        </span>
-                        <span class="text">프로필</span>
+                            <span class="icon">
+                                <img src="{% static 'icon/profile.svg' %}" alt="프로필">
+                            </span>
+                            <span class="text">프로필</span>
                         </a>
                     </li>
                     {% endif %}
@@ -1318,5 +1347,28 @@
             {% endblock %}
         </aside>
     </div>
+    <script>
+    // 현재 페이지에 따라 active 클래스 설정
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentPath = window.location.pathname;
+        const navItems = document.querySelectorAll('.nav-item');
+        
+        // 모든 nav-item에서 active 제거
+        navItems.forEach(item => item.classList.remove('active'));
+        
+        // 현재 경로에 맞는 nav-item에 active 추가
+        if (currentPath.startsWith('/home/') || currentPath === '/') {
+            document.querySelector('.nav-item:nth-child(1)').classList.add('active');
+        } else if (currentPath.startsWith('/dashboard/')) {
+            document.querySelector('.nav-item:nth-child(2)').classList.add('active');
+        } else if (currentPath.startsWith('/journals/')) {
+            document.querySelector('.nav-item:nth-child(3)').classList.add('active');
+        } else if (currentPath.startsWith('/bookmarks/')) {
+                document.querySelector('.nav-item:nth-child(4)').classList.add('active');
+        } else if (currentPath.startsWith('/profile/')) {
+            document.querySelector('.nav-item:nth-child(5)').classList.add('active');
+        }
+    });
+    </script>
 </body>
 </html>
