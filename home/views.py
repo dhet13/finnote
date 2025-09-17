@@ -236,7 +236,18 @@ def create_simple_post(request):
     if request.method == 'POST':
         content = request.POST.get('content')
         image = request.FILES.get('image')
-        
+        trading_journal_data = request.POST.get('trading_journal_data')
+
+        # 디버깅 로그 추가
+        print(f"=== create_simple_post 디버깅 ===")
+        print(f"content: {content}")
+        print(f"image: {image}")
+        print(f"image type: {type(image)}")
+        if image:
+            print(f"image name: {image.name}")
+            print(f"image size: {image.size}")
+        print(f"================================")
+
         if content and content.strip():
             # 해시태그 파싱
             hashtag_pattern = r'#(\w+)'
@@ -252,7 +263,19 @@ def create_simple_post(request):
                 embed_payload_json={},
                 image=image
             )
-            
+            if trading_journal_data:
+                try:
+                    journal_data = json.loads(trading_journal_data)
+                    post.embed_payload_json = journal_data
+                    post.trading_symbol = journal_data.get('ticker_symbol')
+                    post.trading_name = journal_data.get('company_name', journal_data.get('ticker_symbol'))
+                    post.trading_side = journal_data.get('side')
+                    post.trading_quantity = journal_data.get('quantity')
+                    post.trading_price = journal_data.get('price')
+                    post.save()
+                    print(f"매매일지 데이터 저장: {journal_data}")  # 디버깅용
+                except json.JSONDecodeError as e:
+                    print(f"매매일지 데이터 파싱 오류: {e}")
             # 태그 처리
             for tag_name in hashtags:
                 tag, created = Tag.objects.get_or_create(
@@ -270,7 +293,8 @@ def create_simple_post(request):
                     'image_url': post.image.url if post.image else None,
                     'nickname': post.user.nickname,
                     'tags': [tag.name for tag in post.tags.all()],
-                    'username': post.user.my_ID
+                    'username': post.user.my_ID,
+                    'has_trading_data': bool(image and 'trading_card' in getattr(image, 'name', ''))
                 }
             })
 

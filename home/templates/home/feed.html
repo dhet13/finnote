@@ -50,7 +50,7 @@
                     <button type="button" onclick="removeImage()" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px;">✕</button>
                 </div>
             </div>
-
+            <div id="trading-journal-preview" style="display: none; margin-bottom: 12px;"></div>
             <!-- 액션 버튼들 -->
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; gap: 16px;">
@@ -157,17 +157,65 @@
                     <div class="post-content">
                         {{ post.content }}
                     </div>
-
-                    {% if post.image %}
-                        <div style="margin: 10px 0;">
-                            <div style="width: 100%; aspect-ratio: 16/9; overflow: hidden; border-radius: 12px; border: 1px solid #eff3f4; cursor: pointer;" onclick="openImageModal('{{ post.image.url }}')">
-                                <img data-src="{{ post.image.url }}" 
-                                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' fill='%23999'%3E이미지 로딩중...%3C/text%3E%3C/svg%3E"
-                                    alt="첨부 이미지" 
-                                    class="lazy-image"
-                                    style="width: 100%; height: 100%; object-fit: cover;">
+                    {% if post.trading_symbol %}
+                    <div style="margin: 10px 0;">
+                        <div class="trading-journal-card" data-side="{{ post.trading_side }}">
+                            <div class="trading-header">
+                                <div class="trading-icon" data-side="{{ post.trading_side }}">
+                                    <span class="material-symbols-outlined">assessment</span>
+                                </div>
+                                <div class="trading-info">
+                                    <div class="trading-title">{{ post.trading_symbol }} {% if post.trading_side == 'BUY' %}매수{% else %}매도{% endif %}</div>
+                                    <div class="trading-details">{{ post.trading_quantity }}주 @ ${{ post.trading_price }}</div>
+                                </div>
+                                <div class="trading-badge" data-side="{{ post.trading_side }}">
+                                    {% if post.trading_side == 'BUY' %}매수{% else %}매도{% endif %}
+                                </div>
+                            </div>
+                            <div class="trading-link">
+                                <a href="/journals/my-list/" class="trading-link-btn" data-side="{{ post.trading_side }}">
+                                    매매일지에서 상세 정보 보기
+                                </a>
                             </div>
                         </div>
+                    </div>
+                    {% endif %}
+                    {% if post.image %}
+                        {% if post.image.name and 'trading_card' in post.image.name %}
+                            <!-- 매매일지 회색 박스 -->
+                            <div style="margin: 10px 0;">
+                                <div onclick="openTradingCardModal('{{ post.image.url }}')" 
+                                    style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 16px; border-left: 4px solid #1d9bf0; cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                        <div style="width: 32px; height: 32px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                            <span class="material-symbols-outlined" style="color: white; font-size: 16px;">assessment</span>
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <div style="font-weight: bold; color: #0f172a; font-size: 14px;">매매일지</div>
+                                            <div style="color: #64748b; font-size: 12px;">투자 기록이 포함된 포스트</div>
+                                        </div>
+                                        <div style="background: #1d9bf0; color: white; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;">
+                                            TRADING
+                                        </div>
+                                    </div>
+                                    <div style="text-align: center; color: #64748b; font-size: 13px;">
+                                        클릭하면 상세한 매매 정보를 확인할 수 있습니다
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <!-- 일반 이미지 -->
+                            <div style="margin: 10px 0;">
+                                <div style="width: 100%; aspect-ratio: 16/9; overflow: hidden; border-radius: 12px; border: 1px solid #eff3f4; cursor: pointer;" onclick="openImageModal('{{ post.image.url }}')">
+                                    <img data-src="{{ post.image.url }}" 
+                                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' fill='%23999'%3Eì´ë¯¸ì§€ ë¡œë"©ì¤'...%3C/text%3E%3C/svg%3E"
+                                        alt="첨부 이미지" 
+                                        class="lazy-image"
+                                        style="width: 100%; height: 100%; object-fit: cover;">
+                                </div>
+                            </div>
+                        {% endif %}
                     {% elif post.screenshot_url %}
                         <div style="margin: 10px 0; cursor: pointer;" onclick="openImageModal('{{ post.screenshot_url }}')">
                             <img data-src="{{ post.screenshot_url }}" 
@@ -282,7 +330,20 @@ const TradingJournalInterface = {
                     justify-content: center;
                 `;
                 
-                overlay.innerHTML = html;
+                overlay.innerHTML = `
+                    <div style="
+                        background: white; 
+                        border-radius: 12px; 
+                        width: 90%; 
+                        max-width: 800px; 
+                        height: 80vh; 
+                        max-height: 600px; 
+                        overflow-y: auto;
+                        position: relative;
+                    ">
+                        ${html}
+                    </div>
+                `;
                 document.body.appendChild(overlay);
 
                 // ★ JavaScript 수동 로드 및 실행
@@ -342,7 +403,6 @@ const TradingJournalInterface = {
 
         composeTabs.forEach(tab => {
             tab.addEventListener('click', function() {
-                console.log('탭 클릭:', this.dataset.assetType); // 디버깅용
                 
                 composeTabs.forEach(item => item.classList.remove('active'));
                 composeTabContents.forEach(content => content.classList.remove('active'));
@@ -422,10 +482,55 @@ const TradingJournalInterface = {
         });
     },
 
-    createSimpleJournalCard: function(formData) {
-        const postsContainer = document.getElementById('posts-container');
-        if (!postsContainer) return;
+createSimpleJournalCard: function(formData) {
+    const previewArea = document.getElementById('trading-journal-preview');
+    if (!previewArea) return;
+    
+    console.log('매매일지 이미지 생성 시작:', formData);
+    if (!formData.ticker_symbol) {
+        console.log('주식 데이터가 아님, 카드 생성 안함');
+        return;
+    }
+    
+    // 매매일지 카드를 이미지로 생성
+    this.generateTradingCardAsImage(formData, (imageDataUrl) => {
+        // 생성된 이미지를 미리보기로 표시
+        const cardHTML = `
+            <div style="position: relative; display: inline-block; margin: 10px 0;">
+                <img src="${imageDataUrl}" 
+                     style="max-width: 100%; border-radius: 12px; cursor: pointer; border: 1px solid #eff3f4;" 
+                     onclick="openTradingCardModal('${imageDataUrl}')"
+                     alt="매매일지 카드">
+                <button onclick="this.closest('#trading-journal-preview').style.display='none'; PostStateManager.setState('none'); window.currentTradingCardImage = null;" 
+                        style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px;">
+                    ×
+                </button>
+                <div style="text-align: center; margin-top: 8px; color: #64748b; font-size: 12px;">
+                    클릭하면 확대됩니다
+                </div>
+            </div>
+        `;
         
+        previewArea.innerHTML = cardHTML;
+        previewArea.style.display = 'block';
+        
+        // 이미지 데이터를 전역 변수에 저장
+        window.currentTradingCardImage = imageDataUrl;
+
+        console.log('매매일지 이미지 생성 완료');
+        console.log('전역 변수 저장 확인:', window.currentTradingCardImage ? 'SUCCESS' : 'FAILED');
+        console.log('이미지 데이터 길이:', imageDataUrl.length);
+    });
+},
+    generateTradingCardAsImage: function(formData, callback) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 카드 크기 설정
+        canvas.width = 400;
+        canvas.height = 200;
+        
+        // 데이터 추출
         const ticker = formData.ticker_symbol || 'UNKNOWN';
         const side = formData.side || 'BUY';
         const sideKor = side === 'BUY' ? '매수' : '매도';
@@ -434,61 +539,66 @@ const TradingJournalInterface = {
         const quantity = formData.quantity || '0';
         const date = formData.date || new Date().toISOString().split('T')[0];
         
-        const cardHTML = `
-            <div class="post-card trading-journal-card fade-in" style="border-left: 4px solid ${sideColor};">
-                <div style="background: #f8fafc; border-radius: 12px; padding: 20px;">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                        <div style="width: 40px; height: 40px; background: ${sideColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                            <span class="material-symbols-outlined" style="color: white; font-size: 20px;">assessment</span>
-                        </div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: bold; color: #0f172a; font-size: 16px;">매매일지 작성 완료</div>
-                            <div style="color: #64748b; font-size: 14px;">방금 전</div>
-                        </div>
-                        <div style="background: ${sideColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-                            ${sideKor}
-                        </div>
-                    </div>
-                    
-                    <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                            <div>
-                                <div style="color: #64748b; font-size: 13px;">종목</div>
-                                <div style="font-weight: bold; font-size: 18px; color: #0f172a;">${ticker}</div>
-                            </div>
-                            <div>
-                                <div style="color: #64748b; font-size: 13px;">거래일</div>
-                                <div style="font-weight: 600; color: #0f172a;">${date}</div>
-                            </div>
-                            <div>
-                                <div style="color: #64748b; font-size: 13px;">가격</div>
-                                <div style="font-weight: 600; color: #0f172a;">$${price}</div>
-                            </div>
-                            <div>
-                                <div style="color: #64748b; font-size: 13px;">수량</div>
-                                <div style="font-weight: 600; color: #0f172a;">${quantity}주</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 12px;">
-                        <a href="/journals/my-list/" 
-                        style="flex: 1; background: ${sideColor}; color: white; padding: 12px; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600;">
-                            매매일지 보기
-                        </a>
-                        <button onclick="this.closest('.post-card').remove()" 
-                                style="background: #f1f5f9; color: #64748b; padding: 12px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            닫기
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
+        // 배경 그라디언트
+        const gradient = ctx.createLinearGradient(0, 0, 400, 200);
+        gradient.addColorStop(0, '#f8fafc');
+        gradient.addColorStop(1, '#f1f5f9');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 400, 200);
         
-        postsContainer.insertAdjacentHTML('afterbegin', cardHTML);
-        console.log('카드 생성 완료');
+        // 왼쪽 컬러 보더
+        ctx.fillStyle = sideColor;
+        ctx.fillRect(0, 0, 4, 200);
+        
+        // 아이콘 원형 배경
+        ctx.fillStyle = sideColor;
+        ctx.beginPath();
+        ctx.arc(40, 40, 16, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // 아이콘 (▲ 또는 ▼)
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(side === 'BUY' ? '▲' : '▼', 40, 45);
+        
+        // "매매일지" 제목
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 18px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText('매매일지', 70, 35);
+        
+        // 매수/매도 뱃지
+        ctx.fillStyle = sideColor;
+        ctx.fillRect(320, 20, 60, 25);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(sideKor, 350, 35);
+        
+        // 종목명 (큰 글씨)
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(ticker, 20, 90);
+        
+        // 거래 정보들
+        ctx.fillStyle = '#64748b';
+        ctx.font = '14px Arial';
+        ctx.fillText(`가격: $${price}`, 20, 120);
+        ctx.fillText(`수량: ${quantity}주`, 150, 120);
+        ctx.fillText(`날짜: ${date}`, 20, 140);
+        
+        // 총 금액 계산 및 표시
+        const totalAmount = (parseFloat(price) * parseFloat(quantity)).toFixed(2);
+        ctx.fillStyle = sideColor;
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText(`총액: $${totalAmount}`, 20, 170);
+        
+        // 이미지 데이터 URL로 변환
+        const imageDataUrl = canvas.toDataURL('image/png');
+        callback(imageDataUrl);
     },
-
     // 매매일지 카드 추가 함수
     addTradingJournalCard: function(payload) {
         const postsContainer = document.getElementById('posts-container');
@@ -580,6 +690,7 @@ const PostStateManager = {
         const tradingBtn = document.getElementById('trading-journal-btn');
         const imageBtn = document.getElementById('image-upload-btn');
         const postBtn = document.getElementById('post-button');
+        const tradingPreview = document.getElementById('trading-journal-preview');
         
         if (this.currentState === 'trading') {
             // 매매일지 선택됨
@@ -593,6 +704,7 @@ const PostStateManager = {
             tradingBtn.style.opacity = '0.3';
             tradingBtn.style.pointerEvents = 'none';
             this.hidePrivacyToggle();
+            if (tradingPreview) tradingPreview.style.display = 'none';
         } else {
             // 아무것도 선택 안됨
             tradingBtn.style.opacity = '1';
@@ -600,6 +712,7 @@ const PostStateManager = {
             imageBtn.style.opacity = '1';
             imageBtn.style.pointerEvents = 'auto';
             this.hidePrivacyToggle();
+            if (tradingPreview) tradingPreview.style.display = 'none';
         }
         
         this.updatePostButton();
@@ -654,9 +767,6 @@ function openTradingJournal() {
         // TODO: 매매일지 카드 표시
     });
 }
-// 페이지 로드시 메시지 리스너 설정
-TradingJournalInterface.setupMessageListener();
-
 document.addEventListener('DOMContentLoaded', function() {
     TradingJournalInterface.setupMessageListener();
 });
@@ -804,6 +914,15 @@ function submitPost(event) {
     const form = event.target;
     const formData = new FormData(form);
     
+    // 매매일지 이미지가 있으면 첨부
+    if (window.currentTradingCardImage) {
+        console.log('매매일지 이미지 발견! 첨부 시작');
+        console.log('currentState:', PostStateManager.currentState);
+        // Base64를 Blob으로 변환해서 이미지로 첨부
+        const blob = dataURLtoBlob(window.currentTradingCardImage);
+        formData.append('image', blob, 'trading_card.png');
+        console.log('매매일지 이미지 첨부됨');
+    }
     fetch(form.action, {
         method: 'POST',
         body: formData,
@@ -823,8 +942,22 @@ function submitPost(event) {
             document.getElementById('post-button').style.opacity = '0.5';
             document.getElementById('image-preview').style.display = 'none';
             
+            // 매매일지 미리보기 초기화
+            const tradingPreview = document.getElementById('trading-journal-preview');
+            if (tradingPreview) {
+                tradingPreview.style.display = 'none';
+                tradingPreview.innerHTML = '';
+            }
+            window.currentTradingCardImage = null; // 이미지 데이터 초기화
+            
             // PostStateManager 상태 초기화
             PostStateManager.setState('none');
+            
+            if (data.post.has_trading_data) {
+                Toast.success('매매일지가 포함된 포스트가 작성되었습니다!');
+            } else {
+                Toast.success('포스트가 작성되었습니다!');
+            }
         } else {
             Toast.error('포스트 작성 실패: ' + data.error);
         }
@@ -834,8 +967,20 @@ function submitPost(event) {
         Toast.error('포스트 작성 중 오류가 발생했습니다.');
     });
 }
-
+// Base64를 Blob으로 변환하는 헬퍼 함수
+function dataURLtoBlob(dataURL) {
+    const arr = dataURL.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], {type:mime});
+}
 function addNewPostToFeed(postData) {
+
     const postsContainer = document.getElementById('posts-container');
     let tagsHtml = '';
     if (postData.tags && postData.tags.length > 0) {
@@ -880,15 +1025,27 @@ function addNewPostToFeed(postData) {
 
                     ${postData.image_url ? `
                     <div style="margin: 10px 0;">
-                        <div style="width: 100%; aspect-ratio: 16/9; overflow: hidden; border-radius: 12px; border: 1px solid #eff3f4; cursor: pointer;" onclick="openImageModal('${postData.image_url}')">
-                            <img data-src="${postData.image_url}" 
-                                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' fill='%23999'%3E이미지 로딩중...%3C/text%3E%3C/svg%3E"
-                                alt="첨부 이미지" 
-                                class="lazy-image"
-                                style="width: 100%; height: 100%; object-fit: cover;">
+                        <div onclick="openTradingCardModal('${postData.image_url}')" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 16px; border-left: 4px solid #1d9bf0; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                <div style="width: 32px; height: 32px; background: #1d9bf0; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <span class="material-symbols-outlined" style="color: white; font-size: 16px;">assessment</span>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: bold; color: #0f172a; font-size: 14px;">매매일지</div>
+                                    <div style="color: #64748b; font-size: 12px;">투자 기록이 포함된 포스트</div>
+                                </div>
+                                <div style="background: #1d9bf0; color: white; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;">
+                                    TRADING
+                                </div>
+                            </div>
+                            <div style="text-align: center; color: #64748b; font-size: 13px;">
+                                클릭하면 상세한 매매 정보를 확인할 수 있습니다
+                            </div>
                         </div>
                     </div>
                     ` : ''}
+
                     ${tagsHtml}
                     <div class="action-buttons">
                         <div class="action-btn">
@@ -2505,6 +2662,68 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+// 매매일지 카드 모달 열기
+function openTradingCardModal(imageDataUrl) {
+    const modal = document.createElement('div');
+    modal.id = 'trading-card-modal';
+    modal.style.cssText = `
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%;
+        background: rgba(0,0,0,0.9); 
+        z-index: 1000;
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        animation: modalFadeIn 0.3s ease;
+    `;
+    
+    modal.innerHTML = `
+        <div style="position: relative; max-width: 90%; max-height: 90%;">
+            <img src="${imageDataUrl}" 
+                 style="max-width: 100%; max-height: 100%; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+            <button onclick="closeTradingCardModal()" 
+                    style="position: absolute; top: -40px; right: 0; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 18px; font-weight: bold;">
+                ×
+            </button>
+            <div style="position: absolute; bottom: -40px; left: 0; right: 0; text-align: center; color: white; font-size: 14px;">
+                매매일지 상세 정보
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 배경 클릭시 닫기
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeTradingCardModal();
+        }
+    });
+    
+    // ESC 키로 닫기
+    const handleEsc = (e) => {
+        if (e.key === 'Escape') {
+            closeTradingCardModal();
+            document.removeEventListener('keydown', handleEsc);
+        }
+    };
+    document.addEventListener('keydown', handleEsc);
+    
+    console.log('매매일지 모달 열림');
+}
 
+function closeTradingCardModal() {
+    const modal = document.getElementById('trading-card-modal');
+    if (modal) {
+        modal.style.animation = 'modalFadeOut 0.3s ease';
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    }
+    console.log('매매일지 모달 닫힘');
+}
 </script>
 {% endblock %}
