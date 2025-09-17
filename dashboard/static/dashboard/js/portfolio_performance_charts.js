@@ -391,8 +391,7 @@ async function updateSectorCardsFromAPI(stockHoldings) {
             return `
                 <div class="portfolio-item stock-item clickable" 
                      data-stock="${encodeURIComponent(holding.name)}" 
-                     data-ticker="${holding.ticker || ''}"
-                     onclick="navigateToStockJournal('${holding.ticker || holding.name}')">
+                     data-ticker="${holding.ticker || ''}">
                     <div class="portfolio-item-name">${holding.name}</div>
                     <div class="portfolio-item-details">
                         <div class="holding-value">보유금액: ${formatPrice(holdingValue)}</div>
@@ -1320,8 +1319,7 @@ function updateSectorCards(stockHoldings) {
             return `
                 <div class="portfolio-item stock-item clickable" 
                      data-stock="${encodeURIComponent(stockName)}" 
-                     data-ticker="${stockTicker}"
-                     onclick="navigateToStockJournal('${stockTicker || stockName}')">
+                     data-ticker="${stockTicker}">
                     <div class="portfolio-item-name">${stockName}</div>
                     <div class="portfolio-item-right">
                         <div class="portfolio-item-weight">${stockWeight}</div>
@@ -1371,10 +1369,10 @@ function addStockClickListeners() {
     // 주식 카드 클릭 리스너
     stockItems.forEach(item => {
         // 기존 이벤트 리스너 제거 (중복 방지)
-        item.removeEventListener('click', handleStockClick);
+        item.removeEventListener('click', window.handleStockClick);
         
         // 새로운 이벤트 리스너 추가
-        item.addEventListener('click', handleStockClick);
+        item.addEventListener('click', window.handleStockClick);
         
         // 커서 포인터 스타일 추가
         item.style.cursor = 'pointer';
@@ -1394,9 +1392,17 @@ function addStockClickListeners() {
 }
 
 // 주식 클릭 핸들러
-function handleStockClick(event) {
+window.handleStockClick = function(event) {
     const stockName = decodeURIComponent(this.getAttribute('data-stock'));
-    navigateToStockDetail(stockName);
+    const stockTicker = this.getAttribute('data-ticker');
+    
+    console.log('주식 클릭됨:', { stockName, stockTicker });
+    
+    // ticker가 있으면 ticker를 사용, 없으면 stockName 사용
+    const tickerToUse = stockTicker && stockTicker.trim() !== '' ? stockTicker : stockName;
+    console.log('사용할 ticker:', tickerToUse);
+    
+    window.navigateToStockJournal(tickerToUse);
 }
 
 // 부동산 클릭 핸들러
@@ -1405,13 +1411,21 @@ function handlePropertyClick(event) {
     navigateToPropertyDetail(propertyName);
 }
 
-// 주식 상세 페이지로 이동
-function navigateToStockDetail(stockName) {
-    const encodedStockName = encodeURIComponent(stockName);
-    const url = `/dashboard/stock/${encodedStockName}/`;
+// 주식 상세 페이지로 이동 (journal 앱으로 리다이렉트)
+window.navigateToStockDetail = function(stockName) {
+    console.log('navigateToStockDetail 호출됨, stockName:', stockName);
     
-    console.log(`주식 "${stockName}" 상세 페이지로 이동: ${url}`);
-    window.location.href = url;
+    // ticker 심볼 추출 (stockName에서)
+    const ticker = stockName; // stockName이 실제로는 ticker일 수 있음
+    const encodedTicker = encodeURIComponent(ticker);
+    
+    // journal 앱의 해당 종목 페이지로 이동
+    const journalUrl = `/journals/stock/summary/${encodedTicker}/`;
+    
+    console.log('이동할 URL:', journalUrl);
+    
+    // 현재 탭에서 이동
+    window.location.href = journalUrl;
 }
 
 // 부동산 상세 페이지로 이동
@@ -1569,7 +1583,9 @@ function updatePropertyCards() {
 }
 
 // 종목 클릭 시 journal 앱으로 이동하는 함수
-function navigateToStockJournal(ticker) {
+window.navigateToStockJournal = function(ticker) {
+    console.log('navigateToStockJournal 호출됨, ticker:', ticker);
+    
     // ticker가 비어있거나 없으면 종목명으로 대체
     if (!ticker || ticker.trim() === '') {
         console.warn('Ticker symbol not found');
@@ -1580,12 +1596,11 @@ function navigateToStockJournal(ticker) {
     const encodedTicker = encodeURIComponent(ticker);
     
     // journal 앱의 해당 종목 페이지로 이동
-    // 다른 개발자가 만든 페이지 URL에 맞게 수정 필요
-    const journalUrl = `/journals/stock/${encodedTicker}/`;
+    // 매매일지 종목 요약 페이지로 이동
+    const journalUrl = `/journals/stock/summary/${encodedTicker}/`;
     
-    // 새 탭에서 열기 (선택사항)
-    window.open(journalUrl, '_blank');
+    console.log('이동할 URL:', journalUrl);
     
-    // 또는 현재 탭에서 이동
-    // window.location.href = journalUrl;
+    // 현재 탭에서 이동
+    window.location.href = journalUrl;
 }

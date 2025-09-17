@@ -3,6 +3,40 @@ from django.db.models import Sum, Q
 from decimal import Decimal
 from datetime import datetime, timedelta
 from dashboard.models import PortfolioHolding, PortfolioSnapshot
+import requests
+
+
+class CurrencyConverter:
+    """통화 변환 클래스"""
+    
+    @staticmethod
+    def get_usd_to_krw_rate():
+        """USD to KRW 환율 조회"""
+        try:
+            # 환율 API 호출 (ExchangeRate-API)
+            response = requests.get('https://api.exchangerate-api.com/v4/latest/USD', timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                return data['rates']['KRW']
+            else:
+                # API 실패 시 기본값 사용
+                return 1300.0
+        except Exception as e:
+            print(f"환율 API 호출 실패: {e}")
+            # API 실패 시 기본값 사용
+            return 1300.0
+    
+    @staticmethod
+    def convert_to_krw(amount, currency_code):
+        """통화를 원화로 변환"""
+        if currency_code == 'KRW':
+            return amount
+        elif currency_code == 'USD':
+            rate = CurrencyConverter.get_usd_to_krw_rate()
+            return amount * Decimal(str(rate))
+        else:
+            # 다른 통화는 일단 그대로 반환 (필요시 추가)
+            return amount
 
 
 class DashboardDataCalculator:
@@ -43,22 +77,36 @@ class DashboardDataCalculator:
         # 보유 자산 조회
         holdings = PortfolioHolding.objects.filter(**filters)
         
-        # 총 투자 금액 계산
-        total_invested = holdings.aggregate(
-            total=Sum('invested_amount')
-        )['total'] or Decimal('0')
+        # 총 투자 금액 계산 (통화 변환 적용)
+        total_invested = Decimal('0')
+        for holding in holdings:
+            converted_amount = CurrencyConverter.convert_to_krw(
+                holding.invested_amount, 
+                holding.currency_code
+            )
+            total_invested += converted_amount
         
         # 총 시장 가치 계산 (최신 스냅샷에서)
+        snapshot_filters = {'user_id': self.user_id}
+        if self.asset_type:
+            snapshot_filters['asset_type'] = self.asset_type
+            
         latest_snapshots = PortfolioSnapshot.objects.filter(
-            user_id=self.user_id,
-            **({'asset_type': self.asset_type} if self.asset_type else {})
+            **snapshot_filters
         ).order_by('-snapshot_date')[:1]
+        
+        print(f"Debug: asset_type={self.asset_type}, snapshot_filters={snapshot_filters}")
+        print(f"Debug: found {latest_snapshots.count()} snapshots")
         
         total_market_value = Decimal('0')
         if latest_snapshots.exists():
-            total_market_value = latest_snapshots.aggregate(
-                total=Sum('market_value')
-            )['total'] or Decimal('0')
+            # 스냅샷의 market_value도 통화 변환 적용
+            for snapshot in latest_snapshots:
+                converted_value = CurrencyConverter.convert_to_krw(
+                    snapshot.market_value, 
+                    snapshot.currency_code
+                )
+                total_market_value += converted_value
         
         # 수익률 계산
         if total_invested > 0:
@@ -99,7 +147,7 @@ class DashboardDataCalculator:
         # 스냅샷 데이터 조회
         snapshots = PortfolioSnapshot.objects.filter(**filters).order_by('snapshot_date')
         
-        # 일별로 그룹화하여 합계 계산
+        # 일별로 그룹화하여 합계 계산 (통화 변환 적용)
         daily_data = {}
         for snapshot in snapshots:
             date_str = snapshot.snapshot_date.strftime('%Y-%m-%d')
@@ -109,8 +157,19 @@ class DashboardDataCalculator:
                     'market_value': Decimal('0'),
                     'invested_amount': Decimal('0')
                 }
-            daily_data[date_str]['market_value'] += snapshot.market_value or Decimal('0')
-            daily_data[date_str]['invested_amount'] += snapshot.invested_amount or Decimal('0')
+            
+            # 통화 변환 적용
+            converted_market_value = CurrencyConverter.convert_to_krw(
+                snapshot.market_value or Decimal('0'), 
+                snapshot.currency_code
+            )
+            converted_invested_amount = CurrencyConverter.convert_to_krw(
+                snapshot.invested_amount or Decimal('0'), 
+                snapshot.currency_code
+            )
+            
+            daily_data[date_str]['market_value'] += converted_market_value
+            daily_data[date_str]['invested_amount'] += converted_invested_amount
         
         # 시계열 데이터 생성 - 누적 수익률 계산
         timeseries = []
@@ -175,15 +234,19 @@ def add_portfolio_methods():
     def get_total_value(self):
         """총 자산 가치 반환"""
         holdings = PortfolioHolding.objects.filter(user_id=self.user_id)
-        return float(holdings.aggregate(total=Sum('invested_amount'))['total'] or 0)
+        total_value = Decimal('0')
+        for holding in holdings:
+            converted_amount = CurrencyConverter.convert_to_krw(holding.invested_amount, holding.currency_code)
+            total_value += converted_amount
+        return float(total_value)
     
     def get_total_change(self):
         """총 자산 변화량 반환"""
         snapshots = PortfolioSnapshot.objects.filter(user_id=self.user_id).order_by('-snapshot_date')[:2]
         if len(snapshots) >= 2:
-            # market_value 차이로 변화량 계산
-            current_value = float(snapshots[0].market_value or 0)
-            previous_value = float(snapshots[1].market_value or 0)
+            # market_value 차이로 변화량 계산 (통화 변환 적용)
+            current_value = float(CurrencyConverter.convert_to_krw(snapshots[0].market_value or 0, snapshots[0].currency_code))
+            previous_value = float(CurrencyConverter.convert_to_krw(snapshots[1].market_value or 0, snapshots[1].currency_code))
             return current_value - previous_value
         return 0.0
     
@@ -191,9 +254,9 @@ def add_portfolio_methods():
         """총 자산 변화율 반환"""
         snapshots = PortfolioSnapshot.objects.filter(user_id=self.user_id).order_by('-snapshot_date')[:2]
         if len(snapshots) >= 2:
-            # market_value 차이로 변화율 계산
-            current_value = float(snapshots[0].market_value or 0)
-            previous_value = float(snapshots[1].market_value or 0)
+            # market_value 차이로 변화율 계산 (통화 변환 적용)
+            current_value = float(CurrencyConverter.convert_to_krw(snapshots[0].market_value or 0, snapshots[0].currency_code))
+            previous_value = float(CurrencyConverter.convert_to_krw(snapshots[1].market_value or 0, snapshots[1].currency_code))
             if previous_value > 0:
                 return ((current_value - previous_value) / previous_value) * 100
         return 0.0
@@ -207,8 +270,8 @@ def add_portfolio_methods():
                 'ticker': h.stock_ticker_symbol or '',
                 'sector': h.sector_or_region,
                 'quantity': float(h.total_quantity),
-                'market_value': float(h.invested_amount),
-                'currency': h.currency_code
+                'market_value': float(CurrencyConverter.convert_to_krw(h.invested_amount, h.currency_code)),
+                'currency': 'KRW'  # 모든 값을 원화로 변환
             }
             for h in holdings
         ]
@@ -221,8 +284,8 @@ def add_portfolio_methods():
                 'name': h.asset_name,
                 'region': h.sector_or_region,
                 'quantity': float(h.total_quantity),
-                'market_value': float(h.invested_amount),
-                'currency': h.currency_code
+                'market_value': float(CurrencyConverter.convert_to_krw(h.invested_amount, h.currency_code)),
+                'currency': 'KRW'  # 모든 값을 원화로 변환
             }
             for h in holdings
         ]
@@ -236,7 +299,9 @@ def add_portfolio_methods():
             sector = holding.sector_or_region
             if sector not in sector_data:
                 sector_data[sector] = 0
-            sector_data[sector] += float(holding.invested_amount)
+            # 통화 변환 적용
+            converted_amount = CurrencyConverter.convert_to_krw(holding.invested_amount, holding.currency_code)
+            sector_data[sector] += float(converted_amount)
         
         return sector_data
     
@@ -249,7 +314,9 @@ def add_portfolio_methods():
             region = holding.sector_or_region
             if region not in region_data:
                 region_data[region] = 0
-            region_data[region] += float(holding.invested_amount)
+            # 통화 변환 적용
+            converted_amount = CurrencyConverter.convert_to_krw(holding.invested_amount, holding.currency_code)
+            region_data[region] += float(converted_amount)
         
         return region_data
     
