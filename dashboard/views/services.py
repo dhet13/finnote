@@ -116,37 +116,28 @@ class DashboardDataCalculator:
         timeseries = []
         sorted_dates = sorted(daily_data.keys())
         
-        # 첫 번째 날의 수익률 계산
         if sorted_dates:
-            first_date = sorted_dates[0]
-            first_data = daily_data[first_date]
-            if first_data['invested_amount'] > 0:
-                first_return_rate = ((first_data['market_value'] - first_data['invested_amount']) / first_data['invested_amount']) * 100
-            else:
-                first_return_rate = Decimal('0')
+            # 전체 투자금액 기준으로 수익률 계산 (더 정확함)
+            total_invested = sum(daily_data[date]['invested_amount'] for date in sorted_dates)
             
-            timeseries.append({
-                'date': first_date,
-                'market_value': float(first_data['market_value']),
-                'invested_amount': float(first_data['invested_amount']),
-                'return_rate': float(first_return_rate),
-                'cumulative_return_rate': float(first_return_rate)
-            })
-            
-            # 누적 수익률 계산 (복리)
-            cumulative_value = first_data['market_value']
-            for i in range(1, len(sorted_dates)):
-                current_date = sorted_dates[i]
+            for i, current_date in enumerate(sorted_dates):
                 current_data = daily_data[current_date]
                 
-                # 당일 수익률 계산
-                if cumulative_value > 0:
-                    daily_return_rate = ((current_data['market_value'] - cumulative_value) / cumulative_value) * 100
+                # 당일 수익률 계산 (전일 대비)
+                if i > 0:
+                    prev_data = daily_data[sorted_dates[i-1]]
+                    if prev_data['market_value'] > 0:
+                        daily_return_rate = ((current_data['market_value'] - prev_data['market_value']) / prev_data['market_value']) * 100
+                    else:
+                        daily_return_rate = Decimal('0')
                 else:
                     daily_return_rate = Decimal('0')
                 
-                # 누적 수익률 계산
-                cumulative_return_rate = ((current_data['market_value'] - first_data['invested_amount']) / first_data['invested_amount']) * 100
+                # 누적 수익률 계산 (전체 투자금액 기준)
+                if total_invested > 0:
+                    cumulative_return_rate = ((current_data['market_value'] - total_invested) / total_invested) * 100
+                else:
+                    cumulative_return_rate = Decimal('0')
                 
                 timeseries.append({
                     'date': current_date,
@@ -155,9 +146,6 @@ class DashboardDataCalculator:
                     'return_rate': float(daily_return_rate),
                     'cumulative_return_rate': float(cumulative_return_rate)
                 })
-                
-                # 다음 날을 위한 누적 가치 업데이트
-                cumulative_value = current_data['market_value']
         
         return timeseries
 
