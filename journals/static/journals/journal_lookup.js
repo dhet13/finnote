@@ -206,6 +206,15 @@ document.addEventListener('DOMContentLoaded', function () {
             renderSelectedStockCard(data);
             updateHoldingsDisplay(ticker);
             
+            // Dispatch custom event for currency update
+            const event = new CustomEvent('stockSelected', {
+                detail: {
+                    ticker: ticker,
+                    currency: data.currency // Assuming data.currency is available
+                }
+            });
+            document.dispatchEvent(event);
+
             targetPriceInput.value = '';
             targetPercentInput.value = '';
             stopPriceInput.value = '';
