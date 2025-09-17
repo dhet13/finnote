@@ -1,4 +1,4 @@
-// 차트 객체를 저장할 변수를 미리 만들어 둡니다.
+﻿// 차트 객체를 저장할 변수를 미리 만들어 둡니다.
 let totalBarChart = null;
 let dayLineChart = null;
 let monthAreaChart = null;
@@ -57,7 +57,7 @@ let isInitializing = false; // 중복 초기화 방지
 
 function initializeTotalPage() {
     if (isInitializing) {
-        console.log('이미 초기화 중입니다. 중복 호출 방지');
+        console.debug('이미 초기화 중입니다. 중복 호출 방지');
         return;
     }
     
@@ -2526,22 +2526,22 @@ function formatReturnRate(rate) {
 
 // 페이지 로드 시 자동 초기화
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('대시보드 페이지 로드됨 - 자동 초기화 시작');
+    console.log('대시보드 콘텐츠 로드됨 - 자동 초기화 시작');
     
-    // 현재 페이지 확인
+    // 현재 경로 확인
     const currentPath = window.location.pathname;
     console.log('현재 경로:', currentPath);
     
-    if (currentPath.includes('/dashboard/') || currentPath === '/dashboard/') {
-        // 대시보드 메인 페이지 초기화
-        console.log('대시보드 메인 페이지 초기화');
-        initializeTotalPage();
-    } else if (currentPath.includes('/portfolio/')) {
+    if (currentPath.includes('/dashboard/portfolio/')) {
         // 포트폴리오 페이지 초기화
         console.log('포트폴리오 페이지 초기화');
         if (typeof initializePortfolioPage === 'function') {
             initializePortfolioPage();
         }
+    } else if (currentPath === '/dashboard/' || currentPath.includes('/dashboard/total/')) {
+        // 대시보드 메인 페이지 초기화
+        console.log('대시보드 메인 페이지 초기화');
+        initializeTotalPage();
     }
 });
 
@@ -2550,11 +2550,20 @@ window.addEventListener('load', function() {
     console.log('페이지 완전 로드됨 - 추가 초기화 확인');
     
     const currentPath = window.location.pathname;
-    if (currentPath.includes('/dashboard/') || currentPath === '/dashboard/') {
-        // 차트가 아직 초기화되지 않았다면 초기화
-        if (!totalBarChart) {
+    if (currentPath === '/dashboard/' || currentPath.includes('/dashboard/total/')) {
+        // 총자산 대시보드 차트가 초기화되지 않았다면 초기화
+        if (!totalBarChart && !isInitializing) {
             console.log('차트가 초기화되지 않음 - 재초기화');
             initializeTotalPage();
         }
+    } else if (currentPath.includes('/dashboard/portfolio/')) {
+        // 포트폴리오 페이지는 필요 시 재초기화
+        if (typeof initializePortfolioPage === 'function') {
+            initializePortfolioPage();
+        }
     }
 });
+
+
+
+

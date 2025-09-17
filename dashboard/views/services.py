@@ -2,8 +2,14 @@
 from django.db.models import Sum, Q
 from decimal import Decimal
 from datetime import datetime, timedelta
+<<<<<<< HEAD
 from dashboard.models import PortfolioHolding, PortfolioSnapshot
+=======
+from dashboard.models import PortfolioHolding, PortfolioSnapshot, AssetLogUnified
+from journals.models import StockJournal, StockInfo, StockTrade
+>>>>>>> d8922d3 (전체적인 파일 수정)
 import requests
+import yfinance as yf
 
 
 class CurrencyConverter:
@@ -13,16 +19,18 @@ class CurrencyConverter:
     def get_usd_to_krw_rate():
         """USD to KRW 환율 조회"""
         try:
-            # 환율 API 호출 (ExchangeRate-API)
-            response = requests.get('https://api.exchangerate-api.com/v4/latest/USD', timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                return data['rates']['KRW']
+            # yfinance를 사용하여 환율 정보 가져오기
+            ticker = yf.Ticker("USDKRW=X")
+            # Ticker.info 대신 Ticker.history() 사용
+            hist = ticker.history(period="1d")
+            if not hist.empty:
+                # 가장 최근의 종가 반환
+                return hist['Close'].iloc[-1]
             else:
-                # API 실패 시 기본값 사용
+                # 데이터가 없을 경우 기본값 사용
                 return 1300.0
         except Exception as e:
-            print(f"환율 API 호출 실패: {e}")
+            print(f"yfinance 환율 조회 실패: {e}")
             # API 실패 시 기본값 사용
             return 1300.0
     
@@ -264,17 +272,44 @@ def add_portfolio_methods():
     def get_stock_holdings(self):
         """주식 보유 자산 반환"""
         holdings = PortfolioHolding.objects.filter(user_id=self.user_id, asset_type='stock')
-        return [
-            {
+        
+        # Fetch all needed StockInfo objects in one query
+        ticker_symbols = [h.stock_ticker_symbol for h in holdings if h.stock_ticker_symbol]
+        stock_infos = StockInfo.objects.in_bulk(ticker_symbols) # Use in_bulk for a dict lookup
+
+        results = []
+        for h in holdings:
+            print(f"보유 종목: {h.asset_name}, 통화: {h.currency_code}")
+            stock_info = stock_infos.get(h.stock_ticker_symbol)
+            # Use last_close_price as current price, fallback to avg_buy_price
+            current_price = stock_info.last_close_price if stock_info and stock_info.last_close_price else h.avg_buy_price or 0
+
+            total_quantity = h.total_quantity or 0
+            avg_buy_price = h.avg_buy_price or 0
+
+            invested_amount = total_quantity * avg_buy_price
+            market_value = total_quantity * current_price
+            pnl = market_value - invested_amount
+            pnl_percentage = (pnl / invested_amount) * 100 if invested_amount > 0 else 0
+
+            results.append({
                 'name': h.asset_name,
                 'ticker': h.stock_ticker_symbol or '',
                 'sector': h.sector_or_region,
-                'quantity': float(h.total_quantity),
-                'market_value': float(CurrencyConverter.convert_to_krw(h.invested_amount, h.currency_code)),
-                'currency': 'KRW'  # 모든 값을 원화로 변환
-            }
-            for h in holdings
-        ]
+                'quantity': float(total_quantity),
+                'avg_buy_price': float(avg_buy_price),
+                'avg_buy_price_krw': float(CurrencyConverter.convert_to_krw(avg_buy_price, h.currency_code)),
+                'invested_amount': float(invested_amount),
+                'invested_amount_krw': float(CurrencyConverter.convert_to_krw(invested_amount, h.currency_code)),
+                'market_value': float(market_value),
+                'market_value_krw': float(CurrencyConverter.convert_to_krw(market_value, h.currency_code)),
+                'pnl': float(pnl),
+                'pnl_krw': float(CurrencyConverter.convert_to_krw(pnl, h.currency_code)),
+                'pnl_percentage': float(pnl_percentage),
+                'currency': h.currency_code or 'KRW',
+                'country': 'US' if h.currency_code == 'USD' else 'KR'
+            })
+        return results
     
     def get_real_estate_holdings(self):
         """부동산 보유 자산 반환"""
@@ -334,5 +369,90 @@ def add_portfolio_methods():
     DashboardDataCalculator.get_region_breakdown = get_region_breakdown
     DashboardDataCalculator.get_timeseries_data = get_timeseries_data
 
+<<<<<<< HEAD
 # 메서드들 추가
 add_portfolio_methods()
+=======
+        return {
+            'total_entries': total_entries,
+            'stock_entries': stock_entries,
+            'real_estate_entries': real_estate_entries,
+            'recent_entries': recent_entries
+        }
+
+def build_total_card_payload(user_id, interval='weekly'):
+    """총자산 카드 데이터 생성"""
+    calculator = DashboardDataCalculator(user_id, None, interval)
+    return calculator.get_data_payload()
+
+def build_asset_line_payload(user_id, asset_type, interval='weekly'):
+    """자산별 라인 차트 데이터 생성"""
+    calculator = DashboardDataCalculator(user_id, asset_type, interval)
+    return calculator.get_data_payload()
+
+def build_total_timeseries_payload(user_id, interval='weekly'):
+    """총자산 시계열 데이터 생성"""
+    calculator = DashboardDataCalculator(user_id, None, interval)
+    return calculator.get_data_payload()
+
+def process_trade_for_portfolio(trade_id):
+    """
+    Updates PortfolioHolding and creates a PortfolioSnapshot from a single StockTrade.
+    This should be the single source of truth for portfolio updates.
+    """
+    try:
+        trade = StockTrade.objects.select_related('journal__user', 'journal__ticker_symbol').get(id=trade_id)
+        journal = trade.journal
+        user = journal.user
+        stock_info = journal.ticker_symbol
+
+        # It's crucial to recalculate journal aggregates before doing anything else.
+        journal.recalculate_aggregates()
+        # Reload the journal to get the fresh data from the update() call inside recalculate_aggregates
+        journal.refresh_from_db()
+
+        # Now, update the PortfolioHolding with the fresh data from the journal
+        holding, created = PortfolioHolding.objects.update_or_create(
+            user_id=user.id,
+            asset_key=f"stock:{stock_info.ticker_symbol}",
+            defaults={
+                'asset_type': 'stock',
+                'stock_ticker_symbol': stock_info.ticker_symbol,
+                'asset_name': stock_info.stock_name,
+                'sector_or_region': stock_info.sector or '기타',
+                'currency_code': stock_info.currency or 'KRW',
+                'total_quantity': journal.net_qty,
+                'avg_buy_price': journal.avg_buy_price,
+                'invested_amount': (journal.net_qty * journal.avg_buy_price) if journal.net_qty > 0 and journal.avg_buy_price is not None else 0,
+                'realized_profit': journal.realized_pnl or 0,
+                'total_buy_amount': journal.total_buy_qty * (journal.avg_buy_price or 0),
+                'total_sell_amount': journal.total_sell_qty * (journal.avg_sell_price or 0),
+            }
+        )
+
+        # Then, create a snapshot for the specific date of the trade.
+        # This captures the state of the holding *after* this trade.
+        # A more advanced implementation might need to update all subsequent snapshots,
+        # but for now, this creates the necessary historical record.
+        snapshot, snap_created = PortfolioSnapshot.objects.update_or_create(
+            user_id=user.id,
+            snapshot_date=trade.trade_date,
+            asset_key=holding.asset_key,
+            defaults={
+                'asset_type': 'stock',
+                'stock_ticker_symbol': holding.stock_ticker_symbol,
+                'quantity': journal.net_qty,
+                'avg_buy_price': journal.avg_buy_price,
+                'invested_amount': holding.invested_amount,
+                'market_price': trade.price_per_share, # Use the actual trade price for the snapshot
+                'market_value': journal.net_qty * trade.price_per_share,
+                'currency_code': holding.currency_code,
+            }
+        )
+        print(f"Processed trade {trade.id}, {'created' if snap_created else 'updated'} snapshot for {trade.trade_date}.")
+
+    except StockTrade.DoesNotExist:
+        print(f"StockTrade with id={trade_id} not found.")
+    except Exception as e:
+        print(f"Error processing trade {trade_id} for portfolio: {e}")
+>>>>>>> d8922d3 (전체적인 파일 수정)

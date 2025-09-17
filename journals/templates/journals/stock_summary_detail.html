@@ -10,11 +10,27 @@
     .journal-card { background-color: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 16px; text-decoration: none; color: inherit; display: block; }
     .journal-card:hover { border-color: #ccc; }
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+<<<<<<< HEAD
     .card-title { font-size: 1.2rem; font-weight: bold; }
     .card-meta { font-size: 0.85rem; color: #666; }
     .card-content { font-size: 0.95rem; color: #555; margin-bottom: 12px; }
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
     .stat-box { background-color: #f9f9f9; border-radius: 4px; padding: 10px; text-align: center; }
+=======
+    .card-meta { font-size: 0.85rem; color: #666; margin-left:auto; }
+    .card-title { margin: 0 0 8px; font-size: 1.05rem; font-weight: 700; color: #1f2937; }
+    .card-content { font-size: 0.95rem; color: #555; margin-bottom: 8px; }
+    .card-link { font-size:0.85rem; color:#4338ca; font-weight:600; text-decoration:none; border:1px solid #c7d2fe; padding:6px 10px; border-radius:8px; background:#eef2ff; }
+    .card-link:hover { background:#e0e7ff; }
+    .card-posts { margin-top:16px; display:grid; gap:12px; }
+    .card-post { display:block; border:1px solid #e0e7ff; border-radius:10px; padding:14px; background:linear-gradient(120deg,#f8faff,#eef2ff); color:#312e81; text-decoration:none; transition:transform 0.2s ease, box-shadow 0.2s ease; }
+    .card-post:hover { transform:translateY(-2px); box-shadow:0 10px 24px rgba(79,70,229,0.12); }
+    .card-post-header { display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; margin-bottom:8px; color:#4338ca; }
+    .card-post-body { font-size:0.9rem; color:#1f2937; line-height:1.5; }
+    .card-no-posts { margin-top:12px; font-size:0.85rem; color:#64748b; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 8px; }
+    .stat-box { background-color: #f9f9f9; border-radius: 8px; padding: 10px; text-align: center; border:1px solid #eee; }
+>>>>>>> d8922d3 (전체적인 파일 수정)
     .stat-label { font-size: 0.75rem; color: #777; margin-bottom: 4px; }
     .stat-value { font-size: 1.1rem; font-weight: 500; }
     .pnl-positive { color: #28a745 !important; }
@@ -30,12 +46,14 @@
     <div class="journal-list">
         {% if stock_journals %}
             {% for journal in stock_journals %}
-                <a href="{% url 'journals:stock_detail' journal.pk %}" class="journal-card">
+                <div class="journal-card">
                     <div class="card-header">
                         <span class="card-title">매매일지 #{{ forloop.counter }}</span>
                         <span class="card-meta">{{ journal.created_at|date:"Y년 m월 d일" }}</span>
+                        <a href="{% url 'journals:stock_detail' journal.pk %}" class="card-link">거래 상세 보기</a>
                     </div>
                     <div class="card-content">
+                        <h3 class="card-title">매매일지 확인</h3>
                         <p><strong>목표가:</strong> {{ journal.target_price|floatformat:2 }}</p>
                         <p><strong>손절가:</strong> {{ journal.stop_price|floatformat:2 }}</p>
                     </div>
@@ -59,7 +77,22 @@
                             </div>
                         </div>
                     </div>
-                </a>
+                    {% if journal.posts.all %}
+                        <div class="card-posts">
+                            {% for post in journal.posts.all|slice:':3' %}
+                                <a href="{% url 'journals:stock_detail' journal.pk %}#trade-summary" class="card-post">
+                                    <div class="card-post-header">
+                                        <span>{{ post.created_at|date:"Y-m-d H:i" }}</span>
+                                        <span>{{ post.title }}</span>
+                                    </div>
+                                    <div class="card-post-body">{{ post.content|default:"(내용 없음)" }}</div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="card-no-posts">관련 매매일지 포스트가 없습니다.</p>
+                    {% endif %}
+                </div>
             {% endfor %}
         {% else %}
             <p>{{ stock_name }} ({{ ticker_symbol }})에 대한 매매일지가 없습니다.</p>

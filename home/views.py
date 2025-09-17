@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404, redirect
+﻿from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
@@ -13,7 +13,14 @@ import FinanceDataReader as fdr
 from django.views.decorators.http import require_http_methods
 import json
 import re
+from home.services.trading import (
+    build_embed_payload_from_payload,
+    create_real_estate_journal_from_embed,
+    create_stock_journal_from_embed,
+)
 from .models import PostReport, HiddenPost
+
+
 
 def load_more_posts(request):
     """무한 스크롤용 추가 포스트 로드"""
@@ -246,13 +253,37 @@ def create_simple_post(request):
             clean_content = re.sub(hashtag_pattern, '', content).strip()
             clean_content = re.sub(r'\s+', ' ', clean_content)  # 중복 공백 제거
             
+            normalized_journal_payload = {}
+            if trading_journal_data:
+                try:
+                    normalized_journal_payload = json.loads(trading_journal_data)
+                except json.JSONDecodeError as e:
+                    print(f"매매일지 데이터 파싱 오류: {e}")
+                    normalized_journal_payload = {}
+
+            embed_payload = build_embed_payload_from_payload(normalized_journal_payload)
+
             post = Post.objects.create(
                 user=request.user,
                 content=clean_content,
-                embed_payload_json={},
+                embed_payload_json=embed_payload or {},
                 image=image
             )
+<<<<<<< HEAD
             
+=======
+
+            if embed_payload:
+                try:
+                    asset_type = embed_payload.get('asset_type')
+                    if asset_type == 'stock':
+                        create_stock_journal_from_embed(request.user, post, embed_payload)
+                    elif asset_type == 'real_estate':
+                        create_real_estate_journal_from_embed(request.user, post, embed_payload)
+                    print(f"매매일지 데이터 저장: {embed_payload}")
+                except Exception as journal_error:
+                    print(f"매매일지 관련 데이터 생성 오류: {journal_error}")
+>>>>>>> d8922d3 (전체적인 파일 수정)
             # 태그 처리
             for tag_name in hashtags:
                 tag, created = Tag.objects.get_or_create(
@@ -270,7 +301,12 @@ def create_simple_post(request):
                     'image_url': post.image.url if post.image else None,
                     'nickname': post.user.nickname,
                     'tags': [tag.name for tag in post.tags.all()],
+<<<<<<< HEAD
                     'username': post.user.my_ID
+=======
+                    'username': post.user.my_ID,
+                    'has_trading_data': bool(embed_payload)
+>>>>>>> d8922d3 (전체적인 파일 수정)
                 }
             })
 
@@ -286,36 +322,36 @@ def create_simple_post(request):
 def create_trading_post(request):
     """매매일지 포스트 작성"""
     if request.method == 'POST':
-        content = request.POST.get('content')
-        trading_symbol = request.POST.get('trading_symbol')
-        trading_name = request.POST.get('trading_name')
-        trading_side = request.POST.get('trading_side')
-        trading_quantity = request.POST.get('trading_quantity')
-        trading_price = request.POST.get('trading_price')
-        
-        # embed_payload_json 생성
-        embed_data = {
-            'symbol': trading_symbol,
-            'name': trading_name,
-            'side': trading_side,
-            'quantity': trading_quantity,
-            'price': trading_price
+        content = (request.POST.get('content') or '').strip()
+        raw_payload = {
+            'asset_type': 'stock',
+            'ticker_symbol': request.POST.get('trading_symbol'),
+            'company_name': request.POST.get('trading_name'),
+            'side': request.POST.get('trading_side'),
+            'quantity': request.POST.get('trading_quantity'),
+            'price_per_unit': request.POST.get('trading_price'),
+            'target_price': request.POST.get('target_price'),
+            'stop_price': request.POST.get('stop_price'),
+            'trade_reason': request.POST.get('trade_reason'),
+            'currency_code': request.POST.get('currency_code'),
+            'date': request.POST.get('trade_date'),
+            'trade_date': request.POST.get('trade_date'),
         }
-        
+
+        embed_payload = build_embed_payload_from_payload(raw_payload) or {}
+
         post = Post.objects.create(
             user=request.user,
             content=content,
-            embed_payload_json=embed_data,
-            trading_symbol=trading_symbol,
-            trading_name=trading_name,
-            trading_side=trading_side,
-            trading_quantity=trading_quantity,
-            trading_price=trading_price
+            embed_payload_json=embed_payload,
         )
-        
+
+        if embed_payload.get('asset_type') == 'stock':
+            create_stock_journal_from_embed(request.user, post, embed_payload)
+
         messages.success(request, '매매일지가 작성되었습니다!')
         return redirect('home:home')
-    
+
     return render(request, 'home/create_trading.html')
 
 @login_required  
@@ -1090,4 +1126,7 @@ def delete_comment(request, comment_id):
     comment.delete()
     
     return JsonResponse({'success': True})
+
+
+
 

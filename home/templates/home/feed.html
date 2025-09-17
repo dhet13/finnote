@@ -251,6 +251,7 @@
 
 <script>
 // 매매일지 인터페이스 추상화 레이어
+window.currentTradingJournalData = null;
 const TradingJournalInterface = {
     config: {
         modalUrl: '/journals/compose/?modal=1',
@@ -413,19 +414,93 @@ const TradingJournalInterface = {
                 this.closeModal();
                 
                 // 2. form 데이터로 바로 카드 생성
-                if (event.data.payload && event.data.payload.form_data) {
-                    this.createSimpleJournalCard(event.data.payload.form_data);
+                const payload = event.data.payload || {};
+                if (payload.form_data) {
+                    this.createSimpleJournalCard(payload.form_data);
                 }
+<<<<<<< HEAD
                 
+=======
+
+                // 3. 매매일지 데이터 정규화 및 저장
+                const normalizedJournal = buildTradingJournalPayload(payload);
+                if (normalizedJournal) {
+                    try {
+                        window.currentTradingJournalData = JSON.stringify(normalizedJournal);
+                    } catch (serializationError) {
+                        console.error('매매일지 데이터 직렬화 실패:', serializationError);
+                        window.currentTradingJournalData = null;
+                    }
+                } else {
+                    window.currentTradingJournalData = null;
+                }
+
+                PostStateManager.setState('trading');
+                PostStateManager.updatePostButton();
+
+>>>>>>> d8922d3 (전체적인 파일 수정)
                 Toast.success('매매일지가 작성되었습니다!');
             }
         });
     },
+<<<<<<< HEAD
 
     createSimpleJournalCard: function(formData) {
         const postsContainer = document.getElementById('posts-container');
         if (!postsContainer) return;
         
+=======
+
+createSimpleJournalCard: function(formData) {
+    const previewArea = document.getElementById('trading-journal-preview');
+    if (!previewArea) return;
+    
+    console.log('매매일지 이미지 생성 시작:', formData);
+    if (!formData.ticker_symbol) {
+        console.log('주식 데이터가 아님, 카드 생성 안함');
+        return;
+    }
+    
+    // 매매일지 카드를 이미지로 생성
+    this.generateTradingCardAsImage(formData, (imageDataUrl) => {
+        // 생성된 이미지를 미리보기로 표시
+        const cardHTML = `
+            <div style="position: relative; display: inline-block; margin: 10px 0;">
+                <img src="${imageDataUrl}" 
+                     style="max-width: 100%; border-radius: 12px; cursor: pointer; border: 1px solid #eff3f4;" 
+                     onclick="openTradingCardModal('${imageDataUrl}')"
+                     alt="매매일지 카드">
+                <button onclick="this.closest('#trading-journal-preview').style.display='none'; PostStateManager.setState('none'); window.currentTradingCardImage = null; window.currentTradingJournalData = null;" 
+                        style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px;">
+                    ×
+                </button>
+                <div style="text-align: center; margin-top: 8px; color: #64748b; font-size: 12px;">
+                    클릭하면 확대됩니다
+                </div>
+            </div>
+        `;
+        
+        previewArea.innerHTML = cardHTML;
+        previewArea.style.display = 'block';
+        
+        // 이미지 데이터를 전역 변수에 저장
+        window.currentTradingCardImage = imageDataUrl;
+
+        console.log('매매일지 이미지 생성 완료');
+        console.log('전역 변수 저장 확인:', window.currentTradingCardImage ? 'SUCCESS' : 'FAILED');
+        console.log('이미지 데이터 길이:', imageDataUrl.length);
+    });
+},
+    generateTradingCardAsImage: function(formData, callback) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 카드 크기 설정
+        canvas.width = 400;
+        canvas.height = 200;
+        
+        // 데이터 추출
+>>>>>>> d8922d3 (전체적인 파일 수정)
         const ticker = formData.ticker_symbol || 'UNKNOWN';
         const side = formData.side || 'BUY';
         const sideKor = side === 'BUY' ? '매수' : '매도';
@@ -567,6 +642,152 @@ const TradingJournalInterface = {
         postsContainer.insertAdjacentHTML('afterbegin', cardHTML);
     },
 };
+
+function buildTradingJournalPayload(payload) {
+    const formData = payload?.form_data || {};
+    const journalMeta = payload?.journal_data || {};
+
+    const normalizeNumber = (value, fractionDigits = 4) => {
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
+        const numeric = Number(String(value).replace(/,/g, ''));
+        if (!Number.isFinite(numeric)) {
+            return null;
+        }
+        return Number(numeric.toFixed(fractionDigits));
+    };
+
+    const normalizeInteger = (value) => {
+        const normalized = normalizeNumber(value, 0);
+        return normalized === null ? null : parseInt(normalized, 10);
+    };
+
+    const pickFirst = (...values) => {
+        for (const value of values) {
+            if (value !== undefined && value !== null && String(value).trim() !== '') {
+                return value;
+            }
+        }
+        return null;
+    };
+
+    const deriveDong = (address) => {
+        if (!address) return '-';
+        return String(address)
+            .split(' ')
+            .find((part) => part.endsWith('동') || part.endsWith('읍') || part.endsWith('면')) || '-';
+    };
+
+    let assetType = (journalMeta.asset_type || formData.asset_type || '').toLowerCase();
+    const hasTicker = !!pickFirst(formData.ticker_symbol, journalMeta.ticker_symbol);
+    const looksLikeRealEstate = !!pickFirst(
+        formData.building_name,
+        journalMeta.asset_name,
+        journalMeta.property_name,
+        journalMeta.sector_or_region
+    );
+
+    if (!assetType) {
+        if (hasTicker) {
+            assetType = 'stock';
+        } else if (looksLikeRealEstate) {
+            assetType = 'real_estate';
+        }
+    }
+
+    if (assetType === 'stock') {
+        const ticker = pickFirst(formData.ticker_symbol, journalMeta.ticker_symbol);
+        if (!ticker) {
+            return null;
+        }
+
+        const stockName = pickFirst(
+            formData.company_name,
+            formData.stock_name,
+            journalMeta.stock_name,
+            journalMeta.asset_name,
+            ticker,
+        );
+        const side = (pickFirst(formData.side, journalMeta.side, 'BUY') || 'BUY').toUpperCase();
+        const price = normalizeNumber(pickFirst(formData.price, journalMeta.price, journalMeta.price_per_unit), 4);
+        const quantity = normalizeNumber(pickFirst(formData.quantity, journalMeta.quantity), 4);
+        let totalAmount = normalizeNumber(pickFirst(formData.total_amount, journalMeta.total_amount), 2);
+        if (totalAmount === null && price !== null && quantity !== null) {
+            totalAmount = Number((price * quantity).toFixed(2));
+        }
+
+        return {
+            asset_type: 'stock',
+            ticker_symbol: ticker,
+            stock_name: stockName,
+            asset_name: stockName,
+            side,
+            price_per_unit: price,
+            quantity,
+            total_amount: totalAmount,
+            currency_code: pickFirst(formData.currency_code, journalMeta.currency_code, 'KRW'),
+            trade_date: pickFirst(formData.date, journalMeta.trade_date),
+            target_price: normalizeNumber(pickFirst(formData.target_price, journalMeta.target_price), 4),
+            stop_price: normalizeNumber(pickFirst(formData.stop_price, journalMeta.stop_price), 4),
+            trade_reason: pickFirst(formData.trade_reason, journalMeta.trade_reason, ''),
+            journal_meta: journalMeta,
+            form_snapshot: formData,
+        };
+    }
+
+    if (assetType === 'real_estate') {
+        const buildingName = pickFirst(
+            formData.building_name,
+            journalMeta.asset_name,
+            journalMeta.property_name,
+        );
+        if (!buildingName) {
+            return null;
+        }
+
+        const address = pickFirst(formData.address_base, journalMeta.address_base, journalMeta.sector_or_region, '');
+        const tradeDate = pickFirst(formData.contract_date, journalMeta.trade_date, new Date().toISOString().slice(0, 10));
+        const totalAmount = normalizeNumber(pickFirst(formData.amount_main, journalMeta.total_amount, journalMeta.amount_main), 2);
+        const areaM2 = normalizeNumber(pickFirst(formData.area_m2, journalMeta.area_m2), 2);
+        let pricePerUnit = normalizeNumber(pickFirst(formData.price_per_unit, journalMeta.price_per_unit), 2);
+        if (pricePerUnit === null && totalAmount !== null && areaM2) {
+            pricePerUnit = Number((totalAmount / areaM2).toFixed(2));
+        }
+
+        const floor = normalizeInteger(pickFirst(formData.floor, journalMeta.floor));
+
+        return {
+            asset_type: 'real_estate',
+            asset_name: buildingName,
+            property_name: buildingName,
+            sector_or_region: address,
+            address_base: address,
+            deal_type: pickFirst(formData.deal_type, journalMeta.deal_type, '매매'),
+            trade_date: tradeDate,
+            total_amount: totalAmount,
+            price_per_unit: pricePerUnit,
+            quantity: 1,
+            currency_code: pickFirst(formData.currency_code, journalMeta.currency_code, 'KRW'),
+            area_m2: areaM2,
+            floor,
+            lat: pickFirst(formData.lat, journalMeta.lat),
+            lng: pickFirst(formData.lng, journalMeta.lng),
+            loan_amount: normalizeNumber(pickFirst(formData.loan_amount, journalMeta.loan_amount), 2),
+            loan_rate: normalizeNumber(pickFirst(formData.loan_rate, journalMeta.loan_rate), 4),
+            amount_deposit: normalizeNumber(pickFirst(formData.amount_deposit, journalMeta.amount_deposit), 2),
+            amount_monthly: normalizeNumber(pickFirst(formData.amount_monthly, journalMeta.amount_monthly), 2),
+            trade_reason: pickFirst(formData.trade_reason, journalMeta.trade_reason, ''),
+            property_type: pickFirst(formData.property_type, journalMeta.property_type),
+            dong: pickFirst(formData.dong, journalMeta.dong, deriveDong(address)),
+            journal_meta: journalMeta,
+            form_snapshot: formData,
+        };
+    }
+
+    return null;
+}
+
 // 포스트 상태 관리
 const PostStateManager = {
     currentState: 'none', // 'none', 'image', 'trading'
@@ -620,9 +841,15 @@ const PostStateManager = {
         }
     },
     
+
     showPrivacyToggle: function() {
         let toggle = document.getElementById('privacy-toggle');
         if (!toggle) {
+            const form = document.querySelector("form[action*='create_simple_post']");
+            if (!form) {
+                return;
+            }
+
             toggle = document.createElement('div');
             toggle.id = 'privacy-toggle';
             toggle.innerHTML = `
@@ -631,12 +858,12 @@ const PostStateManager = {
                     <span>나만보기</span>
                 </label>
             `;
-            const form = document.querySelector('form[action*="create_simple_post"]');
-            form.insertBefore(toggle, form.lastElementChild);
+
+            form.appendChild(toggle);
         }
         toggle.style.display = 'block';
     },
-    
+
     hidePrivacyToggle: function() {
         const toggle = document.getElementById('privacy-toggle');
         if (toggle) {
@@ -804,6 +1031,27 @@ function submitPost(event) {
     const form = event.target;
     const formData = new FormData(form);
     
+<<<<<<< HEAD
+=======
+    // 매매일지 이미지가 있으면 첨부
+    if (window.currentTradingCardImage) {
+        console.log('매매일지 이미지 발견! 첨부 시작');
+        console.log('currentState:', PostStateManager.currentState);
+        // Base64를 Blob으로 변환해서 이미지로 첨부
+        const blob = dataURLtoBlob(window.currentTradingCardImage);
+        formData.append('image', blob, 'trading_card.png');
+        console.log('매매일지 이미지 첨부됨');
+    }
+
+    if (window.currentTradingJournalData) {
+        try {
+            formData.append('trading_journal_data', window.currentTradingJournalData);
+            console.log('매매일지 데이터 첨부됨');
+        } catch (error) {
+            console.error('매매일지 데이터 첨부 실패:', error);
+        }
+    }
+>>>>>>> d8922d3 (전체적인 파일 수정)
     fetch(form.action, {
         method: 'POST',
         body: formData,
@@ -823,6 +1071,18 @@ function submitPost(event) {
             document.getElementById('post-button').style.opacity = '0.5';
             document.getElementById('image-preview').style.display = 'none';
             
+<<<<<<< HEAD
+=======
+            // 매매일지 미리보기 초기화
+            const tradingPreview = document.getElementById('trading-journal-preview');
+            if (tradingPreview) {
+                tradingPreview.style.display = 'none';
+                tradingPreview.innerHTML = '';
+            }
+            window.currentTradingCardImage = null; // 이미지 데이터 초기화
+            window.currentTradingJournalData = null; // 매매일지 데이터 초기화
+            
+>>>>>>> d8922d3 (전체적인 파일 수정)
             // PostStateManager 상태 초기화
             PostStateManager.setState('none');
         } else {
@@ -2508,3 +2768,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </script>
 {% endblock %}
+
+
+

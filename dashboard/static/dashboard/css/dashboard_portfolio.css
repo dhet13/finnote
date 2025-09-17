@@ -120,7 +120,7 @@
 .sector-cards-grid,
 .property-cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
     gap: 16px;
 }
 
@@ -192,10 +192,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
+    width: 100%;
+    padding: 18px;
     border-bottom: 1px solid #eff3f4;
-    border-radius: 8px;
-    margin-bottom: 8px;
+    border-radius: 10px;
+    margin-bottom: 12px;
     transition: all 0.2s ease;
     background: white;
 }
@@ -390,3 +391,98 @@
         margin-bottom: 20px;
     }
 }
+
+/* --- Gemini Added Styles for Card UI --- */
+
+/* Making the sector group feel more like a container */
+.sector-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border: 1px solid #e1e8ed;
+}
+
+.sector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e1e8ed;
+}
+
+.sector-header h4 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.sector-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1d9bf0;
+}
+
+/* This is the container for the individual stock cards */
+.sector-holdings {
+    display: grid;
+    /* Adjusting grid to be more responsive */
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+/* Styling the individual stock card */
+.stock-card.holding-item {
+    background-color: #f7f9fa;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e1e8ed;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* The hover effect */
+.stock-card.holding-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    cursor: pointer;
+    border-color: #1d9bf0;
+}
+
+.holding-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: #0f1419;
+    margin-bottom: 8px;
+}
+
+.holding-value {
+    color: #536471;
+    font-size: 15px;
+    align-self: flex-end;
+}
+
+/* --- End of Gemini Added Styles --- */
+.sector-pie-legend {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sector-legend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #0f1419;
+    gap: 12px;
+}
+
+.portfolio-item-name { display:flex; flex-direction:column; align-items:flex-start; gap:4px; font-weight:700; color:#0f172a; }
+.portfolio-item-market { font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#4f46e5; }
+.portfolio-item-title { font-size:1rem; color:#0f172a; }

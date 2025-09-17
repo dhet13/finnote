@@ -2,6 +2,7 @@
 
 {% block feed %}
 <style>
+<<<<<<< HEAD
     .detail-container { padding: 20px; max-width: 800px; margin: auto; }
     .stock-header { text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #eee; }
     .stock-header h1 { font-size: 2.5rem; margin-bottom: 8px; color: #333; }
@@ -11,33 +12,90 @@
     .tab-item.active { color: #111; border-bottom-color: #111; }
     .tab-content { display: none; padding-top: 16px; }
     .tab-content.active { display: block; }
+=======
+.detail-container { padding: 20px; max-width: 960px; margin: 0 auto 60px; }
+.stock-header { text-align: center; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
+.stock-header h1 { font-size: 2.4rem; margin-bottom: 6px; color: #0f172a; }
+.stock-header p { font-size: 1rem; color: #64748b; }
+.badge-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: #eef2ff; color: #4338ca; font-weight: 600; font-size: 0.85rem; }
+>>>>>>> d8922d3 (전체적인 파일 수정)
 
-    .trade-list { border: 1px solid #eee; border-radius: 8px; overflow: hidden; }
-    .trade-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; }
-    .trade-item:last-child { border-bottom: none; }
-    .trade-date { font-size: 0.9rem; color: #777; flex-basis: 100px; }
-    .trade-side { font-weight: bold; flex-basis: 60px; text-align: center; }
-    .trade-side.buy { color: #28a745; }
-    .trade-side.sell { color: #dc3545; }
-    .trade-price, .trade-quantity { flex-basis: 100px; text-align: right; }
-    .trade-memo { flex-grow: 1; margin-left: 16px; color: #555; }
+.back-button { display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border:1px solid #e5e7eb; border-radius: 8px; text-decoration:none; color:#374151; background:#fff; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: background 0.2s ease, border 0.2s ease; }
+.back-button:hover { border-color:#cbd5e1; background:#f8fafc; }
 
+<<<<<<< HEAD
     .journal-post-item { background-color: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
     .journal-post-date { font-size: 0.85rem; color: #777; margin-bottom: 8px; }
     .journal-post-content { font-size: 1rem; line-height: 1.5; color: #333; }
 </style>
 
 <div class="detail-container">
+=======
+.tabs { display:flex; border-bottom:2px solid #e2e8f0; margin-bottom: 24px; gap: 12px; }
+.tab-item { padding: 12px 20px; cursor:pointer; font-size:16px; font-weight:600; color:#64748b; border-bottom:2px solid transparent; transition: all 0.2s ease; }
+.tab-item.active { color:#1f2937; border-bottom-color:#1f2937; }
+
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+.summary-meta { display:flex; flex-wrap:wrap; gap:16px; margin-bottom: 20px; }
+.summary-meta--row { flex-direction:row; gap:12px; }
+.summary-card { flex: 1 1 0; min-width:150px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; }
+.summary-card h3 { margin:0 0 6px; font-size:0.85rem; color:#475569; font-weight:600; }
+.summary-card p { margin:0; font-size:1.05rem; font-weight:700; color:#0f172a; }
+
+
+.table-wrapper { margin-top: 12px; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; box-shadow:0 6px 20px rgba(15,23,42,0.05); }
+.trade-summary-table { width:100%; border-collapse:collapse; background:#ffffff; }
+.trade-summary-table thead { background:#f1f5f9; }
+.trade-summary-table th { padding:14px 16px; text-align:left; font-size:0.9rem; font-weight:600; color:#475569; border-bottom:1px solid #e2e8f0; }
+.trade-summary-table td { padding:14px 16px; font-size:0.9rem; color:#1f2937; border-bottom:1px solid #e2e8f0; }
+.trade-summary-table tr:last-child td { border-bottom:none; }
+.trade-summary-table td.align-right { text-align:right; }
+.trade-summary-table td.center { text-align:center; }
+.trade-summary-table .tag-buy { color:#15803d; font-weight:600; }
+.trade-summary-table .tag-sell { color:#b91c1c; font-weight:600; }
+.trade-summary-table .tag-in-progress { color:#1d4ed8; font-weight:600; }
+.trade-summary-table .tag-completed { color:#0f172a; font-weight:600; }
+
+.journal-posts { display:grid; gap:16px; }
+.journal-post-card { display:block; background:linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%); border:1px solid #e0e7ff; border-radius:14px; padding:20px; text-decoration:none; color:inherit; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow:0 8px 26px rgba(79,70,229,0.08); }
+.journal-post-card:hover { transform:translateY(-3px); box-shadow:0 16px 40px rgba(79,70,229,0.12); }
+.journal-post-card h3 { margin:0 0 8px; font-size:1.1rem; font-weight:700; color:#312e81; }
+.journal-post-meta { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:0.85rem; color:#475569; }
+.journal-post-content { font-size:0.95rem; line-height:1.6; color:#1e293b; white-space:pre-wrap; }
+.journal-post-actions { margin-top:14px; }
+.journal-post-actions span { display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; color:#4338ca; font-weight:600; }
+.journal-post-actions span::after { content:'→'; font-size:0.85rem; }
+
+.portfolio-item-name { display:flex; align-items:center; gap:8px; font-weight:600; color:#0f172a; }
+.portfolio-item-flag { display:inline-flex; width:18px; height:18px; align-items:center; justify-content:center; font-size:16px; }
+
+@media (max-width: 768px) {
+    .summary-meta { flex-direction:column; }
+    .tabs { flex-wrap:wrap; }
+    .trade-summary-table th,
+    .trade-summary-table td { padding:10px 12px; font-size:0.85rem; }
+}
+</style>
+
+<div class="detail-container">
+    <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+        <a href="{% url 'journals:stock_summary_detail' stock_journal.ticker_symbol.ticker_symbol %}" class="back-button">&#8592; 목록으로</a>
+    </div>
+
+>>>>>>> d8922d3 (전체적인 파일 수정)
     <div class="stock-header">
         <h1>{{ stock_journal.ticker_symbol.stock_name }} ({{ stock_journal.ticker_symbol.ticker_symbol }})</h1>
-        <p>총 손익: 
-            <span style="{% if stock_journal.return_rate > 0 %}color: #28a745;{% elif stock_journal.return_rate < 0 %}color: #dc3545;{% endif %}">
-                {% if stock_journal.return_rate is not None %}
-                    {{ stock_journal.return_rate|floatformat:2 }}%
-                {% else %}
-                    —
-                {% endif %}
+        <p>
+            <span class="badge-status">
+                {{ stock_journal.get_status_display }}
             </span>
+            {% if stock_journal.return_rate is not None %}
+                <span style="margin-left:12px; font-weight:600; color:{% if stock_journal.return_rate > 0 %}#16a34a{% elif stock_journal.return_rate < 0 %}#dc2626{% else %}#334155{% endif %};">
+                    수익률 {{ stock_journal.return_rate|floatformat:2 }}%
+                </span>
+            {% endif %}
         </p>
     </div>
 
@@ -47,49 +105,114 @@
     </div>
 
     <div id="tab-summary" class="tab-content active">
-        <h2>거래 내역</h2>
-        <div class="trade-list">
-            {% for trade in trades %}
-                <div class="trade-item">
-                    <span class="trade-date">{{ trade.trade_date|date:"Y-m-d" }}</span>
-                    <span class="trade-side {% if trade.side == 'BUY' %}buy{% else %}sell{% endif %}">
-                        {% if trade.side == 'BUY' %}매수{% else %}매도{% endif %}
-                    </span>
-                    <span class="trade-price">{{ trade.price_per_share|floatformat:2 }}</span>
-                    <span class="trade-quantity">{{ trade.quantity|floatformat:2 }}</span>
-                    {# Add memo if available in StockTrade #}
-                </div>
-            {% empty %}
-                <p>아직 거래 내역이 없습니다.</p>
-            {% endfor %}
+        <div class="summary-meta summary-meta--row">
+            <div class="summary-card">
+                <h3>평균 매수가</h3>
+                <p>{% if stock_journal.avg_buy_price %}${{ stock_journal.avg_buy_price|floatformat:2 }}{% else %}-{% endif %}</p>
+            </div>
+            <div class="summary-card">
+                <h3>보유 수량</h3>
+                <p>{{ stock_journal.total_buy_qty|floatformat:2 }}</p>
+            </div>
+            <div class="summary-card">
+                <h3>실현 손익</h3>
+                <p>{% if stock_journal.realized_pnl %}${{ stock_journal.realized_pnl|floatformat:2 }}{% else %}-{% endif %}</p>
+            </div>
+        </div>
+
+        <div id="trade-summary" class="table-wrapper">
+            <table class="trade-summary-table">
+                <thead>
+                    <tr>
+                        <th scope="col">주문 내역</th>
+                        <th scope="col">거래 날짜</th>
+                        <th scope="col" class="align-right">주문 수량</th>
+                        <th scope="col" class="align-right">매수 금액</th>
+                        <th scope="col" class="align-right">매도 금액</th>
+                        <th scope="col" class="align-right">수익률</th>
+                        <th scope="col">상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in trade_rows %}
+                        <tr>
+                            <td class="{% if row.side == 'BUY' %}tag-buy{% else %}tag-sell{% endif %}">{{ row.side_label }}</td>
+                            <td>{{ row.trade_date|date:"Y-m-d" }}</td>
+                            <td class="align-right">{{ row.quantity|floatformat:2 }}</td>
+                            <td class="align-right">{% if row.buy_amount %}${{ row.buy_amount|floatformat:2 }}{% else %}-{% endif %}</td>
+                            <td class="align-right">{% if row.sell_amount %}${{ row.sell_amount|floatformat:2 }}{% else %}-{% endif %}</td>
+                            <td class="align-right">{% if row.return_rate is not None %}{{ row.return_rate|floatformat:2 }}%{% else %}-{% endif %}</td>
+                            <td>
+                                {% if row.status == 'Completed' %}
+                                    <span class="tag-completed">완료</span>
+                                {% else %}
+                                    <span class="tag-in-progress">진행중</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="center">거래 내역이 없습니다.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
     <div id="tab-journal" class="tab-content">
-        <h2>관련 매매일지 포스트</h2>
-        {% for post in journal_posts %}
-            <div class="journal-post-item">
-                <div class="journal-post-date">{{ post.created_at|date:"Y-m-d H:i" }}</div>
-                <div class="journal-post-content">{{ post.content|default:"(내용 없음)" }}</div>
-            </div>
-        {% empty %}
-            <p>관련 매매일지 포스트가 없습니다.</p>
-        {% endfor %}
+        <div class="journal-posts">
+            {% for post in journal_posts %}
+                <a href="#trade-summary" class="journal-post-card" data-scroll-target="trade-summary">
+                    <div class="journal-post-meta">
+                        <span>작성일 {{ post.created_at|date:"Y-m-d H:i" }}</span>
+                        <span>{{ post.stock_journal.ticker_symbol.ticker_symbol }}</span>
+                    </div>
+                    <h3>매매일지 확인</h3>
+                    <div class="journal-post-content">{{ post.content|default:"(내용 없음)" }}</div>
+                    <div class="journal-post-actions">
+                        <span>거래 내역 보기</span>
+                    </div>
+                </a>
+            {% empty %}
+                <p style="color:#64748b;">관련 매매일지 포스트가 없습니다.</p>
+            {% endfor %}
+        </div>
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.tab-item');
-    const tabContents = document.querySelectorAll('.tab-content');
+    const contents = document.querySelectorAll('.tab-content');
 
     tabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            tabs.forEach(item => item.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
 
-            this.classList.add('active');
-            document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+            tab.classList.add('active');
+            const target = document.getElementById(`tab-${tab.dataset.tab}`);
+            if (target) {
+                target.classList.add('active');
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-scroll-target]').forEach(card => {
+        card.addEventListener('click', event => {
+            const targetId = card.getAttribute('data-scroll-target');
+            if (targetId) {
+                const el = document.getElementById(targetId);
+                if (el) {
+                    event.preventDefault();
+                    document.getElementById('tab-summary').classList.add('active');
+                    document.getElementById('tab-journal').classList.remove('active');
+                    tabs.forEach(t => t.classList.remove('active'));
+                    document.querySelector('.tab-item[data-tab="summary"]').classList.add('active');
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
         });
     });
 });

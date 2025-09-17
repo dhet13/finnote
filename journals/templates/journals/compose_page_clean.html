@@ -405,29 +405,75 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{% static 'journals/journal_lookup.js' %}" defer></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const composeTabs = document.querySelectorAll('.compose-tab-item');
-    const composeTabContents = document.querySelectorAll('.compose-tab-content');
+    document.addEventListener('DOMContentLoaded', function() {
+        const composeTabs = document.querySelectorAll('.compose-tab-item');
+        const composeTabContents = document.querySelectorAll('.compose-tab-content');
 
-    composeTabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            composeTabs.forEach(item => item.classList.remove('active'));
-            composeTabContents.forEach(content => content.classList.remove('active'));
+        composeTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                composeTabs.forEach(item => item.classList.remove('active'));
+                composeTabContents.forEach(content => content.classList.remove('active'));
 
-            this.classList.add('active');
-            document.getElementById(this.dataset.assetType + '-tab-content').classList.add('active');
+                this.classList.add('active');
+                document.getElementById(this.dataset.assetType + '-tab-content').classList.add('active');
+            });
         });
-    });
 
-    // Initial tab activation based on URL parameter (if any)
-    const urlParams = new URLSearchParams(window.location.search);
-    const assetType = urlParams.get('asset');
-    if (assetType) {
-        const initialTab = document.querySelector(`.compose-tab-item[data-asset-type="${assetType}"]`);
-        if (initialTab) {
-            initialTab.click(); // Simulate click to activate
+        // Initial tab activation based on URL parameter (if any)
+        const urlParams = new URLSearchParams(window.location.search);
+        const assetType = urlParams.get('asset');
+        if (assetType) {
+            const initialTab = document.querySelector(`.compose-tab-item[data-asset-type="${assetType}"]`);
+            if (initialTab) {
+                initialTab.click(); // Simulate click to activate
+            }
         }
-    }
-});
+
+        // --- Dynamic Currency Display Logic ---
+        const stockSearchInput = document.getElementById('stock-search');
+        const tradePriceLabel = document.querySelector('label[for="trade-price"]');
+        const tradePriceInput = document.getElementById('trade-price');
+        const tradeQuantityInput = document.getElementById('trade-quantity');
+
+        let currentStockCurrency = 'KRW'; // Default currency
+
+        function updateTradePriceDisplay(currency) {
+            currentStockCurrency = currency;
+            if (currency === 'USD') {
+                tradePriceLabel.textContent = '매수/매도 가격 (USD)';
+                tradePriceInput.step = '0.01';
+            } else {
+                tradePriceLabel.textContent = '매수/매도 가격 (원)';
+                tradePriceInput.step = '1';
+            }
+        }
+
+        // This part needs to be integrated with how your ticker selection works.
+        // Assuming `journal_lookup.js` handles the actual selection and can trigger a custom event.
+        // For now, we'll listen to a custom event 'stockSelected' which should be dispatched by journal_lookup.js
+        document.addEventListener('stockSelected', function(event) {
+            const ticker = event.detail.ticker;
+            if (ticker) {
+                fetch(`/journals/api/stock/${ticker}/card-details/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.currency) {
+                            updateTradePriceDisplay(data.currency);
+                        } else {
+                            updateTradePriceDisplay('KRW'); // Fallback
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching stock details:', error);
+                        updateTradePriceDisplay('KRW'); // Fallback on error
+                    });
+            } else {
+                updateTradePriceDisplay('KRW'); // Reset if ticker is cleared
+            }
+        });
+
+        // Initial display setup
+        updateTradePriceDisplay(currentStockCurrency);
+    });
 </script>
 {% endblock %}

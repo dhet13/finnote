@@ -116,14 +116,40 @@ def my_journal_list(request):
 @login_required
 def stock_detail_view(request, pk):
     stock_journal = get_object_or_404(StockJournal, pk=pk, user=request.user)
-    
+
     trades = stock_journal.trades.all().order_by('trade_date')
-    
+
+    trade_rows = []
+    for trade in trades:
+        quantity = trade.quantity or Decimal('0')
+        price = trade.price_per_share or Decimal('0')
+        total_amount = quantity * price
+        buy_amount = total_amount if trade.side == StockTrade.Side.BUY else None
+        sell_amount = total_amount if trade.side == StockTrade.Side.SELL else None
+        return_rate = None
+        if trade.side == StockTrade.Side.SELL and stock_journal.avg_buy_price:
+            avg_buy = stock_journal.avg_buy_price
+            if avg_buy and avg_buy != 0:
+                return_rate = ((price - avg_buy) / avg_buy) * Decimal('100')
+
+        trade_rows.append({
+            'instance': trade,
+            'side': trade.side,
+            'side_label': '매수' if trade.side == StockTrade.Side.BUY else '매도',
+            'trade_date': trade.trade_date,
+            'quantity': quantity,
+            'buy_amount': buy_amount,
+            'sell_amount': sell_amount,
+            'total_amount': total_amount,
+            'return_rate': return_rate,
+            'status': stock_journal.get_status_display(),
+        })
+
     journal_posts = JournalPost.objects.filter(stock_journal=stock_journal).order_by('-created_at')
 
     context = {
         'stock_journal': stock_journal,
-        'trades': trades,
+        'trade_rows': trade_rows,
         'journal_posts': journal_posts,
     }
     return render(request, 'journals/stock_detail.html', context)
@@ -135,7 +161,9 @@ def stock_summary_detail(request, ticker_symbol):
     stock_journals = StockJournal.objects.filter(
         user=request.user,
         ticker_symbol__ticker_symbol=ticker_symbol
-    ).select_related('ticker_symbol').order_by('-created_at')
+    ).select_related('ticker_symbol').prefetch_related(
+        Prefetch('posts', queryset=JournalPost.objects.order_by('-created_at'))
+    ).order_by('-created_at')
 
     # If no journals found for this ticker, handle appropriately (e.g., 404 or empty list)
     if not stock_journals.exists():
