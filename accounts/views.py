@@ -11,10 +11,10 @@ from .forms import CustomUserCreationForm
 class SignupView(CreateView):
     form_class = CustomUserCreationForm
     template_name = 'accounts/signup.html'
-    success_url = reverse_lazy('signup')
+    success_url = reverse_lazy('login')
 
     def form_valid(self, form):
-        messages.success(self.request, "가입이 성공했습니다.")
+        messages.success(self.request, "가입이 완료되었습니다.")
         return super().form_valid(form)
     
 
