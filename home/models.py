@@ -41,8 +41,17 @@ class Post(models.Model):
         super().save(*args, **kwargs)
         
         # 매매일지가 거래와 관련된 경우에만 포트폴리오 업데이트
-        if self.stock_trade_id or self.re_deal_id:
+        if self.stock_trade_id or self.re_deal_id or self._has_trade_data():
             self._update_portfolio_data()
+    
+    def _has_trade_data(self):
+        """embed_payload_json에 거래 데이터가 있는지 확인"""
+        if not self.embed_payload_json:
+            return False
+        
+        # 거래 관련 필드가 있는지 확인
+        trade_fields = ['asset_name', 'asset_type', 'total_amount', 'price_per_unit', 'quantity']
+        return any(field in self.embed_payload_json for field in trade_fields)
     
     def _update_portfolio_data(self):
         """포트폴리오 데이터 업데이트"""
@@ -54,7 +63,8 @@ class Post(models.Model):
             # 거래 데이터에서 정보 추출
             embed_data = self.embed_payload_json or {}
             
-            if self.stock_trade_id:
+            # embed_payload_json에서 거래 정보 추출
+            if self.stock_trade_id or (embed_data.get('asset_type') == 'stock'):
                 # 주식 거래인 경우
                 asset_key = f"stock:{embed_data.get('ticker_symbol', '')}"
                 asset_name = embed_data.get('stock_name', '')

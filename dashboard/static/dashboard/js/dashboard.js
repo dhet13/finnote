@@ -636,6 +636,8 @@ async function loadDashboardData() {
         
         const data = await response.json();
         console.log('API 응답 데이터:', data);
+        console.log('holdings 상세:', data.holdings);
+        console.log('timeseries 상세:', data.timeseries);
 
         if (data.status === 'error') {
             throw new Error(data.error || 'Unknown error');
@@ -1581,156 +1583,33 @@ function switchAssetType(assetType) {
 // 주식 포트폴리오 초기화
 function initializeStockPortfolio() {
     // 기존 차트가 있으면 제거
-    if (stockSectorChart) {
-        stockSectorChart.destroy();
+    if (window.stockSectorPieChart && typeof window.stockSectorPieChart.destroy === 'function') {
+        window.stockSectorPieChart.destroy();
+        window.stockSectorPieChart = null;
     }
 
     const stockCtx = document.getElementById('stockSectorPieChart');
     if (!stockCtx) return;
     
-    // 동적 데이터 (실제로는 API에서 받아올 데이터)
-    // 테스트를 위해 더 많은 섹터 추가 (실제로는 API에서 동적으로 받아옴)
-    const stockLabels = ['기술주', '금융주', '헬스케어', '소비재', '에너지', '통신주', '유틸리티', '소재주'];
-    const stockData = [25, 20, 15, 12, 8, 10, 5, 5];
-    const stockColors = generateColorPalette(stockLabels.length);
-
-    stockSectorChart = new Chart(stockCtx.getContext('2d'), {
-        type: 'pie',
-        data: {
-            labels: stockLabels,
-            datasets: [{
-                data: stockData,
-                backgroundColor: stockColors,
-                borderWidth: 3,
-                borderColor: '#ffffff',
-                hoverBorderWidth: 4,
-                hoverOffset: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,  // 비율 고정 해제로 크기 조정 가능
-            layout: {
-                padding: 10
-            },
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    enabled: false
-                },
-                datalabels: {
-                    display: true,
-                    color: '#ffffff',
-                    font: {
-                        family: 'Arial, sans-serif',  // 폰트 패밀리
-                        weight: '700',                // 폰트 굵기 (더 진하게)
-                        size: 14                      // 폰트 크기 (더 크게)
-                    },
-                    formatter: function(value, context) {
-                        const label = context.chart.data.labels[context.dataIndex];
-                        return label + '\n' + value + '%';
-                    },
-                    textAlign: 'center',
-                    textStrokeColor: 'rgba(0, 0, 0, 0.3)',  // 텍스트 외곽선
-                    textStrokeWidth: 1
-                }
-            },
-            animation: {
-                animateRotate: true,
-                animateScale: true,
-                duration: 1500
-            }
-        },
-        plugins: typeof ChartDataLabels !== 'undefined' ? [ChartDataLabels] : []
-    });
-    
-    // 주식 자산 전체 추이 차트 초기화
-    initializeStockPerformanceChart();
-    
-    // 섹터별 수익률 버튼 초기화
-    initializeSectorReturnButtons();
-    
-    // 섹터별 카드뷰 생성 (수익률 포함)
-    updateSectorCards();
+    // 실제 데이터가 없으면 차트를 생성하지 않음
+    console.log('주식 포트폴리오 차트: 실제 데이터가 없어서 차트를 생성하지 않습니다.');
+    return;
 }
 
 // 부동산 포트폴리오 초기화
 function initializeRealEstatePortfolio() {
     // 기존 차트가 있으면 제거
-    if (realEstateChart) {
-        realEstateChart.destroy();
+    if (window.realEstatePieChart && typeof window.realEstatePieChart.destroy === 'function') {
+        window.realEstatePieChart.destroy();
+        window.realEstatePieChart = null;
     }
 
     const realEstateCtx = document.getElementById('realEstatePieChart');
     if (!realEstateCtx) return;
     
-    // 동적 데이터 (실제로는 API에서 받아올 데이터)
-    const realEstateLabels = ['아파트', '오피스텔', '빌라', '상가', '기타'];
-    const realEstateData = [50, 25, 15, 8, 2];
-    const realEstateColors = generateColorPalette(realEstateLabels.length);
-
-    realEstateChart = new Chart(realEstateCtx.getContext('2d'), {
-        type: 'pie',
-        data: {
-            labels: realEstateLabels,
-            datasets: [{
-                data: realEstateData,
-                backgroundColor: realEstateColors,
-                borderWidth: 3,
-                borderColor: '#ffffff',
-                hoverBorderWidth: 4,
-                hoverOffset: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,  // 비율 고정 해제로 크기 조정 가능
-            layout: {
-                padding: 10
-            },
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    enabled: false
-                },
-                datalabels: {
-                    display: true,
-                    color: '#ffffff',
-                    font: {
-                        family: 'Arial, sans-serif',  // 폰트 패밀리
-                        weight: '700',                // 폰트 굵기 (더 진하게)
-                        size: 14                      // 폰트 크기 (더 크게)
-                    },
-                    formatter: function(value, context) {
-                        const label = context.chart.data.labels[context.dataIndex];
-                        return label + '\n' + value + '%';
-                    },
-                    textAlign: 'center',
-                    textStrokeColor: 'rgba(0, 0, 0, 0.3)',  // 텍스트 외곽선
-                    textStrokeWidth: 1
-                }
-            },
-            animation: {
-                animateRotate: true,
-                animateScale: true,
-                duration: 1500
-            }
-        },
-        plugins: typeof ChartDataLabels !== 'undefined' ? [ChartDataLabels] : []
-    });
-    
-    // 부동산 자산 전체 추이 차트 초기화
-    initializePropertyPerformanceChart();
-    
-    // 물건별 수익률 버튼 초기화
-    initializePropertyReturnButtons();
-    
-    // 물건별 카드뷰 생성 (수익률 포함)
-    updatePropertyCards();
+    // 실제 데이터가 없으면 차트를 생성하지 않음
+    console.log('부동산 포트폴리오 차트: 실제 데이터가 없어서 차트를 생성하지 않습니다.');
+    return;
 }
 
 // 섹터별 카드 생성

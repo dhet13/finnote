@@ -246,6 +246,7 @@ def create_simple_post(request):
         if image:
             print(f"image name: {image.name}")
             print(f"image size: {image.size}")
+        print(f"trading_journal_data: {trading_journal_data}")
         print(f"================================")
 
         if content and content.strip():

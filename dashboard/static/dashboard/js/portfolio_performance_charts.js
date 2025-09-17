@@ -191,11 +191,14 @@ function initializePortfolioPage() {
 async function loadPortfolioData() {
     try {
         console.log('포트폴리오 API 호출 시작');
+        console.log('요청 URL: /dashboard/api/portfolio/?interval=weekly');
+        
         const response = await fetch('/dashboard/api/portfolio/?interval=weekly', {
             credentials: 'same-origin'
         });
         
         console.log('API 응답 상태:', response.status);
+        console.log('API 응답 OK:', response.ok);
         
         if (response.status === 401) {
             console.log('포트폴리오 데이터 로드 실패: 로그인 필요');
@@ -262,7 +265,11 @@ function updateSectorPieChart(sectorData) {
         // 기존 차트가 있다면 제거
         if (window.stockSectorPieChart && typeof window.stockSectorPieChart.destroy === 'function') {
             window.stockSectorPieChart.destroy();
+            window.stockSectorPieChart = null;
         }
+        
+        // 캔버스 초기화
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     const labels = Object.keys(sectorData);
     const values = Object.values(sectorData);
@@ -810,38 +817,11 @@ let propertyPerformanceChart = null;
 let currentSectorReturnPeriod = 'daily';
 let currentPropertyReturnPeriod = 'daily';
 
-// 동적 주식 데이터 관리
-let dynamicStockData = {
-    '기술주': [
-        { name: '삼성전자', ticker: '005930.KS', weight: '35%', value: '45,000원', dailyReturn: '+1.2%', weeklyReturn: '+5.4%' },
-        { name: 'SK하이닉스', ticker: '000660.KS', weight: '25%', value: '89,000원', dailyReturn: '+3.1%', weeklyReturn: '+12.3%' },
-        { name: '네이버', ticker: '035420.KS', weight: '20%', value: '180,000원', dailyReturn: '-0.5%', weeklyReturn: '+2.9%' }
-    ],
-    '금융주': [
-        { name: '삼성생명', ticker: '032830.KS', weight: '40%', value: '75,000원', dailyReturn: '+1.5%', weeklyReturn: '+4.8%' },
-        { name: 'KB금융', ticker: '105560.KS', weight: '35%', value: '52,000원', dailyReturn: '-2.2%', weeklyReturn: '+7.1%' },
-        { name: '신한지주', ticker: '055550.KS', weight: '25%', value: '38,000원', dailyReturn: '+1.6%', weeklyReturn: '+6.9%' }
-    ],
-    '헬스케어': [
-        { name: '셀트리온', ticker: '068270.KS', weight: '50%', value: '165,000원', dailyReturn: '+4.2%', weeklyReturn: '+15.8%' },
-        { name: '유한양행', ticker: '000100.KS', weight: '30%', value: '85,000원', dailyReturn: '+2.1%', weeklyReturn: '+8.3%' },
-        { name: '종근당', ticker: '185750.KS', weight: '20%', value: '120,000원', dailyReturn: '+2.8%', weeklyReturn: '+9.7%' }
-    ]
-};
+// 동적 주식 데이터 관리 (실제 데이터만 사용)
+let dynamicStockData = {};
 
-// 섹터별 수익률 데이터
-let sectorReturnData = {
-    daily: {
-        '기술주': '+2.3%',
-        '금융주': '-0.8%',
-        '헬스케어': '+3.1%'
-    },
-    weekly: {
-        '기술주': '+8.7%',
-        '금융주': '+6.2%',
-        '헬스케어': '+11.5%'
-    }
-};
+// 섹터별 수익률 데이터 (실제 데이터만 사용)
+let sectorReturnData = {};
 
 // 주식 자산 전체 추이 차트 초기화
 function initializeStockPerformanceChart() {
@@ -853,91 +833,9 @@ function initializeStockPerformanceChart() {
     const ctx = document.getElementById('stockPerformanceChart');
     if (!ctx) return;
 
-    // 주식 자산 전체 추이 데이터 (단일 라인)
-    const stockLabels = generatePortfolioDailyLabels(7);  // 일봉: 1/15, 1/16, 1/17
-    const stockData = {
-        labels: stockLabels,
-        datasets: [
-            {
-                label: '주식 자산 총 가치',
-                data: [100000, 102500, 101800, 105200, 107800, 109500, 112300],
-                borderColor: '#4f46e5',
-                backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                tension: 0.4,
-                fill: true,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }
-        ]
-    };
-
-    stockPerformanceChart = new Chart(ctx, {
-        type: 'line',
-        data: stockData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false  // 단일 라인이므로 범례 숨김
-                },
-                tooltip: {
-                    enabled: true,
-                    displayColors: false,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#ffffff',
-                    bodyColor: '#ffffff',
-                    borderColor: '#4f46e5',
-                    borderWidth: 1,
-                    cornerRadius: 6,
-                    padding: 8,
-                    callbacks: {
-                        label: function(context) {
-                            return '총 자산: ' + context.parsed.y.toLocaleString() + '원';
-                        }
-                    }
-                },
-                datalabels: {
-                    display: false
-                }
-            },
-            scales: {
-                x: {
-                    display: true,
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        font: {
-                            size: 11
-                        }
-                    }
-                },
-                y: {
-                    display: true,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.1)'
-                    },
-                    ticks: {
-                        font: {
-                            size: 11
-                        },
-                        callback: function(value) {
-                            return value.toLocaleString() + '원';
-                        }
-                    }
-                }
-            },
-            interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
-            }
-        }
-    });
-
-    // 기간 선택 버튼 이벤트 리스너
-    initializeStockPeriodButtons();
+    // 실제 데이터가 없으면 차트를 생성하지 않음
+    console.log('주식 자산 전체 추이 차트: 실제 데이터가 없어서 차트를 생성하지 않습니다.');
+    return;
 }
 
 // 부동산 자산 전체 추이 차트 초기화
@@ -950,91 +848,9 @@ function initializePropertyPerformanceChart() {
     const ctx = document.getElementById('propertyPerformanceChart');
     if (!ctx) return;
 
-    // 부동산 자산 전체 추이 데이터 (단일 라인)
-    const propertyLabels = generatePortfolioDailyLabels(7);  // 일봉: 1/15, 1/16, 1/17
-    const propertyData = {
-        labels: propertyLabels,
-        datasets: [
-            {
-                label: '부동산 자산 총 가치',
-                data: [80000, 81200, 81800, 82500, 83100, 84000, 84800],
-                borderColor: '#059669',
-                backgroundColor: 'rgba(5, 150, 105, 0.1)',
-                tension: 0.4,
-                fill: true,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }
-        ]
-    };
-
-    propertyPerformanceChart = new Chart(ctx, {
-        type: 'line',
-        data: propertyData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false  // 단일 라인이므로 범례 숨김
-                },
-                tooltip: {
-                    enabled: false,
-                    displayColors: false,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#ffffff',
-                    bodyColor: '#ffffff',
-                    borderColor: '#ffffff',
-                    borderWidth: 1,
-                    cornerRadius: 6,
-                    padding: 8,
-                    callbacks: {
-                        label: function(context) {
-                            return '총 자산: ' + context.parsed.y.toLocaleString() + '원';
-                        }
-                    }
-                },
-                datalabels: {
-                    display: false
-                }
-            },
-            scales: {
-                x: {
-                    display: true,
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        font: {
-                            size: 11
-                        }
-                    }
-                },
-                y: {
-                    display: true,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.1)'
-                    },
-                    ticks: {
-                        font: {
-                            size: 11
-                        },
-                        callback: function(value) {
-                            return value.toLocaleString() + '원';
-                        }
-                    }
-                }
-            },
-            interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
-            }
-        }
-    });
-
-    // 기간 선택 버튼 이벤트 리스너
-    initializePropertyPeriodButtons();
+    // 실제 데이터가 없으면 차트를 생성하지 않음
+    console.log('부동산 자산 전체 추이 차트: 실제 데이터가 없어서 차트를 생성하지 않습니다.');
+    return;
 }
 
 // 주식 자산 추이 차트 기간 선택 버튼 초기화
@@ -1109,70 +925,18 @@ function updateStockPerformanceChart(period) {
         return;
     }
 
-    let labels, data;
-    
-    switch(period) {
-        case '1D':
-            labels = generatePortfolioDailyLabels(7);  // 일봉: 1/15, 1/16, 1/17
-            data = [100000, 102500, 101800, 105200, 107800, 109500, 112300];
-            break;
-        case '1W':
-            labels = generatePortfolioWeeklyLabels(4);  // 주봉: 1/15, 1/22, 1/29
-            data = [95000, 98500, 102000, 112300];
-            break;
-        case '1M':
-            labels = generatePortfolioMonthlyLabels(4);  // 주봉: Week 1, Week 2, Week 3
-            data = [80000, 85000, 95000, 112300];
-            break;
-        case '1Y':
-            labels = generatePortfolioYearlyLabels(12);  // 주봉: 1월, 2월, 3월
-            data = [60000, 65000, 70000, 75000, 80000, 85000, 90000, 95000, 100000, 105000, 110000, 112300];
-            break;
-        default:
-            labels = generatePortfolioDailyLabels(7);
-            data = [100000, 102500, 101800, 105200, 107800, 109500, 112300];
-    }
-
-    console.log('주식 차트 데이터 업데이트:', period, labels, data);
-    stockPerformanceChart.data.labels = labels;
-    stockPerformanceChart.data.datasets[0].data = data;
-    stockPerformanceChart.update();
-    console.log('주식 차트 업데이트 완료');
+    // 실제 데이터가 없으면 차트를 업데이트하지 않음
+    console.log('주식 자산 추이 차트: 실제 데이터가 없어서 차트를 업데이트하지 않습니다.');
+    return;
 }
 
 // 부동산 자산 추이 차트 데이터 업데이트
 function updatePropertyPerformanceChart(period) {
     if (!propertyPerformanceChart) return;
 
-    let labels, data;
-    
-    switch(period) {
-        case '1D':
-            labels = generatePortfolioDailyLabels(7);  // 일봉: 1/15, 1/16, 1/17
-            data = [80000, 81200, 81800, 82500, 83100, 84000, 84800];
-            break;
-        case '1W':
-            labels = generatePortfolioWeeklyLabels(4);  // 주봉: 1/15, 1/22, 1/29
-            data = [78000, 80500, 82000, 84800];
-            break;
-        case '1M':
-            labels = generatePortfolioMonthlyLabels(4);  // 주봉: Week 1, Week 2, Week 3
-            data = [70000, 75000, 80000, 84800];
-            break;
-        case '1Y':
-            labels = generatePortfolioYearlyLabels(12);  // 주봉: 1월, 2월, 3월
-            data = [60000, 62000, 64000, 66000, 68000, 70000, 72000, 74000, 76000, 78000, 80000, 84800];
-            break;
-        default:
-            labels = generatePortfolioDailyLabels(7);
-            data = [80000, 81200, 81800, 82500, 83100, 84000, 84800];
-    }
-
-    console.log('부동산 차트 데이터 업데이트:', period, labels, data);
-    propertyPerformanceChart.data.labels = labels;
-    propertyPerformanceChart.data.datasets[0].data = data;
-    propertyPerformanceChart.update();
-    console.log('부동산 차트 업데이트 완료');
+    // 실제 데이터가 없으면 차트를 업데이트하지 않음
+    console.log('부동산 자산 추이 차트: 실제 데이터가 없어서 차트를 업데이트하지 않습니다.');
+    return;
 }
 
 // 섹터별 카드 업데이트 (수익률 표시 포함)
@@ -1665,3 +1429,7 @@ window.navigateToStockJournal = function(ticker) {
     // 현재 탭에서 이동
     window.location.href = journalUrl;
 }
+
+// 전역 함수로 노출
+window.initializePortfolioPage = initializePortfolioPage;
+window.loadPortfolioData = loadPortfolioData;

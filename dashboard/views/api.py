@@ -105,12 +105,21 @@ def api_portfolio(request: HttpRequest) -> JsonResponse:
         )
         
         # 포트폴리오 전용 데이터 구조
+        stock_holdings = calculator.get_stock_holdings()
+        real_estate_holdings = calculator.get_real_estate_holdings()
+        
+        print(f"=== 포트폴리오 API 디버깅 ===")
+        print(f"stock_holdings 개수: {len(stock_holdings) if stock_holdings else 0}")
+        print(f"real_estate_holdings 개수: {len(real_estate_holdings) if real_estate_holdings else 0}")
+        print(f"stock_holdings 내용: {stock_holdings}")
+        print(f"real_estate_holdings 내용: {real_estate_holdings}")
+        
         data = {
             'total_value': calculator.get_total_value(),
             'total_change': calculator.get_total_change(),
             'total_change_percent': calculator.get_total_change_percent(),
-            'stock_holdings': calculator.get_stock_holdings(),
-            'real_estate_holdings': calculator.get_real_estate_holdings(),
+            'stock_holdings': stock_holdings,
+            'real_estate_holdings': real_estate_holdings,
             'sector_breakdown': calculator.get_sector_breakdown(),
             'region_breakdown': calculator.get_region_breakdown(),
             'timeseries_data': calculator.get_timeseries_data(),
