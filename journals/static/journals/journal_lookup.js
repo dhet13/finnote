@@ -287,27 +287,32 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
             if (response.ok) {
                 // home 앱으로 데이터 전달
+                const journalCompleteMessage = {
+                    type: 'trading-journal-complete',
+                    payload: {
+                        success: true,
+                        // 추가: 사용자가 입력한 폼 데이터
+                        form_data: {
+                            ticker_symbol: state.selectedTicker,
+                            side: state.side,
+                            price: tradePriceInput.value,
+                            quantity: tradeQuantityInput.value,
+                            date: tradeDateInput.value,
+                            target_price: targetPriceInput.value,
+                            stop_price: stopPriceInput.value,
+                            trade_reason: tradeReasonInput.value
+                        },
+                        journal_data: data,
+                        card_html: data.card_html || null
+                    }
+                };
+
                 if (window.parent !== window) {
-                    window.parent.postMessage({
-                        type: 'trading-journal-complete',
-                        payload: {
-                            success: true,
-                            // 추가: 사용자가 입력한 폼 데이터
-                            form_data: {
-                                ticker_symbol: state.selectedTicker,
-                                side: state.side,
-                                price: tradePriceInput.value,
-                                quantity: tradeQuantityInput.value,
-                                date: tradeDateInput.value,
-                                target_price: targetPriceInput.value,
-                                stop_price: stopPriceInput.value,
-                                trade_reason: tradeReasonInput.value
-                            },
-                            journal_data: data,
-                            card_html: data.card_html || null
-                        }
-                    }, '*');
+                    window.parent.postMessage(journalCompleteMessage, '*');
                 }
+
+                // 모달을 같은 창에 직접 그려 쓰는 경우도 있으므로 현재 창에도 메시지를 보낸다.
+                window.postMessage(journalCompleteMessage, '*');
 
                 alert('매매일지가 성공적으로 작성되었습니다.');
             } else {
