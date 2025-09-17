@@ -34,8 +34,14 @@
     .summary-value { font-size:1.1rem; font-weight:700; color:#0f172a; letter-spacing: -0.01em; }
     .pnl-positive { color: #16a34a !important; }
     .pnl-negative { color: #ef4444 !important; }
-    .sparkline-wrap { width:100%; height:56px; margin: 8px 0 4px 0; }
+    .sparkline-wrap { width:100%; margin: 8px 0 4px 0; }
     .sparkline-canvas { width:100%; height:56px; display:block; }
+    .price-targets { display:flex; justify-content:space-between; margin-top:6px; padding:0 2px; }
+    .target-price, .stop-price { display:flex; flex-direction:column; align-items:center; }
+    .target-label, .stop-label { font-size:0.7rem; color:#6b7280; margin-bottom:2px; }
+    .target-value, .stop-value { font-size:0.8rem; font-weight:600; color:#111827; }
+    .target-value { color:#16a34a; }
+    .stop-value { color:#ef4444; }
     .filter-bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin: 12px 0; padding:12px; background:#fff; border:1px solid #eee; border-radius:12px; }
     .filter-bar label { font-size:0.85rem; color:#6b7280; margin-right:6px; }
     .filter-bar select { padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; color:#111827; }
@@ -93,6 +99,16 @@
         </div>
         <div class="sparkline-wrap">
             <canvas id="sparkline" class="sparkline-canvas"></canvas>
+            <div class="price-targets">
+                <div class="target-price">
+                    <span class="target-label">목표가</span>
+                    <span class="target-value" id="target-price">{% if summary.target_price %}{{ summary.target_price|floatformat:2 }}{% else %}—{% endif %}</span>
+                </div>
+                <div class="stop-price">
+                    <span class="stop-label">손절가</span>
+                    <span class="stop-value" id="stop-price">{% if summary.stop_price %}{{ summary.stop_price|floatformat:2 }}{% else %}—{% endif %}</span>
+                </div>
+            </div>
         </div>
         <div class="summary-grid">
             <div class="summary-item">
@@ -161,57 +177,40 @@
     <div class="journal-list">
         {% if stock_journals %}
             {% for journal in stock_journals %}
-                <div class="journal-card">
+                <div class="journal-card" onclick="location.href='{% url 'journals:stock_detail' journal.pk %}'" style="cursor: pointer;">
                     <div class="card-header">
                         <span class="card-meta">{{ journal.created_at|date:"Y년 m월 d일" }}</span>
-                        <a href="{% url 'journals:stock_detail' journal.pk %}" class="card-link">거래 상세 보기</a>
                     </div>
                     <div class="card-content">
                         <h3 class="card-title">매매일지 확인</h3>
-                        <p><strong>목표가:</strong> {{ journal.target_price|floatformat:2 }}</p>
-                        <p><strong>손절가:</strong> {{ journal.stop_price|floatformat:2 }}</p>
                     </div>
                     <div class="stats-grid">
                         <div class="stat-box">
-                            <div class="stat-label">평균 매수가</div>
-                            <div class="stat-value">{{ journal.avg_buy_price|floatformat:2|default:"-" }}</div>
+                            <div class="stat-label">총 매수 금액</div>
+                            <div class="stat-value">{% if summary.total_buy_amount %}${{ summary.total_buy_amount|floatformat:2 }}{% else %}—{% endif %}</div>
                         </div>
                         <div class="stat-box">
-                            <div class="stat-label">평균 매도가</div>
-                            <div class="stat-value">{{ journal.avg_sell_price|floatformat:2|default:"-" }}</div>
+                            <div class="stat-label">총 매도 금액</div>
+                            <div class="stat-value">{% if summary.total_sell_amount %}${{ summary.total_sell_amount|floatformat:2 }}{% else %}—{% endif %}</div>
                         </div>
                         <div class="stat-box">
                             <div class="stat-label">실현 손익</div>
-                            <div class="stat-value {% if journal.realized_pnl > 0 %}pnl-positive{% elif journal.realized_pnl < 0 %}pnl-negative{% endif %}">
-                                {% if journal.realized_pnl is not None %}
-                                    {{ journal.realized_pnl|floatformat:2 }}
+                            <div class="stat-value {% if summary.realized_pnl and summary.realized_pnl > 0 %}pnl-positive{% elif summary.realized_pnl and summary.realized_pnl < 0 %}pnl-negative{% endif %}">
+                                {% if summary.realized_pnl is not None %}
+                                    ${{ summary.realized_pnl|floatformat:2 }}
                                 {% else %}
                                     —
                                 {% endif %}
                             </div>
                         </div>
                     </div>
-                    {% if journal.posts.all %}
-                        <div class="card-posts">
-                            {% for post in journal.posts.all|slice:':3' %}
-                                <a href="{% url 'journals:stock_detail' journal.pk %}#trade-summary" class="card-post">
-                                    <div class="card-post-header">
-                                        <span>{{ post.created_at|date:"Y-m-d H:i" }}</span>
-                                        <span>{{ post.title }}</span>
-                                    </div>
-                                    <div class="card-post-body">{{ post.content|default:"(내용 없음)" }}</div>
-                                </a>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="card-no-posts">관련 매매일지 포스트가 없습니다.</p>
-                    {% endif %}
                 </div>
             {% endfor %}
         {% else %}
             <p>{{ stock_name }} ({{ ticker_symbol }})에 대한 매매일지가 없습니다.</p>
         {% endif %}
     </div>
+
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {

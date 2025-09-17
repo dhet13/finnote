@@ -174,12 +174,24 @@ def create_stock_journal_from_embed(user, post, embed_payload):
         defaults={"stock_name": embed_payload.get("stock_name") or ticker},
     )
 
-    journal = StockJournal.objects.create(
+    # 같은 종목의 기존 journal이 있는지 확인하고, 없으면 새로 생성
+    journal, created = StockJournal.objects.get_or_create(
         user=user,
         ticker_symbol=stock_info,
-        target_price=target_decimal,
-        stop_price=stop_decimal,
+        defaults={
+            'target_price': target_decimal,
+            'stop_price': stop_decimal,
+        }
     )
+
+    # 기존 journal이 있는 경우, target_price와 stop_price를 업데이트 (선택적)
+    if not created:
+        # 새로운 거래에서 더 의미있는 값이 있다면 업데이트
+        if target_decimal and target_decimal != journal.target_price:
+            journal.target_price = target_decimal
+        if stop_decimal and stop_decimal != journal.stop_price:
+            journal.stop_price = stop_decimal
+        journal.save()
 
     trade = StockTrade.objects.create(
         journal=journal,
