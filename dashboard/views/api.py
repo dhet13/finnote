@@ -5,118 +5,62 @@ from django.http import JsonResponse, HttpRequest
 
 def api_total(request: HttpRequest) -> JsonResponse:
     """총자산 카드 데이터 API"""
-    from .services import DashboardDataCalculator
-    
-    # URL 파라미터에서 interval 가져오기 (기본값: weekly)
-    interval = request.GET.get('interval', 'weekly')
-    
-    # 사용자 ID 가져오기 (로그인된 사용자)
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=401)
-    
-    try:
-        # 실제 데이터 계산기 사용
-        calculator = DashboardDataCalculator(
-            user_id=request.user.id, 
-            asset_type=None,  # 전체 자산
-            interval=interval
-        )
-        data = calculator.get_data_payload()
-        
-        return JsonResponse(data)
-        
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    # 임시 더미 데이터 반환 - 위클리 변동
+    return JsonResponse({
+        "total_value": 117340,
+        "wow_change_pct": 1.74,
+        "series": [
+            {"label": "Mon", "value": 115000},
+            {"label": "Tue", "value": 116200},
+            {"label": "Wed", "value": 114800},
+            {"label": "Thu", "value": 117000},
+            {"label": "Fri", "value": 117340},
+            {"label": "Sat", "value": 116900},
+            {"label": "Sun", "value": 117100}
+        ]
+    })
 
 def api_stock(request: HttpRequest) -> JsonResponse:
     """주식 자산 데이터 API"""
-    from .services import DashboardDataCalculator
-    
-    interval = request.GET.get('interval', 'weekly')
-    
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=401)
-    
-    try:
-        calculator = DashboardDataCalculator(
-            user_id=request.user.id, 
-            asset_type='stock',  # 주식 자산만
-            interval=interval
-        )
-        data = calculator.get_data_payload()
-        
-        return JsonResponse(data)
-        
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    # 임시 더미 데이터 반환 - 주식 자산 변동
+    return JsonResponse({
+        "total_value": 45000,
+        "wow_change_pct": 3.1,
+        "series": [
+            {"label": "1주전", "value": 42000},
+            {"label": "6일전", "value": 42800},
+            {"label": "5일전", "value": 43200},
+            {"label": "4일전", "value": 43800},
+            {"label": "3일전", "value": 44200},
+            {"label": "2일전", "value": 44600},
+            {"label": "1일전", "value": 45000}
+        ]
+    })
 
 def api_real_estate(request: HttpRequest) -> JsonResponse:
     """부동산 자산 데이터 API"""
-    from .services import DashboardDataCalculator
-    
-    interval = request.GET.get('interval', 'weekly')
-    
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=401)
-    
-    try:
-        calculator = DashboardDataCalculator(
-            user_id=request.user.id, 
-            asset_type='real_estate',  # 부동산 자산만
-            interval=interval
-        )
-        data = calculator.get_data_payload()
-        
-        return JsonResponse(data)
-        
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    # 임시 더미 데이터 반환 - 부동산 자산 변동
+    return JsonResponse({
+        "total_value": 72340,
+        "wow_change_pct": 1.5,
+        "series": [
+            {"label": "1월", "value": 70000},
+            {"label": "2월", "value": 70800},
+            {"label": "3월", "value": 71200},
+            {"label": "4월", "value": 71800},
+            {"label": "5월", "value": 72100},
+            {"label": "6월", "value": 72340}
+        ]
+    })
 
 def api_total_timeseries(request: HttpRequest) -> JsonResponse:
     """총자산 시계열 데이터 API"""
-    from .services import build_total_timeseries_payload
-    
-    interval = request.GET.get('interval', 'weekly')
-    
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=401)
-    
-    try:
-        data = build_total_timeseries_payload(request.user.id, interval)
-        return JsonResponse(data)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-def api_portfolio(request: HttpRequest) -> JsonResponse:
-    """포트폴리오 데이터 API"""
-    from .services import DashboardDataCalculator
-    
-    interval = request.GET.get('interval', 'weekly')
-    
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=401)
-    
-    try:
-        # 포트폴리오 데이터 계산
-        calculator = DashboardDataCalculator(
-            user_id=request.user.id, 
-            asset_type=None,  # 전체 자산
-            interval=interval
-        )
-        
-        # 포트폴리오 전용 데이터 구조
-        data = {
-            'total_value': calculator.get_total_value(),
-            'total_change': calculator.get_total_change(),
-            'total_change_percent': calculator.get_total_change_percent(),
-            'stock_holdings': calculator.get_stock_holdings(),
-            'real_estate_holdings': calculator.get_real_estate_holdings(),
-            'sector_breakdown': calculator.get_sector_breakdown(),
-            'region_breakdown': calculator.get_region_breakdown(),
-            'timeseries_data': calculator.get_timeseries_data()
-        }
-        
-        return JsonResponse(data)
-        
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    # 임시 더미 데이터 반환
+    return JsonResponse({
+        "series": [
+            {"date": "2024-01", "value": 0.0},
+            {"date": "2024-02", "value": 3.2},
+            {"date": "2024-03", "value": 5.3},
+            {"date": "2024-04", "value": 6.7}
+        ]
+    })

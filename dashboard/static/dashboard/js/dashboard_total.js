@@ -1,25 +1,6 @@
 // 차트 객체를 저장할 변수를 미리 만들어 둡니다.
 let miniBarChart = null;
 
-// 통화 포맷팅 함수 (통일된 형식)
-function formatCurrency(amount) {
-    if (amount === 0 || amount === null || amount === undefined) {
-        return '0원';
-    }
-    
-    const absAmount = Math.abs(amount);
-    
-    if (absAmount >= 100000000) {
-        return (amount / 100000000).toFixed(1) + '억원';
-    } else if (absAmount >= 10000) {
-        return (amount / 10000).toFixed(1) + '만원';
-    } else if (absAmount >= 1000) {
-        return (amount / 1000).toFixed(1) + 'k원';
-    } else {
-        return Math.round(amount).toLocaleString() + '원';
-    }
-}
-
 // 페이지가 로드되면 실행될 메인 함수
 document.addEventListener('DOMContentLoaded', function() {
     // 1. 기본값인 'weekly'로 데이터를 한번 불러옵니다.
@@ -52,7 +33,7 @@ async function loadCardData(interval) {
         const totalValue = Number(data.total_value) || 0;
         const changePercent = Number(data.wow_change_pct) || 0;
 
-        document.getElementById('total-asset-value').textContent = formatCurrency(totalValue);
+        document.getElementById('total-asset-value').textContent = '₩ ' + totalValue.toLocaleString();
         
         const changeEl = document.getElementById('asset-change-pct');
         changeEl.textContent = `${changePercent > 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
@@ -89,23 +70,7 @@ function drawMiniBarChart(seriesData) {
             // ... (차트 옵션은 이전 미니차트 예제와 유사하게 설정)
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { 
-                legend: { display: false }, 
-                tooltip: { 
-                    enabled: false,
-                    displayColors: false,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#ffffff',
-                    bodyColor: '#ffffff',
-                    borderColor: '#ffffff',
-                    borderWidth: 1,
-                    cornerRadius: 6,
-                    padding: 8
-                },
-                datalabels: {
-                    display: false
-                } 
-            },
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
             scales: { x: { display: false }, y: { display: false } }
         }
     });

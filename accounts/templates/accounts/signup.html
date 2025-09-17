@@ -1,46 +1,19 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회원가입</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #333333;">
+{% extends "base.html" %}
 
-<div style="background-color: #f0f2f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
-    <div style="width: 100%; max-width: 400px; padding: 40px; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); text-align: center; box-sizing: border-box;">
-        <h2 style="font-size: 28px; color: #333333; margin-bottom: 24px; font-weight: bold;">회원가입</h2>
-        <!-- 메시지 영역은 Django의 messages를 사용하지 않는다면 백엔드 로직에 따라 수정해야 합니다. -->
-        {% if messages %}
-            {% for message in messages %}
-                <div style="background-color: #d4edda; color: #155724; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; text-align: left;">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-        <!-- form.as_p를 직접 사용하지 않고 인라인 스타일을 적용합니다. -->
-        <form method="post" style="display: flex; flex-direction: column; gap: 15px;">
-            {% csrf_token %}
-            {% for field in form %}
-                <div style="text-align: left;">
-                    <label for="{{ field.id_for_label }}" style="font-size: 14px; color: #555555; display: block; margin-bottom: 5px;">{{ field.label }}</label>
-                    <input type="{{ field.field.widget.input_type }}" name="{{ field.name }}" id="{{ field.id_for_label }}" placeholder="{{ field.label }}" style="width: 100%; padding: 12px; border: 1px solid #dddddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; transition: border-color 0.3s;" onfocus="this.style.borderColor='#28a745';" onblur="this.style.borderColor='#dddddd';">
-                    {% if field.errors %}
-                        <ul style="color: #e74c3c; font-size: 12px; margin-top: 5px; padding: 0; list-style: none;">
-                            {% for error in field.errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                </div>
-            {% endfor %}
-            <button type="submit" style="background-color: #28a745; color: white; padding: 12px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; margin-top: 10px; width: 100%;">가입하기</button>
-        </form>
-        <div style="margin-top: 20px; font-size: 14px; color: #888888;">
-            <p style="margin: 0;">이미 계정이 있으신가요? <a href="{% url 'login' %}" style="color: #007bff; text-decoration: none; font-weight: bold;">로그인</a></p>
+{% block feed %}
+<div class="signup-container" style="margin: 0 auto; width: 100%; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-success" role="alert">
+            {{ message }}
         </div>
-    </div>
+    {% endfor %}
+{% endif %}
+<h2>회원가입</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">가입하기</button>
+</form>
 </div>
-
-</body>
-</html>
+{% endblock %}

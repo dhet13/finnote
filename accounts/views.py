@@ -16,7 +16,6 @@ class SignupView(CreateView):
     def form_valid(self, form):
         messages.success(self.request, "가입이 성공했습니다.")
         return super().form_valid(form)
-    
 
 # 로그인 뷰
 class CustomLoginView(LoginView):

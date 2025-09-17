@@ -1,0 +1,585 @@
+{% extends "common/base.html" %}
+
+{% block content %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+    /* 메인 콘텐츠 영역을 최대한 활용 */
+    body .container .main-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+        background-color: white !important;
+        flex: 1 !important;
+        overflow-x: auto !important;
+    }
+    
+    /* 컨테이너 레이아웃 수정 */
+    body .container {
+        display: flex !important;
+        width: 100vw !important;
+        max-width: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* 사이드바 고정 */
+    body .container .sidebar {
+        width: 250px !important;
+        min-width: 250px !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .dashboard-container {
+        padding: 24px;
+        background-color: white;
+        min-height: 100vh;
+        width: 100%;
+        max-width: none !important;
+    }
+    
+    /* 헤더 스타일 */
+    .dashboard-header {
+        border-bottom: 1px solid #e1e8ed;
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+    }
+    
+    .dashboard-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #14171a;
+        margin: 0;
+    }
+    
+    /* 탭 스타일 */
+    .dashboard-tabs {
+        border-bottom: 1px solid #e1e8ed;
+        margin-bottom: 24px;
+        padding: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+    
+    .dashboard-tabs .nav-pills {
+        border-bottom: none;
+    }
+    
+    .dashboard-tabs .nav-link {
+        color: #536471;
+        border: none;
+        border-radius: 0;
+        padding: 16px 0;
+        margin: 0 32px 0 0;
+        font-weight: 500;
+        font-size: 15px;
+        background: transparent;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s ease;
+    }
+    
+    .dashboard-tabs .nav-link.active {
+        background-color: transparent;
+        color: #1d9bf0;
+        border-bottom-color: #1d9bf0;
+    }
+    
+    .dashboard-tabs .nav-link:hover:not(.active) {
+        background-color: transparent;
+        color: #1d9bf0;
+    }
+    
+    /* 통계 카드 스타일 */
+    .stats-row {
+        display: flex;
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+    
+    .stat-card {
+        flex: 1;
+        min-width: 0; /* flexbox에서 카드가 줄어들 수 있도록 */
+        width: 33.333%; /* 3개 카드 균등 분할 */
+        padding: 16px;
+        border: 1px solid #e1e8ed;
+        border-radius: 16px;
+        background: white;
+        position: relative;
+        height: fit-content; /* 내용에 맞는 높이 */
+    }
+    
+    .stat-card h3 {
+        font-size: 14px;
+        color: #536471;
+        margin: 0 0 8px 0;
+        font-weight: 400;
+    }
+    
+    .stat-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #14171a;
+        margin: 0 0 4px 0;
+    }
+    
+    .stat-change {
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 16px;
+        margin-top: 8px;
+    }
+    
+    .stat-change.positive {
+        color: white;
+        background-color: #00ba7c;
+    }
+    
+    .stat-change.negative {
+        color: white;
+        background-color: #f91880;
+    }
+    
+    .stat-change.positive::before {
+        content: "▲ ";
+        font-size: 10px;
+    }
+    
+    .stat-change.negative::before {
+        content: "▼ ";
+        font-size: 10px;
+    }
+    
+    .stat-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-top: 8px;
+    }
+    
+    .stat-numbers {
+        flex: 1;
+    }
+    
+    .stat-side-chart {
+        width: 80px;
+        height: 50px;
+        flex-shrink: 0;
+        margin-top: 4px;
+    }
+    
+    /* 차트 컨테이너 */
+    .chart-container {
+        background: white;
+        border: 1px solid #e1e8ed;
+        border-radius: 16px;
+        padding: 24px;
+        margin-top: 24px;
+    }
+    
+    .chart-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .chart-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #14171a;
+        margin: 0;
+    }
+    
+    .chart-controls {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .chart-controls button {
+        padding: 6px 12px;
+        border: 1px solid #e1e8ed;
+        border-radius: 20px;
+        background: white;
+        color: #536471;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .chart-controls button.active,
+    .chart-controls button:hover {
+        background-color: #1d9bf0;
+        color: white;
+        border-color: #1d9bf0;
+    }
+</style>
+
+<div class="dashboard-container">
+    <!-- 헤더 -->
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">대시보드</h1>
+    </div>
+    
+    <!-- 탭 네비게이션 -->
+    <div class="dashboard-tabs">
+        <ul class="nav nav-pills">
+            <li class="nav-item">
+                <a class="nav-link active" href="{% url 'dashboard:page_total' %}">자산 현황</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'dashboard:page_portfolio' %}">포트폴리오</a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- 통계 카드들 -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <h3>총 투자 자산</h3>
+            <div class="stat-content">
+                <div class="stat-numbers">
+                    <div class="stat-value" id="total-value">$117.34k</div>
+                    <div class="stat-change positive" id="total-change">+17.46%</div>
+                </div>
+                <canvas class="stat-side-chart" id="total-mini-chart"></canvas>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <h3>주식 자산</h3>
+            <div class="stat-content">
+                <div class="stat-numbers">
+                    <div class="stat-value" id="stock-pnl">$0.00</div>
+                    <div class="stat-change" id="stock-change">0%</div>
+                </div>
+                <canvas class="stat-side-chart" id="stock-mini-chart"></canvas>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <h3>부동산 자산</h3>
+            <div class="stat-content">
+                <div class="stat-numbers">
+                    <div class="stat-value" id="real-estate-pnl">$0</div>
+                    <div class="stat-change" id="real-estate-change">0%</div>
+                </div>
+                <canvas class="stat-side-chart" id="real-estate-mini-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 차트 영역 -->
+    <div class="chart-container">
+        <div class="chart-header">
+            <h2 class="chart-title">총 투자 자산 수익률</h2>
+            <div class="chart-controls">
+                <button class="active" data-period="1w">1W</button>
+                <button data-period="1m">1M</button>
+                <button data-period="3m">3M</button>
+                <button data-period="6m">6M</button>
+                <button data-period="1y">1Y</button>
+                <button data-period="all">All</button>
+            </div>
+        </div>
+        <div style="height: 400px; position: relative;">
+            <canvas id="total-chart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 총자산 데이터 로드
+    loadTotalData();
+    loadStockData();
+    loadRealEstateData();
+    loadTimeSeries();
+    
+    // 기간 버튼 이벤트
+    document.querySelectorAll('.chart-controls button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.chart-controls button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            loadTimeSeries(this.dataset.period);
+        });
+    });
+});
+
+async function loadTotalData() {
+    try {
+        const response = await fetch('/dashboard/api/total');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // 데이터 검증 및 안전한 파싱
+        const totalValue = Number(data.total_value) || 0;
+        const changePercent = Number(data.wow_change_pct) || 0;
+        
+        // 총자산 표시 (k 단위로 변경)
+        let displayValue;
+        if (totalValue >= 1000) {
+            displayValue = '$' + (totalValue / 1000).toFixed(2) + 'k';
+        } else {
+            displayValue = '$' + totalValue.toFixed(0);
+        }
+        document.getElementById('total-value').textContent = displayValue;
+        
+        // 변화율 표시
+        const changeEl = document.getElementById('total-change');
+        const changeText = `${changePercent > 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
+        changeEl.textContent = changeText;
+        
+        // 양수/음수에 따른 스타일 적용
+        changeEl.className = `stat-change ${changePercent >= 0 ? 'positive' : 'negative'}`;
+        
+        // 미니 차트 생성 (막대 그래프)
+        if (data.series && Array.isArray(data.series) && data.series.length > 0) {
+            createMiniChart('total-mini-chart', data.series, '#1d9bf0', 'bar');
+        }
+    } catch (error) {
+        console.error('총자산 데이터 로드 실패:', error);
+        document.getElementById('total-value').textContent = '$0';
+        document.getElementById('total-change').textContent = '0%';
+    }
+}
+
+async function loadStockData() {
+    try {
+        const response = await fetch('/dashboard/api/stock');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // 데이터 검증 및 안전한 파싱
+        const totalValue = Number(data.total_value) || 0;
+        const changePercent = Number(data.wow_change_pct) || 0;
+        
+        // 달러 표시로 변경
+        document.getElementById('stock-pnl').textContent = 
+            '$' + new Intl.NumberFormat('en-US', { 
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2 
+            }).format(totalValue);
+        
+        // 변화율 표시
+        const changeEl = document.getElementById('stock-change');
+        const changeText = `${changePercent.toFixed(1)}%`;
+        changeEl.textContent = changeText;
+        
+        // 양수/음수에 따른 스타일 적용
+        changeEl.className = `stat-change ${changePercent >= 0 ? 'positive' : 'negative'}`;
+        
+        // 미니 차트 생성 (꺾은선 그래프)
+        if (data.series && Array.isArray(data.series) && data.series.length > 0) {
+            createMiniChart('stock-mini-chart', data.series, '#00ba7c', 'line');
+        }
+    } catch (error) {
+        console.error('주식 데이터 로드 실패:', error);
+        document.getElementById('stock-pnl').textContent = '$0.00';
+        document.getElementById('stock-change').textContent = '0%';
+    }
+}
+
+async function loadRealEstateData() {
+    try {
+        const response = await fetch('/dashboard/api/real_estate');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // 데이터 검증 및 안전한 파싱
+        const totalValue = Number(data.total_value) || 0;
+        const changePercent = Number(data.wow_change_pct) || 0;
+        
+        // 달러 표시로 변경
+        document.getElementById('real-estate-pnl').textContent = 
+            '$' + new Intl.NumberFormat('en-US', { 
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0 
+            }).format(totalValue);
+        
+        // 변화율 표시
+        const changeEl = document.getElementById('real-estate-change');
+        const changeText = `${changePercent.toFixed(1)}%`;
+        changeEl.textContent = changeText;
+        
+        // 양수/음수에 따른 스타일 적용
+        changeEl.className = `stat-change ${changePercent >= 0 ? 'positive' : 'negative'}`;
+        
+        // 미니 차트 생성 (꺾은선 그래프)
+        if (data.series && Array.isArray(data.series) && data.series.length > 0) {
+            createMiniChart('real-estate-mini-chart', data.series, '#ffa500', 'line');
+        }
+    } catch (error) {
+        console.error('부동산 데이터 로드 실패:', error);
+        document.getElementById('real-estate-pnl').textContent = '$0';
+        document.getElementById('real-estate-change').textContent = '0%';
+    }
+}
+
+function createMiniChart(canvasId, data, color, type = 'line') {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // 차트 설정
+    const config = {
+        type: type,
+        data: {
+            labels: data.map(d => d.label),
+            datasets: [{
+                data: data.map(d => d.value),
+                borderColor: color,
+                backgroundColor: type === 'bar' ? color : color + '20',
+                borderWidth: type === 'bar' ? 0 : 2,
+                fill: type === 'line',
+                tension: 0.4,
+                borderRadius: type === 'bar' ? { topLeft: 4, topRight: 4 } : 0,
+                barThickness: type === 'bar' ? 8 : undefined,
+                maxBarThickness: type === 'bar' ? 10 : undefined
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: type === 'bar' ? 'x' : undefined, // 세로 막대 그래프 (x축 기준)
+            plugins: { 
+                legend: { display: false },
+                tooltip: { enabled: false }
+            },
+            scales: {
+                x: { 
+                    display: false,
+                    grid: { display: false },
+                    beginAtZero: type === 'bar' ? true : undefined
+                },
+                y: { 
+                    display: false,
+                    grid: { display: false },
+                    beginAtZero: true
+                }
+            },
+            elements: { 
+                point: { radius: 0 },
+                bar: { 
+                    borderSkipped: false,
+                    borderRadius: type === 'bar' ? { topLeft: 4, topRight: 4 } : 0
+                }
+            },
+            interaction: { intersect: false }
+        }
+    };
+    
+    new Chart(ctx, config);
+}
+
+let mainChart = null;
+
+async function loadTimeSeries(period = '7d') {
+    try {
+        const response = await fetch(`/dashboard/api/total/timeseries?period=${period}`);
+        const data = await response.json();
+        
+        if (mainChart) {
+            mainChart.destroy();
+        }
+        
+        const ctx = document.getElementById('total-chart').getContext('2d');
+        mainChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(d => d.date),
+                datasets: [{
+                    label: 'Total PnL',
+                    data: data.map(d => d.value),
+                    borderColor: '#1d9bf0',
+                    backgroundColor: 'rgba(29, 155, 240, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: 'white',
+                        bodyColor: 'white',
+                        borderColor: '#1d9bf0',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            color: '#536471'
+                        }
+                    },
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            color: '#536471',
+                            callback: function(value) {
+                                return '$' + new Intl.NumberFormat('en-US', {
+                                    notation: 'compact',
+                                    compactDisplay: 'short'
+                                }).format(value);
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    point: { 
+                        radius: 0,
+                        hoverRadius: 6,
+                        backgroundColor: '#1d9bf0',
+                        borderColor: 'white',
+                        borderWidth: 2
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+    } catch (error) {
+        console.error('시계열 데이터 로드 실패:', error);
+    }
+}
+</script>
+{% endblock %}

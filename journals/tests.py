@@ -15,13 +15,13 @@ class JournalViewTests(TestCase):
         """GET /journals/compose/ renders the full page template."""
         response = self.client.get('/journals/compose/')
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'journals/compose_page_clean.html')
+        self.assertTemplateUsed(response, 'compose_page_clean.html')
 
     def test_compose_view_modal_partial(self):
         """GET /journals/compose/?modal=1 renders the modal partial template."""
         response = self.client.get('/journals/compose/?modal=1')
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'journals/_compose_modal.html')
+        self.assertTemplateUsed(response, '_compose_modal.html')
 
 class StockJournalAggregationTests(TestCase):
     def setUp(self):

@@ -11,17 +11,33 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Finote</h1>
-            <div class="search-container">
-                <input type="text" class="search-bar" placeholder="트위터 검색">
+        <div class="sidebar">
+            <div style="font-size: 30px; margin-bottom: 20px;">
+                🦁
             </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item active" data-target="home">
+                        <span class="icon">🏠</span><span class="text">홈</span>
+                    </li>
+                    <li class="nav-item" data-target="dashboard">
+                        <span class="icon">🔍</span><span class="text">대시 보드</span>
+                    </li>
+                    <li class="nav-item" data-target="trading journal">
+                        <span class="icon">🔔</span><span class="text">매매 일지</span>
+                    </li>
+                    <li class="nav-item" data-target="bookmarks">
+                        <span class="icon">✉️</span><span class="text">북마크</span>
+                    </li>
+                    <li class="nav-item" data-target="profile">
+                        <span class="icon">👤</span><span class="text">프로필</span>
+                    </li>
+                </ul>
+            </nav>
         </div>
-        
         <div class="main-content">
             {% block content %}
             {% endblock %}
-        </div>
     </div>
 </body>
 </html>

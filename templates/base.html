@@ -9,185 +9,86 @@
         <link rel="stylesheet" href="{% static 'tokens.css' %}">
         <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
     <style>
-    body { 
-        margin: 0; 
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background-color: #ffffff;
-        color: #0f1419;
-        line-height: 1.4;
-    }
-
-    .header-placeholder {
-        position: fixed;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: 1200px;
-        height: 60px;
-        background-color: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(12px);
-        border-bottom: 1px solid #eff3f4;
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .main-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        display: flex;
-        min-height: 100vh;
-    }
-
-    .left-sidebar-placeholder {
-        width: 275px;
-        min-width: 275px;
-        background-color: #ffffff;
-        border-right: 1px solid #eff3f4;
-        margin-top: 60px;
-        height: calc(100vh - 60px);
-        padding: 20px;
-    }
-
-    .main-feed {
-        width: 600px;
-        min-width: 600px;
-        max-width: 600px;
-        border-right: 1px solid #eff3f4;
-        margin-top: 60px;
-        background-color: #ffffff;
-        min-height: 100vh;
-    }
-
-    .right-sidebar {
-        width: 325px;
-        min-width: 325px;
-        padding: 20px;
-        margin-top: 60px;
-        background-color: #ffffff;
-    }
-
-    .nav-menu a,
-    .nav-menu a:link,
-    .nav-menu a:visited,
-    .nav-menu a:hover,
-    .nav-menu a:active,
-    .nav-menu a:focus {
-        text-decoration: none !important;
-        color: inherit !important;
-        outline: none !important;
-        border: none !important;
-        display: block;
-        width: 100%;
-        padding: 8px 12px;
-        border-radius: 8px;
-        transition: background-color 0.2s;
-    }
-
-    .nav-menu a:hover {
-        background-color: rgba(29, 155, 240, 0.1);
-    }
-
-    #modal-root { 
-        position: fixed; 
-        top: 0; 
-        left: 0; 
-        width: 100%; 
-        height: 100%; 
-        background-color: rgba(0,0,0,0.5); 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-    }
-
-    #modal-root[hidden] { 
-        display: none; 
-    }
+        body { margin: 0; font-family: sans-serif; background-color: var(--white); }
+        .container { max-width: var(--container-max-width); margin: 0 auto; display: grid; grid-template-columns: var(--left-column-width) minmax(0, var(--feed-max-width)) var(--right-column-width); }
+        header { height: var(--header-height); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 var(--spacing-medium); }
+        main { display: contents; } /* Make main part of the grid */
+        .feed { max-width: var(--feed-max-width); width: 100%; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); min-height: 100vh; }
+        #modal-root { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+        #modal-root[hidden] { display: none; }
     </style>
 </head>
 <body>
-    <div class="header-placeholder">
-        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 1200px;">
-            <div style="font-weight: bold; font-size: 20px;">
-                <a href="{% url 'home:home_feed' %}" style="text-decoration: none; color: #0f1419;">Home</a>
-            </div>
-            <div style="text-align: center;">
-                <input type="text" placeholder="Search" style="width: 400px; height: 40px; border-radius: 20px; border: 1px solid #eff3f4; padding: 0 16px;">
-            </div>
-            <div style="display: flex; align-items: center; gap: 16px;">
-                {% if user.is_authenticated %}
-                    <a href="{% url 'user_profile:user_profile' %}" style="text-decoration: none; color: #0f1419;">Profile</a>
-                    <form action="{% url 'logout' %}" method="post" style="display: inline;">
-                        {% csrf_token %}
-                        <button type="submit" style="background: none; border: none; cursor: pointer; color: #0f1419;">Logout</button>
-                    </form>
-                {% else %}
-                    <a href="{% url 'login' %}" style="text-decoration: none; color: #0f1419;">Login</a>
-                    <a href="{% url 'signup' %}" style="text-decoration: none; color: #0f1419;">Sign Up</a>
-                {% endif %}
-            </div>
+    <header>
+        <div class="header-left" style="width: var(--left-column-width); padding-left: 20px; font-weight: bold; font-size: 20px;">
+            <a href="{% url 'home' %}" style="text-decoration: none; color: var(--black);">Home</a>
         </div>
-    </div>
+        <div class="header-center" style="width: 600px; text-align: center;">
+            <input type="text" placeholder="Search" style="width: 400px; height: 40px; border-radius: 20px; border: 1px solid var(--border-color); padding: 0 16px;">
+        </div>
+        <div class="header-right" style="width: var(--right-column-width); text-align: right; padding-right: 20px; display: flex; align-items: center; justify-content: flex-end; gap: 16px;">
+            {% if user.is_authenticated %}
+                <a href="{% url 'user_profile:user_profile' %}" style="text-decoration: none; color: var(--black);">Profile</a>
+                <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="background: none; border: none; cursor: pointer; color: var(--black); text-decoration: none; padding: 0; font-size: inherit; font-family: inherit;">Logout</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}" style="text-decoration: none; color: var(--black);">Login</a>
+                <a href="{% url 'signup' %}" style="text-decoration: none; color: var(--black);">Sign Up</a>
+            {% endif %}
+        </div>
+    </header>
 
-    <div class="main-container">
-        <aside class="left-sidebar-placeholder">
+    <div class="container">
+        <aside class="left-sidebar">
             {% block left %}
             <!-- Left sidebar content -->
              <div style="font-size: 30px; margin-bottom: 20px;">
-                📝
+                🦁
             </div>
             <nav>
                 <ul class="nav-menu">
-                    <li class="nav-item active">
-                        <a href="{% url 'home:home_feed' %}"style="text-decoration: none; color: inherit;">
-                            <span class="icon">
-                                <img src="{% static 'icon/home.svg' %}" alt="홈">
-                            </span>
-                            <span class="text">홈</span>
-                        </a>
+                    <li class="nav-item active" data-target="home">
+                        <span class="icon">
+                            <img src="{% static 'icon/home.svg' %}" alt="홈">
+                        </span>
+                        <span class="text">홈</span>
                     </li>
-                    <li class="nav-item">
-                        <a href="/dashboard/">
-                            <span class="icon">
-                                <img src="{% static 'icon/dashboard.svg' %}" alt="대시보드"style="text-decoration: none; color: inherit;">
-                            </span>
-                            <span class="text">대시 보드</span>
-                        </a>
+                    <li class="nav-item" data-target="dashboard">
+                        <span class="icon">
+                            <img src="{% static 'icon/dashboard.svg' %}" alt="대시보드">
+                        </span>
+                        <span class="text">대시 보드</span>
                     </li>
-                    <li class="nav-item">
-                        <a href="/journals/my-list/">
-                            <span class="icon">
-                                <img src="{% static 'icon/journal.svg' %}" alt="매매일지"style="text-decoration: none; color: inherit;">
-                            </span>
-                            <span class="text">매매 일지</span>
-                        </a>
+                    <li class="nav-item" data-target="trading journal">
+                        <span class="icon">
+                            <img src="{% static 'icon/journal.svg' %}" alt="매매일지">
+                        </span>
+                        <span class="text">매매 일지</span>
                     </li>
-                    <li class="nav-item">
-                        <a href="#" onclick="alert('북마크 기능 준비중')">
-                            <span class="icon">
-                                <img src="{% static 'icon/bookmarks.svg' %}" alt="북마크">
-                            </span>
-                            <span class="text">북마크</span>
-                        </a>
+                    <li class="nav-item" data-target="bookmarks">
+                        <span class="icon">
+                            <img src="{% static 'icon/bookmarks.svg' %}" alt="북마크">
+                        </span>
+                        <span class="text">북마크</span>
                     </li>
                     {% if user.is_authenticated %}
-                    <li class="nav-item">
+                    <li class="nav-item" data-target="profile">
                         <a href="{% url 'user_profile:profile' my_ID=request.user.my_ID %}">
-                            <span class="icon">
-                                <img src="{% static 'icon/profile.svg' %}" alt="프로필">
-                            </span>
-                            <span class="text">프로필</span>
+                        <span class="icon">
+                            <img src="{% static 'icon/profile.svg' %}" alt="프로필">
+                        </span>
+                        <span class="text">프로필</span>
                         </a>
                     </li>
                     {% else %}
-                    <li class="nav-item">
+                    <li class="nav-item" data-target="profile">
                         <a href="{% url 'login' %}">
-                            <span class="icon">
-                                <img src="{% static 'icon/profile.svg' %}" alt="프로필">
-                            </span>
-                            <span class="text">프로필</span>
+                        <span class="icon">
+                            <img src="{% static 'icon/profile.svg' %}" alt="프로필">
+                        </span>
+                        <span class="text">프로필</span>
                         </a>
                     </li>
                     {% endif %}
@@ -196,7 +97,7 @@
             {% endblock %}
         </aside>
 
-        <main class="main-feed">
+        <main class="feed">
             {% block feed %}
             {% endblock %}
         </main>
@@ -211,29 +112,6 @@
     <div id="modal-root" hidden></div>
 
     <script src="{% static 'js/modal.js' %}"></script>
-    <script>
-    // 현재 페이지에 따라 active 클래스 설정
-    document.addEventListener('DOMContentLoaded', function() {
-        const currentPath = window.location.pathname;
-        const navItems = document.querySelectorAll('.nav-item');
-        
-        // 모든 nav-item에서 active 제거
-        navItems.forEach(item => item.classList.remove('active'));
-        
-        // 현재 경로에 맞는 nav-item에 active 추가
-        if (currentPath.startsWith('/home/') || currentPath === '/') {
-            document.querySelector('.nav-item:nth-child(1)').classList.add('active');
-        } else if (currentPath.startsWith('/dashboard/')) {
-            document.querySelector('.nav-item:nth-child(2)').classList.add('active');
-        } else if (currentPath.startsWith('/journals/')) {
-            document.querySelector('.nav-item:nth-child(3)').classList.add('active');
-        } else if (currentPath.startsWith('/bookmarks/')) {
-                document.querySelector('.nav-item:nth-child(4)').classList.add('active');
-        } else if (currentPath.startsWith('/profile/')) {
-            document.querySelector('.nav-item:nth-child(5)').classList.add('active');
-        }
-  });
-    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

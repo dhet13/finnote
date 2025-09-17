@@ -1,418 +1,213 @@
-{% extends "base.html" %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard - FinTech SNS{% endblock %}</title>
 
-{% block title %}Dashboard - FinTech SNS{% endblock %}
-
-{% block scripts %}
-    <!-- 대시보드 CSS -->
-    <link rel="stylesheet" href="{% static 'dashboard/css/dashboard.css' %}">
-    <link rel="stylesheet" href="{% static 'dashboard/css/dashboard_portfolio.css' %}">
-    <link rel="stylesheet" href="{% static 'dashboard/css/dashboard_total.css' %}">
-    <link rel="stylesheet" href="{% static 'dashboard/css/dashboard_base.css' %}">
-    
     <!-- Chart.js 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Chart.js DataLabels 플러그인 -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-    <!-- 대시보드 JavaScript -->
-    <script src="{% static 'dashboard/js/dashboard.js' %}"></script>
-    <script src="{% static 'dashboard/js/portfolio_performance_charts.js' %}"></script>
-{% endblock %}
-
-{% block left %}
-<!-- templates/base.html의 기본 왼쪽 사이드바 사용 -->
-{{ block.super }}
-{% endblock %}
-
-{% block right %}
-<!-- templates/base.html의 기본 오른쪽 사이드바 사용 -->
-{{ block.super }}
-{% endblock %}
-
-{% block feed %}
-    <div class="main-dashboard">
-        <!-- 공통 대시보드 헤더 -->
-        <div class="dashboard-header">
-            <h1 class="dashboard-title">대시 보드</h1>
-            <p class="dashboard-subtitle">투자 자산의 현재 상황을 한눈에 확인하세요</p>
-        </div>
-
-        <!-- 공통 탭 메뉴 -->
-        <div class="dashboard-tabs">
-            <ul class="nav nav-pills">
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'page_total' %}active{% endif %}" 
-                       href="#" data-tab="total" data-url="{% url 'dashboard:page_total' %}"
-                       style="text-decoration: none; {% if request.resolver_match.url_name == 'page_total' %}color: #1d9bf0; font-weight: 600;{% else %}color: #536471; font-weight: 500;{% endif %} padding: 12px 0; display: block; position: relative;">
-                       자산 현황
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'page_portfolio' %}active{% endif %}" 
-                       href="#" data-tab="portfolio" data-url="{% url 'dashboard:page_portfolio' %}"
-                       id="portfolio-tab"
-                       style="text-decoration: none; {% if request.resolver_match.url_name == 'page_portfolio' %}color: #1d9bf0; font-weight: 600;{% else %}color: #536471; font-weight: 500;{% endif %} padding: 12px 0; display: block; position: relative;">
-                       포트폴리오
-                    </a>
-                </li>
-            </ul>
-        </div>
-
-        <!-- 동적 콘텐츠 영역 -->
-        <div id="dashboard-content">
-            {% block content %}
-            <!-- 페이지별 콘텐츠가 여기에 들어갑니다 -->
-            <div style="text-align: center; padding: 40px; color: #536471;">
-                콘텐츠를 로딩 중입니다...
-            </div>
-            {% endblock %}
-        </div>
-    </div>
-
-    <!-- 대시보드 전용 CSS -->
+    
     <style>
-        /* 대시보드는 templates/base.html의 기본 3컬럼 레이아웃 사용 */
-        .feed {
-            max-width: var(--feed-max-width);
-            width: 100%;
-            height: 100vh; /* 전체 화면 높이 */
-            overflow: hidden; /* 스크롤을 콘텐츠 영역에서만 처리 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        /* 오른쪽 사이드바가 보이도록 보장 */
-        .right-sidebar {
-            display: block !important;
-            width: var(--right-column-width) !important;
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #ffffff;
+            color: #0f1419;
+            line-height: 1.4;
         }
-        
-        /* 컨테이너 그리드 레이아웃 보장 */
-        .container {
-            display: grid !important;
-            grid-template-columns: var(--left-column-width) minmax(0, var(--feed-max-width)) var(--right-column-width) !important;
-        }
-        
-        /* 대시보드 레이아웃 */
-        .main-dashboard {
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
             display: flex;
-            flex-direction: column;
-            height: 100vh; /* 전체 화면 높이 */
-            overflow: hidden; /* 스크롤을 피드 영역에서만 처리 */
+            min-height: 100vh;
         }
-        
-        .dashboard-header {
+
+        /* 헤더 */
+        .header-placeholder {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 1200px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #eff3f4;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0f1419;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* 좌측 사이드바 */
+        .left-sidebar {
+            width: 275px;
+            min-width: 275px;
+            background-color: #ffffff;
+            border-right: 1px solid #eff3f4;
+            margin-top: 60px;
+            height: calc(100vh - 60px);
+        }
+
+        /* 메인 대시보드 영역 */
+        .main-dashboard {
+            width: 600px;
+            min-width: 600px;
+            max-width: 600px;
+            border-right: 1px solid #eff3f4;
+            margin-top: 60px;
             flex-shrink: 0;
+            background-color: #ffffff;
             padding: 20px;
+        }
+
+        /* 우측 사이드바 */
+        .right-sidebar {
+            width: 325px;
+            min-width: 325px;
+            margin-top: 60px;
+            height: calc(100vh - 60px);
+            background-color: #ffffff;
+        }
+
+        /* 대시보드 헤더 */
+        .dashboard-header {
             border-bottom: 1px solid #eff3f4;
-            height: 30px;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
         }
-        
-        .dashboard-tabs {
-            margin: 0px 0 !important;
-            padding: 0px 10px !important;
-            border-bottom: 1px solid #eff3f4;
+
+        .dashboard-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0f1419;
+            margin-bottom: 8px;
         }
-        
-        #dashboard-content {
-            flex: 1;
-            padding: 20px;
-            overflow: visible; /* 스크롤을 하위 요소에서 처리 */
-            height: calc(100vh - 200px) !important; /* 헤더 + 탭 + 여백 제외 */
-            min-height: 400px !important; /* 최소 높이 보장 */
-            max-height: calc(100vh - 200px) !important; /* 최대 높이 제한 */
+
+        .dashboard-subtitle {
+            font-size: 14px;
+            color: #536471;
         }
-        
-        /* CSS는 외부 파일에서 로드됨 */
-        
-        /* 탭 스타일 */
-        .nav-link.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
+
+        /* 네비게이션 메뉴 */
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+        }
+
+        .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .nav-item a {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 24px;
+            text-decoration: none;
+            color: #0f1419;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .nav-item a:hover {
+            background-color: #f7f9fa;
+        }
+
+        .nav-item.active a {
             background-color: #1d9bf0;
-            border-radius: 0;
+            color: #ffffff;
         }
-        
-        {% block extra_css %}{% endblock %}
+
+        /* 사이드바 위젯 */
+        .sidebar-widget {
+            background: #f7f9fa;
+            border: 1px solid #eff3f4;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-widget h3 {
+            margin-bottom: 16px;
+            font-size: 18px;
+            color: #0f1419;
+            font-weight: 700;
+        }
+
+        /* 반응형 */
+        @media (max-width: 1200px) {
+            .right-sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .left-sidebar {
+                width: 80px;
+                min-width: 80px;
+            }
+            
+            .main-dashboard {
+                width: calc(100% - 80px);
+                min-width: calc(100% - 80px);
+                max-width: calc(100% - 80px);
+            }
+        }
+
+        @media (max-width: 700px) {
+            .left-sidebar {
+                display: none;
+            }
+            
+            .main-dashboard {
+                width: 100%;
+                min-width: 100%;
+                max-width: 100%;
+            }
+        }
     </style>
     
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 헤더 -->
+    <div class="header-placeholder">
+        {% block header %}헤더 영역{% endblock %}
+    </div>
+
+    <div class="main-container">
+        <!-- 좌측 사이드바 -->
+        <aside class="left-sidebar">
+            {% block left_sidebar %}
+            <!-- 빈 공간 -->
+            {% endblock %}
+        </aside>
+
+        <!-- 메인 대시보드 -->
+        <main class="main-dashboard">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- 우측 사이드바 -->
+        <aside class="right-sidebar">
+            {% block right_sidebar %}
+            <!-- 빈 공간 -->
+            {% endblock %}
+        </aside>
+    </div>
+
     {% block extra_js %}{% endblock %}
-
-    <!-- AJAX 탭 네비게이션 스크립트 -->
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const tabLinks = document.querySelectorAll('.nav-link[data-tab]');
-        const contentArea = document.getElementById('dashboard-content');
-        
-        // 초기 로딩 시 현재 활성 탭에 따라 차트 초기화
-        setTimeout(() => {
-            const activeTab = document.querySelector('.nav-link.active');
-            if (activeTab) {
-                const tabName = activeTab.getAttribute('data-tab');
-                if (tabName === 'total' && typeof initializeTotalPage === 'function') {
-                    initializeTotalPage();
-                } else if (tabName === 'portfolio') {
-                    if (typeof initializeAssetTypeButtons === 'function') {
-                        initializeAssetTypeButtons();
-                    }
-                    if (typeof initializeStockPortfolio === 'function') {
-                        initializeStockPortfolio();
-                    }
-                    if (typeof initializeRealEstatePortfolio === 'function') {
-                        initializeRealEstatePortfolio();
-                    }
-                    // 포트폴리오 페이지에서도 차트 초기화
-                    if (typeof initializeTotalPage === 'function') {
-                        initializeTotalPage();
-                    }
-                }
-            }
-        }, 300); // 지연 시간을 300ms로 증가
-        
-        tabLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                const tabName = this.getAttribute('data-tab');
-                const url = this.getAttribute('data-url');
-                
-                console.log('탭 클릭됨:', tabName, 'URL:', url);
-                
-                // 탭 활성화 상태 변경 - 모든 탭 초기화
-                tabLinks.forEach(tab => {
-                    tab.style.color = '#536471';
-                    tab.style.fontWeight = '500';
-                    tab.classList.remove('active');
-                });
-                
-                // 클릭된 탭만 활성화
-                this.style.color = '#1d9bf0';
-                this.style.fontWeight = '600';
-                this.classList.add('active');
-                
-                // 포트폴리오 탭도 확실히 비활성화 (강제 초기화)
-                const portfolioTab = document.getElementById('portfolio-tab');
-                if (portfolioTab && tabName !== 'portfolio') {
-                    portfolioTab.style.color = '#536471';
-                    portfolioTab.style.fontWeight = '500';
-                    portfolioTab.classList.remove('active');
-                    console.log('포트폴리오 탭 강제 비활성화');
-                }
-                
-                // 자산 현황 탭도 확실히 비활성화 (강제 초기화)
-                const totalTab = document.querySelector('[data-tab="total"]');
-                if (totalTab && tabName !== 'total') {
-                    totalTab.style.color = '#536471';
-                    totalTab.style.fontWeight = '500';
-                    totalTab.classList.remove('active');
-                    console.log('자산 현황 탭 강제 비활성화');
-                }
-                
-                // 로딩 표시
-                contentArea.innerHTML = '<div style="text-align: center; padding: 40px; color: #536471;">로딩 중...</div>';
-                
-                // AJAX로 콘텐츠 로드
-                fetch(url)
-                    .then(response => response.text())
-                    .then(html => {
-                        console.log('AJAX 응답 받음, HTML 길이:', html.length);
-                        
-                        // HTML에서 콘텐츠 영역만 추출
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        
-                        // 콘텐츠 영역 찾기
-                        let contentElement = null;
-                        
-                        // 자산 현황 페이지
-                        if (tabName === 'total') {
-                            contentElement = doc.querySelector('.total-content');
-                        }
-                        // 포트폴리오 페이지
-                        else if (tabName === 'portfolio') {
-                            contentElement = doc.querySelector('.portfolio-main-content');
-                            if (!contentElement) {
-                                // 대안: portfolio.html의 전체 콘텐츠 사용
-                                contentElement = doc.querySelector('body');
-                                console.log('portfolio-main-content를 찾을 수 없어 body 사용');
-                            }
-                        }
-                        
-                        console.log('찾은 콘텐츠 요소:', !!contentElement);
-                        console.log('콘텐츠 요소 클래스:', contentElement?.className);
-                        console.log('콘텐츠 요소 태그명:', contentElement?.tagName);
-                        
-                        if (contentElement) {
-                            console.log('콘텐츠 요소 HTML 길이:', contentElement.outerHTML.length);
-                            contentArea.innerHTML = contentElement.outerHTML;
-                        } else {
-                            console.log('콘텐츠 영역을 찾을 수 없어 전체 HTML 사용');
-                            console.log('전체 HTML 길이:', html.length);
-                            contentArea.innerHTML = html;
-                        }
-                        
-                        console.log('contentArea에 HTML 삽입 완료, 길이:', contentArea.innerHTML.length);
-                        
-                        // URL 업데이트 (히스토리 API)
-                        const newUrl = tabName === 'total' ? 
-                            '{% url "dashboard:page_total" %}' : 
-                            '{% url "dashboard:page_portfolio" %}';
-                        history.pushState({tab: tabName}, '', newUrl);
-                        
-                        // 페이지별 초기화 (지연 시간 증가)
-                        setTimeout(() => {
-                            // 기존 차트들 정리
-                            if (typeof totalBarChart !== 'undefined' && totalBarChart) {
-                                totalBarChart.destroy();
-                                totalBarChart = null;
-                            }
-                            if (typeof dayLineChart !== 'undefined' && dayLineChart) {
-                                dayLineChart.destroy();
-                                dayLineChart = null;
-                            }
-                            if (typeof monthAreaChart !== 'undefined' && monthAreaChart) {
-                                monthAreaChart.destroy();
-                                monthAreaChart = null;
-                            }
-                            if (typeof mainPortfolioChart !== 'undefined' && mainPortfolioChart) {
-                                mainPortfolioChart.destroy();
-                                mainPortfolioChart = null;
-                            }
-                            
-                            if (tabName === 'total') {
-                                if (typeof initializeTotalPage === 'function') {
-                                    initializeTotalPage();
-                                }
-                            } else if (tabName === 'portfolio') {
-                                console.log('포트폴리오 페이지 초기화 시작');
-                                
-                                // 포트폴리오 페이지 즉시 초기화 함수 호출
-                                if (typeof initializePortfolioPage === 'function') {
-                                    console.log('initializePortfolioPage 함수 호출');
-                                    initializePortfolioPage();
-                                } else {
-                                    console.log('initializePortfolioPage 함수가 없어 개별 함수 호출');
-                                    if (typeof initializeAssetTypeButtons === 'function') {
-                                        console.log('initializeAssetTypeButtons 함수 호출');
-                                        initializeAssetTypeButtons();
-                                    } else {
-                                        console.error('initializeAssetTypeButtons 함수가 정의되지 않음');
-                                    }
-                                }
-                                
-                                // 포트폴리오 페이지의 자산 타입 버튼 상태 초기화
-                                setTimeout(() => {
-                                    // 모든 자산 타입 버튼에서 active 클래스 제거
-                                    document.querySelectorAll('[data-type]').forEach(btn => {
-                                        btn.classList.remove('active');
-                                    });
-                                    
-                                    // 주식 버튼만 활성화
-                                    const stockButton = document.querySelector('[data-type="stock"]');
-                                    const propertyButton = document.querySelector('[data-type="real_estate"]');
-                                    
-                                    if (stockButton) {
-                                        stockButton.classList.add('active');
-                                        console.log('주식 버튼 활성화');
-                                    }
-                                    if (propertyButton) {
-                                        propertyButton.classList.remove('active');
-                                        console.log('부동산 버튼 비활성화');
-                                    }
-                                    
-                                    // 포트폴리오 콘텐츠 표시 상태 초기화
-                                    const stockPortfolio = document.getElementById('stockPortfolio');
-                                    const propertyPortfolio = document.getElementById('propertyPortfolio');
-                                    
-                                    if (stockPortfolio) {
-                                        stockPortfolio.style.display = 'block';
-                                        console.log('주식 포트폴리오 표시');
-                                    }
-                                    if (propertyPortfolio) {
-                                        propertyPortfolio.style.display = 'none';
-                                        console.log('부동산 포트폴리오 숨김');
-                                    }
-                                }, 200);
-                                if (typeof initializeStockPortfolio === 'function') {
-                                    initializeStockPortfolio();
-                                }
-                                if (typeof initializeRealEstatePortfolio === 'function') {
-                                    initializeRealEstatePortfolio();
-                                }
-                                if (typeof initializeStockPerformanceChart === 'function') {
-                                    initializeStockPerformanceChart();
-                                }
-                                if (typeof initializePropertyPerformanceChart === 'function') {
-                                    initializePropertyPerformanceChart();
-                                }
-                                if (typeof initializeSectorReturnButtons === 'function') {
-                                    initializeSectorReturnButtons();
-                                }
-                                if (typeof initializePropertyReturnButtons === 'function') {
-                                    initializePropertyReturnButtons();
-                                }
-                                // 포트폴리오 페이지에서도 차트 초기화
-                                if (typeof initializeTotalPage === 'function') {
-                                    initializeTotalPage();
-                                }
-                            }
-                        }, 200); // 지연 시간을 200ms로 조정 (재시도 로직이 있으므로)
-                    })
-                    .catch(error => {
-                        console.error('Error loading content:', error);
-                        contentArea.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc2626;">콘텐츠를 불러오는데 실패했습니다.</div>';
-                    });
-            });
-        });
-
-        // 초기 페이지 로드 시 현재 활성 탭에 따른 초기화
-        const currentActiveTab = document.querySelector('.nav-link.active');
-        if (currentActiveTab) {
-            const tabName = currentActiveTab.getAttribute('data-tab');
-            if (tabName === 'total') {
-                setTimeout(() => {
-                    if (typeof initializeTotalPage === 'function') {
-                        initializeTotalPage();
-                    }
-                }, 100);
-            } else if (tabName === 'portfolio') {
-                setTimeout(() => {
-                    if (typeof initializeAssetTypeButtons === 'function') {
-                        initializeAssetTypeButtons();
-                    }
-                    if (typeof initializeStockPortfolio === 'function') {
-                        initializeStockPortfolio();
-                    }
-                    if (typeof initializeRealEstatePortfolio === 'function') {
-                        initializeRealEstatePortfolio();
-                    }
-                    if (typeof initializeStockPerformanceChart === 'function') {
-                        initializeStockPerformanceChart();
-                    }
-                    if (typeof initializePropertyPerformanceChart === 'function') {
-                        initializePropertyPerformanceChart();
-                    }
-                    if (typeof initializeSectorReturnButtons === 'function') {
-                        initializeSectorReturnButtons();
-                    }
-                    if (typeof initializePropertyReturnButtons === 'function') {
-                        initializePropertyReturnButtons();
-                    }
-                }, 100);
-            }
-        }
-
-        // 브라우저 뒤로가기/앞으로가기 지원
-        window.addEventListener('popstate', function(event) {
-            if (event.state && event.state.tab) {
-                const targetTab = document.querySelector(`[data-tab="${event.state.tab}"]`);
-                if (targetTab) {
-                    targetTab.click();
-                }
-            }
-        });
-    });
-    </script>
-{% endblock %}
+</body>
+</html>

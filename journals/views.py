@@ -5,8 +5,7 @@ from django.template.loader import render_to_string
 from django.views.decorators.http import require_http_methods
 from django.utils.dateparse import parse_date
 from django.db import transaction, models
-from django.db.models import Q, Sum, F, DecimalField, ExpressionWrapper, Case, When, Value
-from django.db.models.functions import Coalesce
+from django.db.models import Q
 from decimal import Decimal
 
 from decouple import config
@@ -29,9 +28,9 @@ def compose(request):
     - no query -> compose_page.html
     """
     if request.GET.get('modal') == '1':
-        template_name = 'journals/_compose_modal.html'
+        template_name = '_compose_modal.html'
     else:
-        template_name = 'journals/compose_page_clean.html'
+        template_name = 'compose_page_clean.html'
 
     asset_type = request.GET.get('asset', 'stock')
     return render(request, template_name, {'asset_type': asset_type})
@@ -39,149 +38,14 @@ def compose(request):
 
 @login_required
 def my_journal_list(request):
-    query = request.GET.get('q', '').strip()
-
-    # Aggregate StockJournal data by ticker_symbol for the current user
-    # This will give us one entry per unique stock ticker
-    stock_summaries = StockJournal.objects.filter(user=request.user) \
-        .values('ticker_symbol__ticker_symbol', 'ticker_symbol__stock_name') \
-        .annotate(
-            # Sum up quantities and PnL from all journals for this ticker
-            total_buy_qty_sum=Coalesce(Sum('total_buy_qty'), Decimal(0)),
-            total_sell_qty_sum=Coalesce(Sum('total_sell_qty'), Decimal(0)),
-            realized_pnl_sum=Coalesce(Sum('realized_pnl'), Decimal(0)),
-
-            # Calculate total value of buys and sells across all journals for this ticker
-            # Need to be careful with avg_buy_price * total_buy_qty as avg_buy_price can be None
-            total_buy_value_sum=Coalesce(Sum(ExpressionWrapper(
-                F('avg_buy_price') * F('total_buy_qty'),
-                output_field=DecimalField()
-            ), filter=Q(avg_buy_price__isnull=False)), Decimal(0)),
-            total_sell_value_sum=Coalesce(Sum(ExpressionWrapper(
-                F('avg_sell_price') * F('total_sell_qty'),
-                output_field=DecimalField()
-            ), filter=Q(avg_sell_price__isnull=False)), Decimal(0)),
-        ) \
-        .annotate(
-            # Calculate overall average buy/sell prices
-            overall_avg_buy_price=Case(
-                When(total_buy_qty_sum__gt=0, then=ExpressionWrapper(
-                    F('total_buy_value_sum') / F('total_buy_qty_sum'),
-                    output_field=DecimalField()
-                )),
-                default=Value(None, output_field=DecimalField()),
-                output_field=DecimalField()
-            ),
-            overall_avg_sell_price=Case(
-                When(total_sell_qty_sum__gt=0, then=ExpressionWrapper(
-                    F('total_buy_value_sum') / F('total_sell_qty_sum'),
-                    output_field=DecimalField()
-                )),
-                default=Value(None, output_field=DecimalField()),
-                output_field=DecimalField()
-            ),
-        ) \
-        .annotate(
-            # Calculate overall return rate
-            overall_return_rate=Case(
-                When(total_sell_qty_sum__gt=0, overall_avg_buy_price__isnull=False, then=ExpressionWrapper(
-                    (F('realized_pnl_sum') / (F('overall_avg_buy_price') * F('total_sell_qty_sum'))) * 100,
-                    output_field=DecimalField()
-                )),
-                default=Value(None, output_field=DecimalField()),
-                output_field=DecimalField()
-            )
-        ) \
-        .order_by('ticker_symbol__stock_name') # Order by stock name for consistency
-
-    # Filter stock_summaries if query is present
-    if query:
-        stock_summaries = stock_summaries.filter(
-            Q(ticker_symbol__ticker_symbol__icontains=query) |
-            Q(ticker_symbol__stock_name__icontains=query)
-        )
-
-    # Fetch REDeal objects for the current user (this part remains largely the same)
-    re_deals = REDeal.objects.filter(user=request.user) \
-        .select_related('property_info') \
-        .order_by('-created_at')
-
+    """
+    Renders a page with a list of the current user's journal posts.
+    """
+    journal_posts = JournalPost.objects.filter(user=request.user).order_by('-created_at')
     context = {
-        'stock_summaries': stock_summaries, # Changed context variable name
-        're_deals': re_deals,
-        'query': query,
-    }
-    return render(request, 'journals/my_journal_list.html', context)
-
-@login_required
-def stock_detail_view(request, pk):
-    stock_journal = get_object_or_404(StockJournal, pk=pk, user=request.user)
-
-    trades = stock_journal.trades.all().order_by('trade_date')
-
-    trade_rows = []
-    for trade in trades:
-        quantity = trade.quantity or Decimal('0')
-        price = trade.price_per_share or Decimal('0')
-        total_amount = quantity * price
-        buy_amount = total_amount if trade.side == StockTrade.Side.BUY else None
-        sell_amount = total_amount if trade.side == StockTrade.Side.SELL else None
-        return_rate = None
-        if trade.side == StockTrade.Side.SELL and stock_journal.avg_buy_price:
-            avg_buy = stock_journal.avg_buy_price
-            if avg_buy and avg_buy != 0:
-                return_rate = ((price - avg_buy) / avg_buy) * Decimal('100')
-
-        trade_rows.append({
-            'instance': trade,
-            'side': trade.side,
-            'side_label': '매수' if trade.side == StockTrade.Side.BUY else '매도',
-            'trade_date': trade.trade_date,
-            'quantity': quantity,
-            'buy_amount': buy_amount,
-            'sell_amount': sell_amount,
-            'total_amount': total_amount,
-            'return_rate': return_rate,
-            'status': stock_journal.get_status_display(),
-        })
-
-    journal_posts = JournalPost.objects.filter(stock_journal=stock_journal).order_by('-created_at')
-
-    context = {
-        'stock_journal': stock_journal,
-        'trade_rows': trade_rows,
         'journal_posts': journal_posts,
     }
-    return render(request, 'journals/stock_detail.html', context)
-
-
-@login_required
-def stock_summary_detail(request, ticker_symbol):
-    # Fetch all StockJournal entries for the given ticker and current user
-    stock_journals = StockJournal.objects.filter(
-        user=request.user,
-        ticker_symbol__ticker_symbol=ticker_symbol
-    ).select_related('ticker_symbol').prefetch_related(
-        Prefetch('posts', queryset=JournalPost.objects.order_by('-created_at'))
-    ).order_by('-created_at')
-
-    # If no journals found for this ticker, handle appropriately (e.g., 404 or empty list)
-    if not stock_journals.exists():
-        # Optionally, raise Http404 or render a specific message
-        pass # For now, just pass an empty list to the template
-
-    # Get the stock name for display
-    stock_name = ticker_symbol
-    if stock_journals.first():
-        stock_name = stock_journals.first().ticker_symbol.stock_name
-
-    context = {
-        'ticker_symbol': ticker_symbol,
-        'stock_name': stock_name,
-        'stock_journals': stock_journals, # Individual StockJournal objects
-        # You might want to pass the aggregated summary here too if needed
-    }
-    return render(request, 'journals/stock_summary_detail.html', context) # A new template will be needed
+    return render(request, 'my_journal_list.html', context)
 
 
 @require_http_methods(["GET"])
@@ -210,38 +74,29 @@ def stock_search_api(request):
     return JsonResponse({'results': results})
 
 
+@login_required
 @require_http_methods(["GET"])
 def portfolio_summary_api(request):
     """
     GET /api/stock/portfolio-summary/?ticker=...
     Returns summary data for a user's existing stock journal.
     """
-    # 로그인 확인
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=401)
-    
     ticker = request.GET.get('ticker', '').strip().upper()
     if not ticker:
         return JsonResponse({'error': 'Ticker is required'}, status=400)
 
     try:
-        # StockInfo가 없으면 먼저 생성
-        stock_info, created = StockInfo.objects.get_or_create(
-            ticker_symbol=ticker,
-            defaults={'stock_name': ticker}
-        )
-        
         journal = StockJournal.objects.get(
             user=request.user,
-            ticker_symbol=stock_info
+            ticker_symbol__ticker_symbol=ticker
         )
         # If journal is found, return its data
         data = {
-            'net_quantity': float(journal.net_qty) if journal.net_qty else 0,
-            'average_buy_price': float(journal.avg_buy_price) if journal.avg_buy_price else None,
-            'average_sell_price': float(journal.avg_sell_price) if journal.avg_sell_price else None,
-            'realized_pnl': float(journal.realized_pnl) if journal.realized_pnl else None,
-            'return_rate': float(journal.return_rate) if journal.return_rate else None,
+            'net_quantity': journal.net_qty,
+            'average_buy_price': journal.avg_buy_price,
+            'average_sell_price': journal.avg_sell_price,
+            'realized_pnl': journal.realized_pnl,
+            'return_rate': journal.return_rate,
             'status': journal.status,
         }
         return JsonResponse(data)
@@ -255,8 +110,6 @@ def portfolio_summary_api(request):
             'return_rate': None,
             'status': 'new',  # A custom status to indicate no position
         })
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
 
 
 @require_http_methods(["GET"])
@@ -453,7 +306,7 @@ def stock_journals_api(request):
     # Reload the journal to get the final aggregated values
     journal.refresh_from_db()
 
-    card_html = render_to_string('journals/_card_stock.html', {'post': post})
+    card_html = render_to_string('_card_stock.html', {'post': post})
     return JsonResponse({
         'post_id': post.id,
         'card_html': card_html,
@@ -573,67 +426,26 @@ def realty_deals_api(request):
 
     user = request.user
 
-    # Fields from the simplified form
-    # payload에서 각 필드의 값을 가져옵니다. 만약 값이 없으면 빈 문자열('')을 기본값으로 사용하고, strip()으로 양쪽 공백을 제거합니다.
+    # Required minimal fields
     building_name = (payload.get('building_name') or '').strip()
     address_base = (payload.get('address_base') or '').strip()
-
-    # [수정] 'dong' 값을 address_base 필드에서 추출 시도합니다.
-    dong = ''
-    for part in address_base.split():
-        if part.endswith('동') or part.endswith('읍') or part.endswith('면'):
-            dong = part
-            break # 첫 번째 일치하는 부분을 찾으면 중단
-
-    # [수정] 만약 주소에서 '동'을 찾지 못했다면(도로명 주소 등), 임시로 '-'를 기본값으로 사용합니다.
-    # 이렇게 하면 데이터베이스의 NOT NULL 제약조건을 만족시키면서 모든 주소 유형을 저장할 수 있습니다.
-    if not dong:
-        dong = '-'
-
     property_type = (payload.get('property_type') or 'apartment').strip()
-    deal_type = (payload.get('deal_type') or '매매').strip()
-    contract_date = parse_date(payload.get('contract_date') or '')
-    amount_main = Decimal(str(payload.get('amount_main') or '0'))
-    area_m2 = Decimal(str(payload.get('area_m2') or '0'))
-    floor = int(payload.get('floor') or 0)
-
-    # Basic validation for required fields
-    # [수정] 필수 정보 검사에서 'dong'을 제외합니다. 위에서 자동으로 채워주기 때문입니다.
-    if not (building_name and address_base and contract_date and amount_main):
-        return JsonResponse({'error': '필수 정보를 입력해주세요 (건물명, 주소, 계약일, 주요 금액).'}, status=400)
-
-    # Set optional fields to None if not provided by the simplified form
-    # These fields were previously in the form but are now removed
-    # They are still in the model, so we need to provide a value (e.g., None or default)
-    lawd_cd = None
-    # [삭제] dong = None  <- 이 줄을 삭제하고 위에서 payload로부터 값을 받도록 수정했습니다.
-    
-    # [수정] 위도(lat)와 경도(lng) 값도 payload에서 가져오도록 수정했습니다. 
-    # 카카오 API 등을 통해 주소를 선택했을 때 받아온 위도, 경도 값이 있다면 그 값을 사용하고, 없다면 기본값 '0'을 사용합니다.
+    lawd_cd = (payload.get('lawd_cd') or '').strip()[:5]
+    dong = (payload.get('dong') or '').strip()
     lat = Decimal(str(payload.get('lat') or '0'))
     lng = Decimal(str(payload.get('lng') or '0'))
-    amount_deposit = Decimal('0')
-    amount_monthly = Decimal('0')
-    loan_amount = None
-    loan_rate = None
-    fees_broker = None
-    tax_acq = None
-    reg_fee = None
-    misc_cost = None
-    content = '' # Memo field
+
+    deal_type = (payload.get('deal_type') or '매매').strip()
+    contract_date = parse_date(payload.get('contract_date') or '')
+    if not (building_name and address_base and contract_date):
+        return JsonResponse({'error': 'Missing required fields.'}, status=400)
 
     try:
-        # Numeric fields that are now optional in the form but required by model/logic
-        # Ensure they are Decimal or int, even if from payload they might be None
-        amount_main = Decimal(str(amount_main))
-        area_m2 = Decimal(str(area_m2))
-        floor = int(floor)
-
-        # Handle optional numeric fields that are not in the simplified form
-        # but are in the model. Ensure they are Decimal or int.
-        amount_deposit = Decimal(str(amount_deposit))
-        amount_monthly = Decimal(str(amount_monthly))
-
+        amount_main = Decimal(str(payload.get('amount_main') or '0'))
+        amount_deposit = Decimal(str(payload.get('amount_deposit') or '0'))
+        amount_monthly = Decimal(str(payload.get('monthly_amount') or '0')) # Corrected: 'amount_monthly' to 'monthly_amount'
+        area_m2 = Decimal(str(payload.get('area_m2') or '0'))
+        floor = int(payload.get('floor') or 0)
     except Exception:
         return JsonResponse({'error': 'Invalid numeric fields.'}, status=400)
 
@@ -659,22 +471,16 @@ def realty_deals_api(request):
             amount_monthly=amount_monthly,
             area_m2=area_m2,
             floor=floor,
-            loan_amount=loan_amount,
-            loan_rate=loan_rate,
-            fees_broker=fees_broker,
-            tax_acq=tax_acq,
-            reg_fee=reg_fee,
-            misc_cost=misc_cost,
         )
         post = JournalPost.objects.create(
             user=user,
             asset_class=JournalPost.AssetClass.REAL_ESTATE,
             re_deal=deal,
-            title=f'{building_name} {deal_type} 계약',
-            content=content,
+            title=payload.get('title') or f'{building_name} {deal_type} 계약',
+            content=payload.get('content') or '',
         )
 
-    card_html = render_to_string('journals/_card_realty.html', {'post': post})
+    card_html = render_to_string('_card_realty.html', {'post': post})
     return JsonResponse({'post_id': post.id, 'card_html': card_html}, status=201)
 
 

@@ -30,17 +30,6 @@
             {{ form.background_picture }}
         </div>
         
-        <div class="form-field-wrapper">
-            <label>프로필 공개 상태</label>
-            <p>현재 상태: {% if form.instance.is_private %}비공개{% else %}공개{% endif %}</p>
-            <div class="form-check">
-                {{ form.is_private }}
-                <label class="form-check-label" for="{{ form.is_private.id_for_label }}">
-                    프로필을 비공개로 설정합니다.
-                </label>
-            </div>
-        </div>
-        
         <button type="submit" class="submit-button">저장</button>
     </form>
 </div>

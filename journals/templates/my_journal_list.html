@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block feed %}
+<div style="padding: 20px;">
+    <h1 style="margin-bottom: 24px;">나의 매매일지</h1>
+
+    <div class="post-list" style="display: flex; flex-direction: column; gap: 16px;">
+        {% for post in journal_posts %}
+            <a href="{% url 'home:post_detail' post.id %}" style="text-decoration: none; color: inherit;">
+                {% if post.asset_class == 'stock' and post.stock_journal %}
+                    {% include '_card_stock.html' with post=post %}
+                {% elif post.asset_class == 'realestate' and post.re_deal %}
+                    {% include '_card_realty.html' with post=post %}
+                {% else %}
+                    <div class="card-placeholder" style="border: 1px solid #ccc; padding: 16px; border-radius: 8px;">
+                        <p><strong>{{ post.title }}</strong></p>
+                        <p>({{ post.get_asset_class_display }})</p>
+                    </div>
+                {% endif %}
+            </a>
+        {% empty %}
+            <p>작성한 매매일지가 없습니다.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

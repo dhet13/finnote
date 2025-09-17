@@ -1,13 +1,10 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}FinTech SNS{% endblock %}</title>
-    
-    <link rel="stylesheet" href="{% static 'tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
@@ -63,7 +60,11 @@
             border-right: 1px solid #eff3f4;
             margin-top: 60px;
             height: calc(100vh - 60px);
-            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #536471;
+            font-size: 14px;
         }
 
         /* 메인 피드 */
@@ -247,293 +248,18 @@
                 max-width: 100%;
             }
         }
-        .news-carousel {
-            padding-right: 12px; 
-        }
-        .news-carousel::-webkit-scrollbar {
-            width: 6px;
-        }
-        .news-carousel::-webkit-scrollbar-track {
-            background: #f7f9fa;
-            border-radius: 10px;
-        }
-        .news-carousel::-webkit-scrollbar-thumb {
-            background: #cfd9de;
-            border-radius: 10px;
-        }
-        .news-carousel::-webkit-scrollbar-thumb:hover {
-            background: #8b98a5;
-        }
-        /* 로딩 스피너 스타일 */
-        .loading-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #1d9bf0;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 8px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .loading-text {
-            color: #536471;
-            font-size: 14px;
-        }
-        /* 새 포스트 페이드인 애니메이션 */
-        .post-card.fade-in {
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInUp 0.6s ease-out forwards;
-        }
-
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        /* 모바일 터치 친화적 버튼 */
-        @media (max-width: 768px) {
-            #trading-journal-btn, #image-upload-btn {
-                padding: 12px !important;
-                min-width: 44px !important;
-                min-height: 44px !important;
-            }
-            
-            #post-button {
-                padding: 12px 24px !important;
-                font-size: 16px !important;
-                min-height: 44px !important;
-            }
-            
-            #post-content {
-                font-size: 16px !important;
-                min-height: 80px !important;
-            }
-        }
-        /* 좋아요 버튼 스타일 */
-        .material-symbols-outlined.liked {
-            color: #e91e63 !important;
-            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
-        }
-        /* 북마크 버튼 스타일 추가 */
-        .material-symbols-outlined.bookmarked {
-            color: #1d9bf0 !important;
-            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
-        }
-        .material-symbols-outlined {
-            color: #536471;
-        }
-        /* Toast 메시지 스타일 */
-        .toast {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: #333;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            z-index: 1000;
-            opacity: 0;
-            transform: translateX(100%);
-            transition: all 0.3s ease;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
-        .toast.error {
-            background: #e74c3c;
-        }
-
-        .toast.success {
-            background: #27ae60;
-        }
-
-        .toast.warning {
-            background: #f39c12;
-        }
-
-        /* 포스트 메뉴 드롭다운 */
-        .post-menu-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background: white;
-            border: 1px solid #eff3f4;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            width: 180px; /* min-width에서 width로 변경 */
-            z-index: 1000;
-            display: none;
-        }
-
-        .post-menu-dropdown.show {
-            display: block;
-        }
-
-        .menu-item {
-            padding: 12px 16px;
-            cursor: pointer;
-            border-bottom: 1px solid #f7f9fa;
-            transition: background-color 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-
-        .menu-item:hover {
-            background-color: #f7f9fa;
-        }
-
-        .menu-item:last-child {
-            border-bottom: none;
-        }
-
-        .menu-item.danger {
-            color: #e74c3c;
-        }
-
-        .menu-item.danger:hover {
-            background-color: #fef2f2;
-        }
-        .post-menu-btn {
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            transition: background-color 0.2s;
-            position: absolute;
-            top: 12px;   
-            right: 12px; 
-        }
-
-        .post-menu-btn:hover {
-            background-color: rgba(0,0,0,0.05);
-        }
-
-        .post-menu-btn .material-symbols-outlined {
-            font-size: 20px;
-            color: #536471;
-        }
-        /* 네비게이션 링크 스타일 완전 제거 */
-        .nav-menu a,
-        .nav-menu a:link,
-        .nav-menu a:visited,
-        .nav-menu a:hover,
-        .nav-menu a:active,
-        .nav-menu a:focus {
-            text-decoration: none !important;
-            color: inherit !important;
-            outline: none !important;
-            border: none !important;
-            display: block;
-            width: 100%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            transition: background-color 0.2s;
-        }
-
-        .nav-menu a:hover {
-            background-color: rgba(29, 155, 240, 0.1);
-        }
     </style>
 </head>
 <body>
     <!-- 헤더 placeholder -->
     <div class="header-placeholder">
-        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 1200px;">
-            <div style="font-weight: bold; font-size: 20px;">
-                <a href="{% url 'home:home_feed' %}" style="text-decoration: none; color: var(--black);">Home</a>
-            </div>
-            <div style="text-align: center;">
-                <input type="text" placeholder="Search" style="width: 400px; height: 40px; border-radius: 20px; border: 1px solid #eff3f4; padding: 0 16px;">
-            </div>
-            <div style="display: flex; align-items: center; gap: 16px;">
-                {% if user.is_authenticated %}
-                    <a href="{% url 'user_profile:user_profile' %}" style="text-decoration: none; color: #0f1419;">Profile</a>
-                    <form action="{% url 'logout' %}" method="post" style="display: inline;">
-                        {% csrf_token %}
-                        <button type="submit" style="background: none; border: none; cursor: pointer; color: #0f1419;">Logout</button>
-                    </form>
-                {% else %}
-                    <a href="{% url 'login' %}" style="text-decoration: none; color: #0f1419;">Login</a>
-                    <a href="{% url 'signup' %}" style="text-decoration: none; color: #0f1419;">Sign Up</a>
-                {% endif %}
-            </div>
-        </div>
+        헤더 영역 
     </div>
 
     <div class="main-container">
         <!-- 좌측 사이드바 placeholder -->
         <div class="left-sidebar-placeholder">
-            <div style="font-size: 30px; margin-bottom: 20px;">
-                📝
-            </div>
-            <nav>
-                <ul class="nav-menu">
-                    <li class="nav-item active">
-                        <a href="{% url 'home:home_feed' %}"style="text-decoration: none; color: inherit;">
-                            <span class="icon">
-                                <img src="{% static 'icon/home.svg' %}" alt="홈">
-                            </span>
-                            <span class="text">홈</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="/dashboard/"style="text-decoration: none; color: inherit;">
-                            <span class="icon">
-                                <img src="{% static 'icon/dashboard.svg' %}" alt="대시보드">
-                            </span>
-                            <span class="text">대시 보드</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="/journals/my-list/"style="text-decoration: none; color: inherit;">
-                            <span class="icon">
-                                <img src="{% static 'icon/journal.svg' %}" alt="매매일지">
-                            </span>
-                            <span class="text">매매 일지</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" onclick="alert('북마크 기능 준비중')">
-                            <span class="icon">
-                                <img src="{% static 'icon/bookmarks.svg' %}" alt="북마크">
-                            </span>
-                            <span class="text">북마크</span>
-                        </a>
-                    </li>
-                    {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <a href="{% url 'user_profile:profile' my_ID=request.user.my_ID %}">
-                            <span class="icon">
-                                <img src="{% static 'icon/profile.svg' %}" alt="프로필">
-                            </span>
-                            <span class="text">프로필</span>
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a href="{% url 'login' %}">
-                            <span class="icon">
-                                <img src="{% static 'icon/profile.svg' %}" alt="프로필">
-                            </span>
-                            <span class="text">프로필</span>
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
+            좌측 사이드바<br>
         </div>
 
         <!-- 메인 피드 -->
@@ -548,7 +274,7 @@
                 <h3>What's happening</h3>
                 
                 <!-- 캐러셀 래퍼 -->
-                <div class="news-carousel" style="position: relative; height: 320px; overflow-y: auto; overflow-x: hidden;">
+                <div class="news-carousel" style="position: relative; height: 320px; overflow: hidden;">
                          
                     <!-- 뉴스 컨테이너 -->
                     <div id="news-slides">
@@ -637,7 +363,7 @@
                 </div>
 
                 <!-- 기간 선택 버튼들 -->
-                <div id="period-buttons" style="display: flex; gap: 16px; margin-bottom: 15px; padding: 8px 12px; justify-content: center;">
+                <div style="display: flex; gap: 16px; margin-bottom: 15px; padding: 8px 12px; justify-content: center;">
                     <button class="period-btn active" data-period="1d" onclick="changePeriod('1d')" 
                         style="background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: #1d9bf0; border-bottom: 2px solid #1d9bf0; padding: 4px 0;">
                         1일
@@ -724,20 +450,10 @@
                 <div id="exchange-content" class="finance-content" style="display: none;">
                     <!-- 선택된 환율 상단 표시 -->
                     <div id="selected-exchange" style="padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #1d9bf0;">
-                        <div style="font-size: 16px; font-weight: bold; color: #0f1419;" id="selected-exchange-name">
-                            {% if exchange_rates %}{{ exchange_rates.0.name }}{% else %}USD/KRW{% endif %}
-                        </div>
+                        <div style="font-size: 16px; font-weight: bold; color: #0f1419;" id="selected-exchange-name">USD/KRW</div>
                         <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                            <span style="font-size: 18px; font-weight: bold; color: #0f1419;" id="selected-exchange-rate">
-                                {% if exchange_rates %}{{ exchange_rates.0.current_rate }}원{% else %}1,340원{% endif %}
-                            </span>
-                            <span style="font-size: 14px; font-weight: 600;" id="selected-exchange-change">
-                                {% if exchange_rates %}
-                                    {% if exchange_rates.0.is_positive %}▲{% else %}▼{% endif %} {{ exchange_rates.0.change }}원 ({% if exchange_rates.0.change_percent >= 0 %}+{% endif %}{{ exchange_rates.0.change_percent }}%)
-                                {% else %}
-                                    ▲ 5원 (+0.37%)
-                                {% endif %}
-                            </span>
+                            <span style="font-size: 18px; font-weight: bold; color: #0f1419;" id="selected-exchange-rate">1,340</span>
+                            <span style="font-size: 14px; font-weight: 600;" id="selected-exchange-change">▲ 5원 (+0.37%)</span>
                         </div>
                     </div>
 
@@ -748,7 +464,7 @@
                             data-change="{% if rate.is_positive %}▲{% else %}▼{% endif %} {{ rate.change }}원 ({% if rate.change_percent >= 0 %}+{% endif %}{{ rate.change_percent }}%)"
                             data-positive="{{ rate.is_positive }}"
                             style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer;"
-                            onclick="selectExchange(this);"
+                            onclick="showChart('{{ rate.symbol }}', '{{ rate.name }}', 'exchange'); selectExchange(this);"
                             onmouseover="if(!this.classList.contains('selected')) this.style.backgroundColor='rgba(29, 155, 240, 0.05)'" 
                             onmouseout="if(!this.classList.contains('selected')) this.style.backgroundColor='transparent'">
                             <div>
@@ -776,85 +492,6 @@
             </div>
 
             <script>
-            // 캐시 유틸리티 함수들
-            const FinanceCache = {
-                // 캐시 만료 시간 (5분)
-                CACHE_DURATION: 5 * 60 * 1000,
-                
-                // 캐시 키 생성
-                getCacheKey: function(type, params) {
-                    return `finance_cache_${type}_${JSON.stringify(params)}`;
-                },
-                
-                // 캐시에서 데이터 가져오기
-                get: function(type, params) {
-                    try {
-                        const key = this.getCacheKey(type, params);
-                        const cached = localStorage.getItem(key);
-                        
-                        if (!cached) return null;
-                        
-                        const data = JSON.parse(cached);
-                        const now = Date.now();
-                        
-                        // 만료 확인
-                        if (now > data.expires) {
-                            localStorage.removeItem(key);
-                            return null;
-                        }
-                        
-                        console.log(`캐시 히트: ${type}`, params);
-                        return data.value;
-                        
-                    } catch (error) {
-                        console.warn('캐시 읽기 오류:', error);
-                        return null;
-                    }
-                },
-                
-                // 캐시에 데이터 저장
-                set: function(type, params, value) {
-                    try {
-                        const key = this.getCacheKey(type, params);
-                        const data = {
-                            value: value,
-                            expires: Date.now() + this.CACHE_DURATION,
-                            timestamp: Date.now()
-                        };
-                        
-                        localStorage.setItem(key, JSON.stringify(data));
-                        console.log(`캐시 저장: ${type}`, params);
-                        
-                    } catch (error) {
-                        console.warn('캐시 저장 오류:', error);
-                        // localStorage 용량 초과시 오래된 캐시 정리
-                        this.cleanup();
-                    }
-                },
-                
-                // 오래된 캐시 정리
-                cleanup: function() {
-                    try {
-                        const keys = Object.keys(localStorage);
-                        const financeKeys = keys.filter(key => key.startsWith('finance_cache_'));
-                        
-                        // 타임스탬프 기준으로 정렬하여 가장 오래된 것부터 삭제
-                        financeKeys.forEach(key => {
-                            try {
-                                const data = JSON.parse(localStorage.getItem(key));
-                                if (Date.now() > data.expires) {
-                                    localStorage.removeItem(key);
-                                }
-                            } catch (e) {
-                                localStorage.removeItem(key);
-                            }
-                        });
-                        
-                    } catch (error) {
-                        console.warn('캐시 정리 오류:', error);
-                    }
-                }
-            };
             // 금융 탭 전환 함수
             function switchFinanceTab(tabName) {
                 // 모든 탭 버튼 비활성화
@@ -882,27 +519,6 @@
                 if (activeContent) {
                     activeContent.style.display = 'block';
                 }
-                // 환율 탭일 때만 기간 버튼 숨기기 - ID 사용
-                const periodButtons = document.getElementById('period-buttons');
-                if (tabName === 'exchange') {
-                    if (periodButtons) periodButtons.style.display = 'none';
-                } else {
-                    if (periodButtons) periodButtons.style.display = 'flex';
-                }
-                const chartWidget = document.getElementById('chart-widget');
-                if (tabName === 'exchange') {
-                    if (chartWidget) chartWidget.style.display = 'none';
-                } else {
-                    if (chartWidget) chartWidget.style.display = 'block';
-                }
-                // 탭 전환시 해당 탭의 첫 번째 항목 차트 자동 표시
-                setTimeout(() => {
-                    if (tabName === 'indices') {
-                        showChart('^KS11', 'KOSPI', 'index');
-                    } else if (tabName === 'stocks') {
-                        showChart('TSLA', '테슬라', 'us_stock');
-                    }
-                }, 100);
             }
 
             // 환율 선택 함수
@@ -953,52 +569,22 @@
                 });
                 
                 // 로딩 표시
-                document.getElementById('chart-title').innerHTML = 
-                    '<span class="loading-spinner"></span><span class="loading-text">' + name + ' 데이터 로딩 중...</span>';
+                document.getElementById('chart-title').textContent = name + ' - 로딩 중...';
                 document.getElementById('chart-widget').style.display = 'block';
                 
                 // AJAX로 차트 데이터 가져오기
-                const cacheParams = {symbol, type: dataType, period: actualPeriod};
-                const cachedData = FinanceCache.get('chart', cacheParams);
-                
-                if (cachedData) {
-                    // 캐시에서 데이터 사용
-                    createChart(cachedData, name);
-                    markSelectedItem(symbol, dataType);
-                    return;
-                }
-                
-                // 캐시에 없으면 AJAX로 차트 데이터 가져오기
                 fetch(`/home/chart-data/?symbol=${symbol}&type=${dataType}&period=${actualPeriod}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`서버 오류: ${response.status}`);
-                        }
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // 성공시 캐시에 저장
-                            FinanceCache.set('chart', cacheParams, data.chart_data);
                             createChart(data.chart_data, name);
                         } else {
                             document.getElementById('chart-title').textContent = name + ' - 데이터 오류';
-                            document.getElementById('chart-title').style.color = '#e74c3c';
-                            setTimeout(() => {
-                                document.getElementById('chart-title').style.color = '#0f1419';
-                            }, 3000);
                         }
                     })
                     .catch(error => {
                         console.error('차트 데이터 오류:', error);
-                        document.getElementById('chart-title').textContent = name + ' - 연결 실패 (3초 후 재시도)';
-                        document.getElementById('chart-title').style.color = '#e74c3c';
-                        
-                        // 3초 후 자동 재시도
-                        setTimeout(() => {
-                            document.getElementById('chart-title').textContent = name + ' - 재시도 중...';
-                            showChart(symbol, name, dataType, period);
-                        }, 3000);
+                        document.getElementById('chart-title').textContent = name + ' - 네트워크 오류';
                     });
                 
                 // 선택된 항목 표시
@@ -1021,21 +607,12 @@
                 if (currentChart) {
                     currentChart.destroy();
                 }
-                let processedLabels = chartData.labels.map(label => {
-                    if (typeof label === 'string') {
-                        return label;
-                    } else if (label && typeof label === 'object') {
-                        // Date 객체거나 다른 객체면 문자열로 변환
-                        return String(label).substring(0, 10);
-                    } else {
-                        return String(label);
-                    }
-                });
+                
                 // 새 차트 생성
                 currentChart = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: processedLabels,
+                        labels: chartData.labels,
                         datasets: [{
                             label: name,
                             data: chartData.data,
@@ -1076,8 +653,7 @@
                 });
                 
                 // 제목 업데이트
-                document.getElementById('chart-title').innerHTML = name + ' 차트';
-                document.getElementById('chart-title').style.color = '#0f1419';
+                document.getElementById('chart-title').textContent = name + ' 차트';
             }
 
             // 차트 숨기기
@@ -1109,13 +685,7 @@
                     alert('환율 데이터는 1달까지만 지원합니다.');
                     return;
                 }
-                if (currentTab === 'stocks') {
-                    const selectedItem = document.querySelector('.finance-item.chart-selected');
-                    if (selectedItem && selectedItem.dataset.type === 'kr_stock' && ['5d', '1mo', '6mo', '1y', '5y'].includes(period)) {
-                        alert('한국 주식은 1일 데이터만 제공됩니다.');
-                        return;
-                    }
-                }
+                
                 currentPeriod = period;
                 
                 // 기간 버튼 스타일 변경
@@ -1138,30 +708,16 @@
                 updateFinancialData(period);
             }
 
-            // 현재 차트 다시 로드 - 종목명 전달 수정
+            // 현재 차트 다시 로드
             function reloadCurrentChart() {
                 // 선택된 항목 찾기
                 const selectedItem = document.querySelector('.finance-item.chart-selected');
                 if (selectedItem) {
                     const symbol = selectedItem.dataset.symbol;
+                    const name = selectedItem.textContent.split(' ')[0]; // 첫 번째 단어가 이름
                     
-                    // 종목명 정확히 추출
-                    let name;
+                    // 현재 탭에 따라 데이터 타입 결정
                     const currentTab = document.querySelector('.finance-tab.active').dataset.tab;
-                    
-                    if (currentTab === 'stocks' && selectedItem.dataset.name) {
-                        // 주식탭: data-name 사용
-                        name = selectedItem.dataset.name;
-                    } else if (currentTab === 'exchange' && selectedItem.dataset.name) {
-                        // 환율탭: data-name 사용
-                        name = selectedItem.dataset.name;
-                    } else {
-                        // 지수탭: HTML에서 직접 추출
-                        const nameElement = selectedItem.querySelector('div div:first-child');
-                        name = nameElement ? nameElement.textContent.trim() : symbol;
-                    }
-                    
-                    // 데이터 타입 결정
                     let dataType = 'index';
                     if (currentTab === 'stocks') {
                         dataType = selectedItem.dataset.type || 'us_stock';
@@ -1172,32 +728,11 @@
                     showChart(symbol, name, dataType);
                 }
             }
+            // 주식 차트 전용 함수
             function showStockChart(element) {
                 const symbol = element.dataset.symbol;
                 const name = element.dataset.name;
                 const type = element.dataset.type;
-                
-                // 한국 주식이면 기간을 1일로 강제 변경
-                if (type === 'kr_stock') {
-                    if (currentPeriod !== '1d') {
-                        // 기간 버튼을 1일로 변경
-                        document.querySelectorAll('.period-btn').forEach(btn => {
-                            btn.style.color = '#536471';
-                            btn.style.borderBottomColor = 'transparent';
-                            btn.classList.remove('active');
-                        });
-                        
-                        const dayBtn = document.querySelector('[data-period="1d"]');
-                        if (dayBtn) {
-                            dayBtn.style.color = '#1d9bf0';
-                            dayBtn.style.borderBottomColor = '#1d9bf0';
-                            dayBtn.classList.add('active');
-                        }
-                        
-                        currentPeriod = '1d';
-                    }
-                }
-                
                 showChart(symbol, name, type);
             }
                     // 금융 데이터 업데이트 함수
@@ -1211,27 +746,17 @@
                         let selectedType = null;
                         
                         if (selectedItem) {
-                                selectedSymbol = selectedItem.dataset.symbol;
-                                
-                                // 종목명 정확히 추출
-                                if (currentTab === 'stocks' && selectedItem.dataset.name) {
-                                    selectedName = selectedItem.dataset.name;
-                                } else if (currentTab === 'exchange' && selectedItem.dataset.name) {
-                                    selectedName = selectedItem.dataset.name;
-                                } else {
-                                    // 지수의 경우 HTML에서 추출
-                                    const nameElement = selectedItem.querySelector('div div:first-child');
-                                    selectedName = nameElement ? nameElement.textContent.trim() : selectedSymbol;
-                                }
-                                
-                                if (currentTab === 'indices') {
-                                    selectedType = 'index';
-                                } else if (currentTab === 'stocks') {
-                                    selectedType = selectedItem.dataset.type || 'us_stock';
-                                } else if (currentTab === 'exchange') {
-                                    selectedType = 'exchange';
-                                }
+                            selectedSymbol = selectedItem.dataset.symbol;
+                            selectedName = selectedItem.textContent.split(' ')[0];
+                            
+                            if (currentTab === 'indices') {
+                                selectedType = 'index';
+                            } else if (currentTab === 'stocks') {
+                                selectedType = selectedItem.dataset.type || 'us_stock';
+                            } else if (currentTab === 'exchange') {
+                                selectedType = 'exchange';
                             }
+                        }
                         
                         fetch(`/home/financial-data/?period=${period}&tab=${currentTab}`)
                             .then(response => response.json())
@@ -1347,28 +872,5 @@
             {% endblock %}
         </aside>
     </div>
-    <script>
-    // 현재 페이지에 따라 active 클래스 설정
-    document.addEventListener('DOMContentLoaded', function() {
-        const currentPath = window.location.pathname;
-        const navItems = document.querySelectorAll('.nav-item');
-        
-        // 모든 nav-item에서 active 제거
-        navItems.forEach(item => item.classList.remove('active'));
-        
-        // 현재 경로에 맞는 nav-item에 active 추가
-        if (currentPath.startsWith('/home/') || currentPath === '/') {
-            document.querySelector('.nav-item:nth-child(1)').classList.add('active');
-        } else if (currentPath.startsWith('/dashboard/')) {
-            document.querySelector('.nav-item:nth-child(2)').classList.add('active');
-        } else if (currentPath.startsWith('/journals/')) {
-            document.querySelector('.nav-item:nth-child(3)').classList.add('active');
-        } else if (currentPath.startsWith('/bookmarks/')) {
-                document.querySelector('.nav-item:nth-child(4)').classList.add('active');
-        } else if (currentPath.startsWith('/profile/')) {
-            document.querySelector('.nav-item:nth-child(5)').classList.add('active');
-        }
-    });
-    </script>
 </body>
 </html>

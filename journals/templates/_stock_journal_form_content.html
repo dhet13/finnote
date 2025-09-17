@@ -1,0 +1,84 @@
+{% load static %}
+<div class="compose-card">
+    <form id="stock-journal-form" novalidate>
+        {% csrf_token %}
+
+        <div class="form-section">
+            <h3 class="section-title">주식 선택</h3>
+            <div class="input-group-icon">
+                
+                <input type="search" id="stock-search" class="form-control" placeholder="투자하신 종목을 선택해주세요.">
+            </div>
+            <div id="stock-search-results" class="search-results-container"></div>
+            <div id="selected-stock-card" class="hidden"></div>
+        </div>
+
+        <div class="form-section price-grid">
+            <div class="input-group">
+                <label for="target-price">목표 가격</label>
+                <input type="number" id="target-price" name="target_price" class="form-control">
+            </div>
+            <div class="input-group">
+                <label for="target-percent">%</label>
+                <input type="number" id="target-percent" class="form-control">
+            </div>
+            <div class="input-group">
+                <label for="stop-price">손절 가격</label>
+                <input type="number" id="stop-price" name="stop_price" class="form-control">
+            </div>
+            <div class="input-group">
+                <label for="stop-percent">%</label>
+                <input type="number" id="stop-percent" class="form-control">
+            </div>
+        </div>
+
+        <div class="form-section trade-side-selector">
+            <button type="button" class="btn btn-buy" data-side="BUY">매수</button>
+            <button type="button" class="btn btn-sell" data-side="SELL">매도</button>
+        </div>
+
+        <div id="holding-summary-card" class="form-section holdings-grid hidden">
+            <!-- JS will inject content here -->
+        </div>
+
+        <div class="form-section trade-input-grid">
+            <div class="input-group">
+                <label for="trade-price">매수 금액(원)</label>
+                <div class="stepper-input">
+                    <input type="number" id="trade-price" class="form-control">
+                    <button type="button" class="stepper-btn stepper-down">-</button>
+                    <button type="button" class="stepper-btn stepper-up">+</button>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="trade-quantity">매수 수량</label>
+                <div class="stepper-input">
+                    <input type="number" id="trade-quantity" class="form-control">
+                    <button type="button" class="stepper-btn stepper-down">-</button>
+                    <button type="button" class="stepper-btn stepper-up">+</button>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="trade-date">매수 날짜</label>
+                <input type="date" id="trade-date" class="form-control">
+            </div>
+        </div>
+
+        
+
+        <div class="form-section">
+            <label for="trade-reason">매매이유를 적어주세요</label>
+            <textarea id="trade-reason" name="content" class="form-control" rows="5" placeholder="매매에 대한 상세한 이유나 전략을 기록해주세요."></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-submit">확인</button>
+            <button type="button" id="complete-journal-btn" class="btn btn-secondary hidden">매매 종료</button>
+        </div>
+    </form>
+</div>
+
+<!--
+NOTE: The script tag was moved back to the parent templates (_compose_modal.html and compose_page_clean.html) 
+to follow best practices. This file should only contain the form structure.
+-->

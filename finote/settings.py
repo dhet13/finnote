@@ -21,21 +21,17 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 # Application definition
 
 INSTALLED_APPS = [
-    'accounts',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.humanize',
-
-    # Local apps
 
     # Local apps
     'dashboard',
     'home', 
-    
+    'accounts',
     'user_profile',
     'base',
     'journals.apps.JournalsConfig',
@@ -135,8 +131,3 @@ LOGIN_REDIRECT_URL = '/'
 MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-from django.urls import reverse_lazy
-
-LOGIN_REDIRECT_URL = reverse_lazy('home:home_feed')
-LOGOUT_REDIRECT_URL = reverse_lazy('home')  # finote 홈 (가입/로그인 페이지) 

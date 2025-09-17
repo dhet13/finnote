@@ -9,71 +9,41 @@
 /* 대시보드 헤더 스타일 - 가로 배치 */
 .dashboard-header {
     display: flex !important;
-    align-items: baseline !important;
-    gap: 20px !important;
-    margin: 0 !important;                           /* 마진 제거 */
-    padding: 16px !important;                       /* home.html과 같은 패딩 (var(--spacing-medium)) */
-    border-bottom: 1px solid #e1e8ed !important;   /* home.html과 같은 보더 (var(--border-color)) */
+    align-items: baseline !important; /* 텍스트 베이스라인 맞춤 */
+    gap: 12px !important; /* 제목과 부제목 사이 간격 */
 }
 
 .dashboard-header .dashboard-title,
 .dashboard-header h1.dashboard-title,
 h1.dashboard-title {
-    font-size: 20px !important;                    /* h2 크기에 맞춤 */
-    font-weight: 600 !important;                   /* 적당한 두께 */
+    font-size: 18px !important;
+    font-weight: 700 !important;
     color: #0f1419 !important;
     margin: 0 !important;
     padding: 0 !important;
     line-height: 1.2 !important;
-    display: inline !important;
+    display: inline !important; /* 인라인으로 변경 */
 }
 
 .dashboard-header .dashboard-subtitle,
 .dashboard-header p.dashboard-subtitle,
 p.dashboard-subtitle {
-    font-size: 14px !important;                    /* home.html과 같은 크기 */
-    color: #536471 !important;                     /* home.html의 dark-gray와 유사 */
+    font-size: 12px !important;
+    color: #536471 !important;
     margin: 0 !important;
     padding: 0 !important;
     line-height: 1.4 !important;
-    display: inline !important;
-}
-
-/* 탭 메뉴 컨테이너 스타일 */
-.dashboard-tabs {
-    margin: 10px 0 !important;
-    padding: 0px 10px !important;
-    border-bottom: 1px solid #eff3f4;
-}
-
-/* 탭 아이템 스타일 */
-.dashboard-tabs .nav-item {
-    margin: 0 20px 0 0 !important;          /* 상 우 하 좌 마진 */
-    padding: 0 !important;                   /* 패딩 */
-    font-size: 14px !important;             /* 글씨 크기 */
-    font-weight: 500 !important;            /* 글씨 두께 */
-    list-style: none !important;            /* 리스트 점 제거 */
-}
-
-.dashboard-tabs .nav-item:last-child {
-    margin-right: 0 !important;             /* 마지막 아이템은 우측 마진 없음 */
-}
-
-/* 탭 메뉴 컨테이너 스타일 */
-.dashboard-tabs .nav-pills {
-    display: flex !important;
-    list-style: none !important;
-    padding: 0 !important;                   /* 패딩 */
-    margin: 16px 0 !important;              /* 마진 (상하 16px) */
+    display: inline !important; /* 인라인으로 변경 */
+    
 }
 
 /* 탭 메뉴 스타일 */
 .dashboard-tabs .nav-pills .nav-link {
     color: #536471;
     font-weight: 500;
-    font-size: 14px;
+    font-size: 16px;
     padding: 12px 0;
-    margin-right: 0px;
+    margin-right: 32px;
     background-color: transparent;
     border-radius: 0;
     border-bottom: 2px solid transparent;
@@ -99,13 +69,12 @@ p.dashboard-subtitle {
 
 /* 통계 카드 행(row) 설정 */
 .stats-row {
-    display: flex;
-    justify-content: center; /* 카드들을 중앙 정렬 */
-    align-items: center;
-    gap: 8px; /* 카드 사이의 간격 */
-    margin: 0 auto 20px auto; /* 중앙 정렬 및 하단 간격 */
-    width: 100%; /* 전체 너비 사용 */
-    max-width: 600px; /* 최대 너비 설정 */
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3개의 카드를 동일한 너비로 배치 */
+    gap: 2px; /* 카드 사이의 간격 최소화 */
+    margin-bottom: 20px; /* 하단 간격 줄임 */
+    width: 580px; /* 고정 너비로 강제 제한 (여유분 20px) */
+    max-width: 580px; /* 최대 너비도 580px로 제한 */
 }
 
 /* 개별 통계 카드 스타일 */
@@ -117,10 +86,9 @@ p.dashboard-subtitle {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03); /* 그림자 최소화 */
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     min-width: 0; /* 카드가 축소될 수 있도록 */
-    overflow: visible !important; /* 툴팁이 카드 밖으로 나올 수 있도록 */
+    overflow: hidden; /* 내용이 넘치지 않도록 */
     max-width: 180px; /* 카드 최대 너비를 더 줄임 */
-    width: 180px; /* 고정 너비로 설정 */
-    flex-shrink: 0; /* 카드가 축소되지 않도록 */
+    width: 100%; /* 그리드 내에서 가득 채우기 */
     box-sizing: border-box; /* padding과 border를 width에 포함 */
 }
 
@@ -130,30 +98,28 @@ p.dashboard-subtitle {
 }
 
 .stat-card-title {
-    font-size: 8px; /* 제목 크기 극도로 줄임 */
+    font-size: 13px; /* 제목 크기 극도로 줄임 */
     color: #536471; /* 옅은 회색 글자 */
-    margin-bottom: 4px; /* 간격 극도로 줄임 */
+    margin-bottom: 10px; /* 간격 극도로 줄임 */
     font-weight: 500;
 }
 
 .stat-value {
-    font-size: 12px; /* 값 크기 극도로 줄임 */
+    font-size: 18px; /* 값 크기 극도로 줄임 */
     font-weight: 700;
     color: #0f1419; /* 진한 검정색 글자 */
-    line-height: 1; /* 줄간격 극도로 줄임 */
-    margin-bottom: 2px; /* 하단 간격 추가 */
+    line-height: 0.8; /* 줄간격 극도로 줄임 */
 }
 
 /* 수익률 표시 스타일 */
 .stat-change {
-    font-size: 9px; /* 수익률 글자 크기 더욱 줄임 */
-    font-weight: 500;
-    display: inline-block;
+    font-size: 12px; /* 수익률 글자 크기 더욱 줄임 */
+    font-weight: 100;
+    display: inline-flex;
     align-items: center;
-    padding: 1px 4px; /* 패딩 더욱 줄임 */
-    border-radius: 2px; /* 둥근 모서리 더욱 줄임 */
-    margin-top: 4px; /* 간격 더욱 줄임 */
-    background: rgba(23, 191, 99, 0.1); /* 배경색 추가 */
+    padding: 1px 3px; /* 패딩 더욱 줄임 */
+    border-radius: 3px; /* 둥근 모서리 더욱 줄임 */
+    margin-top: 1px; /* 간격 더욱 줄임 */
 }
 
 .stat-change.positive {
@@ -219,77 +185,38 @@ p.dashboard-subtitle {
     border-color: #1a8cd8;
 }
 
-/* 캘린더 기간 선택 스타일 */
-.date-range-picker {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.date-input {
-    padding: 6px 12px;
-    border: 1px solid #e1e8ed;
-    border-radius: 6px;
-    font-size: 12px;
-    background-color: #ffffff;
-    color: #0f1419;
-    transition: border-color 0.2s ease;
-}
-
-.date-input:focus {
-    outline: none;
-    border-color: #1d9bf0;
-    box-shadow: 0 0 0 2px rgba(29, 155, 240, 0.1);
-}
-
-.apply-btn {
-    padding: 6px 12px;
-    background: #1d9bf0;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.apply-btn:hover {
-    background: #1a8cd8;
-}
-
-/* 빠른 선택 버튼 스타일 (포트폴리오 페이지와 동일) */
-.quick-period-container {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.quick-period-buttons {
+/* 메인 차트 기간 선택 버튼 스타일 (1D/1W/1M/3M/6M/1Y) */
+.main-period-buttons {
     display: flex;
     gap: 4px;
 }
 
-.quick-period-btn {
-    padding: 6px 12px !important;
-    border: 1px solid #eff3f4 !important;
-    background: transparent !important;
-    color: #536471 !important;
-    border-radius: 4px !important;
-    cursor: pointer !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
-    transition: all 0.2s ease !important;
+.main-period-btn {
+    background-color: #f7f9fa;
+    border: 1px solid #e1e8ed;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #536471;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.quick-period-btn.active {
-    background: #1d9bf0 !important;
-    color: white !important;
-    border-color: #1d9bf0 !important;
+.main-period-btn:hover {
+    background-color: #e1e8ed;
+    color: #0f1419;
 }
 
-.quick-period-btn:hover:not(.active) {
-    background: #f7f9fa !important;
-    border-color: #cfd9de !important;
+.main-period-btn.active {
+    background-color: #1d9bf0;
+    border-color: #1d9bf0;
+    color: #ffffff;
+}
+
+.main-period-btn.active:hover {
+    background-color: #1a8cd8;
+    border-color: #1a8cd8;
 }
 
 /* 기간 선택 드롭다운 스타일 */
@@ -314,239 +241,4 @@ p.dashboard-subtitle {
     outline: none;
     border-color: #1d9bf0;
     background-color: #ffffff;
-}
-
-/* Chart.js 툴팁 기본 설정 - 강제 스타일 제거 */
-
-/* 미니 차트 컨테이너 설정 */
-.mini-chart {
-    position: relative;
-    z-index: 1;
-    overflow: visible;
-}
-
-/* 자산현황 카드 컨테이너 설정 */
-.asset-card {
-    position: relative;
-    overflow: visible;
-    z-index: 1;
-}
-
-.asset-card .card-body {
-    overflow: visible;
-}
-
-.asset-card .mini-chart {
-    overflow: visible;
-    position: relative;
-}
-
-.asset-card canvas {
-    position: relative;
-    z-index: 2;
-}
-
-.mini-chart canvas {
-    position: relative;
-    z-index: 2;
-}
-
-/* 통계 카드 z-index 조정 */
-.stat-card, .stats-row {
-    position: relative;
-    z-index: 0; /* 툴팁이 카드 위에 표시되도록 낮춤 */
-    overflow: visible !important;
-}
-
-/* 툴팁이 카드 밖으로 나올 수 있도록 강제 설정 */
-.stat-card * {
-    overflow: visible !important;
-}
-
-.stat-card canvas {
-    overflow: visible !important;
-}
-
-/* 모든 카드 관련 요소의 overflow 강제 설정 */
-.stat-card,
-.stat-card > *,
-.stat-card .mini-chart,
-.stat-card .mini-chart canvas {
-    overflow: visible !important;
-}
-
-/* Chart.js 툴팁이 카드 밖으로 나올 수 있도록 */
-.chartjs-tooltip {
-    z-index: 99999 !important;
-    position: absolute !important;
-}
-
-/* 모든 툴팁 요소의 z-index 최고 우선순위 */
-#chartjs-tooltip,
-#chartjs-tooltip-stock,
-#chartjs-tooltip-property,
-#chartjs-tooltip-clear {
-    z-index: 999999 !important;
-    position: absolute !important;
-    pointer-events: none !important;
-}
-
-/* 카드 컨테이너들의 z-index 낮춤 */
-.dashboard-content,
-#dashboard-content {
-    position: relative;
-    z-index: 1;
-    overflow: visible !important;
-}
-
-/* 모든 상위 컨테이너 overflow 설정 */
-.dashboard-container,
-.dashboard-tabs,
-body {
-    overflow: visible !important;
-}
-
-/* 특별히 카드 영역의 overflow 강제 설정 */
-div[style*="overflow: hidden"] {
-    overflow: visible !important;
-}
-
-/* 섹터별 카드 헤더 스타일 */
-.sector-group-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding: 12px 16px;
-    background: #f8fafc;
-    border-radius: 8px;
-    border-left: 4px solid var(--sector-color, #6b7280);
-}
-
-.sector-group-title {
-    display: flex;
-    align-items: center;
-    font-weight: 600;
-    font-size: 16px;
-    color: #1f2937;
-}
-
-.sector-indicator {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 8px;
-}
-
-.sector-group-summary {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
-}
-
-.sector-total-value {
-    font-weight: 600;
-    font-size: 14px;
-    color: #374151;
-}
-
-.sector-return {
-    font-size: 12px;
-    font-weight: 500;
-    padding: 2px 8px;
-    border-radius: 4px;
-}
-
-.sector-return.positive {
-    color: #059669;
-    background: #d1fae5;
-}
-
-.sector-return.negative {
-    color: #dc2626;
-    background: #fee2e2;
-}
-
-.sector-return.neutral {
-    color: #6b7280;
-    background: #f3f4f6;
-}
-
-/* 개별 주식 아이템 상세 정보 스타일 */
-.portfolio-item-details {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin: 8px 0;
-    font-size: 12px;
-    color: #6b7280;
-}
-
-.holding-value {
-    font-weight: 500;
-    color: #374151;
-}
-
-.current-price {
-    color: #6b7280;
-}
-
-.return-rate {
-    font-weight: 500;
-}
-
-.return-rate.positive {
-    color: #059669;
-}
-
-.return-rate.negative {
-    color: #dc2626;
-}
-
-/* 포트폴리오 아이템 레이아웃 개선 */
-.portfolio-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 12px 16px;
-    border-bottom: 1px solid #e5e7eb;
-    transition: background-color 0.2s;
-}
-
-.portfolio-item:hover {
-    background-color: #f9fafb;
-}
-
-.portfolio-item-name {
-    font-weight: 500;
-    color: #1f2937;
-    margin-bottom: 4px;
-}
-
-.portfolio-item-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
-    min-width: 80px;
-}
-
-/* 데이터 없음 메시지 스타일 */
-.no-data-message {
-    text-align: center;
-    padding: 60px 20px;
-    color: #6b7280;
-}
-
-.no-data-message h3 {
-    font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: #374151;
-}
-
-.no-data-message p {
-    font-size: 16px;
-    line-height: 1.5;
 }
