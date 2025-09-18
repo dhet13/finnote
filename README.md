@@ -4,7 +4,7 @@
 
 
 ## 사이트 주소
-http://finnote.aimeta.p-e.kr/
+https://finnote-8ozn.onrender.com/
 
 
 ## 주요 기능
