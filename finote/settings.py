@@ -15,7 +15,7 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-temp-key-for-developm
 
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-CSRF_TRUSTED_ORIGINS = ['http://*']
+CSRF_TRUSTED_ORIGINS = ['https://finnote-wad2.onrender.com']
 ALLOWED_HOSTS = ['*']
 # ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
