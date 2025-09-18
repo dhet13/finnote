@@ -15,9 +15,11 @@ https://finnote-8ozn.onrender.com/
 - 📈 **대시보드**: 실시간 자산 현황 및 성과 분석
 - 🔐 **사용자 관리**: 프로필 및 계정 관리
 
+
 ## 기획서 및 DB설계
 
 **개발 방식 정의 및 DB설게**  
+
 https://docs.google.com/spreadsheets/d/13FqeeXjzW6RZpImLNQQsNSNjfXjApLTLjHvIFvt5gvQ/edit?gid=1277123083#gid=1277123083
 
 **기획서**
@@ -27,6 +29,7 @@ https://www.figma.com/design/E6wMvTz5ItLLMSOKEdY6Ci/%ED%95%80%ED%85%8C%ED%81%AC%
 
 ## 소개 / 실행 영상 주소
 https://www.youtube.com/watch?v=7rRL2OOv2YM
+
 
 ## 팀 작업일지
 
@@ -73,11 +76,14 @@ finote/
 └── media/          # 업로드된 미디어 파일
 ```
 
+
 ## 설치 및 실행
+
 
 ### 사전 요구사항
 - Python 3.8+
 - pip
+
 
 ### 1. 저장소 클론
 
