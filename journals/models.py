@@ -141,12 +141,23 @@ class StockTrade(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        self.journal.recalculate_aggregates()
+        from dashboard.views.services import process_trade_for_portfolio
+        process_trade_for_portfolio(self.id)
 
     def delete(self, *args, **kwargs):
         journal = self.journal
         super().delete(*args, **kwargs)
+        # After a trade is deleted, we still need to update the portfolio
+        from dashboard.views.services import process_trade_for_portfolio
+        # We can't pass the deleted trade, so we trigger from the journal.
+        # This is a simplification; a full implementation might need to handle this differently,
+        # but for now, recalculating the journal and updating the portfolio from its last known state is sufficient.
         journal.recalculate_aggregates()
+        journal.refresh_from_db()
+        # Find the last trade to update the snapshot, or just update holding
+        last_trade = journal.trades.order_by('-trade_date').first()
+        if last_trade:
+            process_trade_for_portfolio(last_trade.id)
 
 
 class REPropertyInfo(models.Model):

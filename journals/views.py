@@ -19,6 +19,7 @@ from .models import (
     StockInfo, StockJournal, StockTrade,
     REPropertyInfo, REDeal, JournalPost
 )
+from home.models import Post
 
 
 # Page Views
@@ -50,7 +51,7 @@ def my_journal_list(request):
             # Sum up quantities and PnL from all journals for this ticker
             total_buy_qty_sum=Coalesce(Sum('total_buy_qty'), Decimal(0)),
             total_sell_qty_sum=Coalesce(Sum('total_sell_qty'), Decimal(0)),
-            realized_pnl_sum=Coalesce(Sum('realized_pnl'), Decimal(0)),
+            realized_pnl_sum=Coalesce(Sum('realized_pnl', filter=Q(realized_pnl__isnull=False)), Decimal(0)),
 
             # Calculate total value of buys and sells across all journals for this ticker
             # Need to be careful with avg_buy_price * total_buy_qty as avg_buy_price can be None
@@ -75,7 +76,7 @@ def my_journal_list(request):
             ),
             overall_avg_sell_price=Case(
                 When(total_sell_qty_sum__gt=0, then=ExpressionWrapper(
-                    F('total_buy_value_sum') / F('total_sell_qty_sum'),
+                    F('total_sell_value_sum') / F('total_sell_qty_sum'),
                     output_field=DecimalField()
                 )),
                 default=Value(None, output_field=DecimalField()),
@@ -83,10 +84,32 @@ def my_journal_list(request):
             ),
         ) \
         .annotate(
-            # Calculate overall return rate
-            overall_return_rate=Case(
+            # Calculate cost basis of sold shares
+            cost_of_sold_shares=Case(
                 When(total_sell_qty_sum__gt=0, overall_avg_buy_price__isnull=False, then=ExpressionWrapper(
-                    (F('realized_pnl_sum') / (F('overall_avg_buy_price') * F('total_sell_qty_sum'))) * 100,
+                    F('overall_avg_buy_price') * F('total_sell_qty_sum'),
+                    output_field=DecimalField()
+                )),
+                default=Value(None, output_field=DecimalField()),
+                output_field=DecimalField()
+            )
+        ) \
+        .annotate(
+            # Calculate realized PnL directly: total_sell_value - cost_of_sold_shares
+            calculated_realized_pnl=Case(
+                When(total_sell_qty_sum__gt=0, cost_of_sold_shares__isnull=False, then=ExpressionWrapper(
+                    F('total_sell_value_sum') - F('cost_of_sold_shares'),
+                    output_field=DecimalField()
+                )),
+                default=Value(None, output_field=DecimalField()),
+                output_field=DecimalField()
+            )
+        ) \
+        .annotate(
+            # Calculate overall return rate using directly calculated PnL
+            overall_return_rate=Case(
+                When(cost_of_sold_shares__gt=0, calculated_realized_pnl__isnull=False, then=ExpressionWrapper(
+                    (F('calculated_realized_pnl') / F('cost_of_sold_shares')) * 100,
                     output_field=DecimalField()
                 )),
                 default=Value(None, output_field=DecimalField()),
@@ -117,15 +140,69 @@ def my_journal_list(request):
 @login_required
 def stock_detail_view(request, pk):
     stock_journal = get_object_or_404(StockJournal, pk=pk, user=request.user)
-    
-    trades = stock_journal.trades.all().order_by('trade_date')
-    
-    journal_posts = JournalPost.objects.filter(stock_journal=stock_journal).order_by('-created_at')
+
+    # 해당 종목의 모든 거래를 가져오기 (같은 ticker_symbol의 모든 journal에서)
+    ticker_symbol = stock_journal.ticker_symbol
+    all_trades = StockTrade.objects.filter(
+        user=request.user,
+        ticker_symbol=ticker_symbol
+    ).order_by('trade_date')
+
+    trades = all_trades
+
+    trade_rows = []
+    for trade in trades:
+        quantity = trade.quantity or Decimal('0')
+        price = trade.price_per_share or Decimal('0')
+        total_amount = quantity * price
+        buy_amount = total_amount if trade.side == StockTrade.Side.BUY else None
+        sell_amount = total_amount if trade.side == StockTrade.Side.SELL else None
+        return_rate = None
+        if trade.side == StockTrade.Side.SELL and stock_journal.avg_buy_price:
+            avg_buy = stock_journal.avg_buy_price
+            if avg_buy and avg_buy != 0:
+                return_rate = ((price - avg_buy) / avg_buy) * Decimal('100')
+
+        trade_rows.append({
+            'instance': trade,
+            'side': trade.side,
+            'side_label': '매수' if trade.side == StockTrade.Side.BUY else '매도',
+            'trade_date': trade.trade_date,
+            'quantity': quantity,
+            'buy_amount': buy_amount,
+            'sell_amount': sell_amount,
+            'total_amount': total_amount,
+            'return_rate': return_rate,
+            'status': stock_journal.get_status_display(),
+        })
+
+    # 해당 종목 관련 포스트에서 필요한 데이터만 추출
+    ticker_symbol = stock_journal.ticker_symbol.ticker_symbol
+    related_posts_raw = Post.objects.filter(
+        user=request.user,
+        embed_payload_json__ticker_symbol=ticker_symbol
+    ).order_by('-created_at')
+
+    # 필요한 정보만 추출해서 간단한 딕셔너리 리스트로 변환
+    journal_posts_simple = []
+    for post in related_posts_raw:
+        embed_data = post.embed_payload_json or {}
+        journal_posts_simple.append({
+            'id': post.id,
+            'content': post.content,
+            'created_at': post.created_at,
+            'ticker_symbol': embed_data.get('ticker_symbol', ''),
+            'side': embed_data.get('side', ''),
+            'quantity': embed_data.get('quantity', 0),
+            'price_per_unit': embed_data.get('price_per_unit', 0),
+            'total_amount': embed_data.get('total_amount', 0),
+            'trade_date': embed_data.get('trade_date', ''),
+        })
 
     context = {
         'stock_journal': stock_journal,
-        'trades': trades,
-        'journal_posts': journal_posts,
+        'trade_rows': trade_rows,
+        'journal_posts': journal_posts_simple,  # 간단한 데이터로 변경
     }
     return render(request, 'journals/stock_detail.html', context)
 
@@ -195,6 +272,17 @@ def stock_summary_detail(request, ticker_symbol):
                 output_field=DecimalField()
             )
         ), Decimal(0)),
+        # Sum of avg_sell_price * total_sell_qty, guarded when avg_sell_price is null
+        total_sell_value_sum=Coalesce(Sum(
+            Case(
+                When(avg_sell_price__isnull=False,
+                     then=ExpressionWrapper(F('avg_sell_price') * F('total_sell_qty'), output_field=DecimalField())) ,
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ), Decimal(0)),
+        # Sum of realized_pnl from all journals
+        realized_pnl_sum=Coalesce(Sum('realized_pnl', filter=Q(realized_pnl__isnull=False)), Decimal(0)),
     )
 
     total_buy_qty = agg.get('total_buy_qty_sum') or Decimal(0)
@@ -227,10 +315,42 @@ def stock_summary_detail(request, ticker_symbol):
         except Exception:
             return_rate = None
 
+    # 해당 종목과 관련된 포스트들을 가져오기
+    # embed_payload_json에서 ticker_symbol이 일치하는 포스트들을 찾음
+    posts = Post.objects.filter(
+        user=request.user,
+        embed_payload_json__ticker_symbol=ticker_symbol
+    ).order_by('-created_at')
+
+    # 필터 적용
+    now = timezone.now()
+    period_map = {
+        '1M': now - timezone.timedelta(days=30),
+        '3M': now - timezone.timedelta(days=90),
+        '6M': now - timezone.timedelta(days=180),
+        '1Y': now - timezone.timedelta(days=365),
+    }
+    if period in period_map:
+        posts = posts.filter(created_at__gte=period_map[period])
+
+    # 정렬 적용
+    if sort == 'created_asc':
+        posts = posts.order_by('created_at')
+    else:
+        posts = posts.order_by('-created_at')
+
+    # Get target_price and stop_price from the most recent journal entry
+    target_price = None
+    stop_price = None
+    if stock_journals.first():
+        target_price = stock_journals.first().target_price
+        stop_price = stock_journals.first().stop_price
+
     context = {
         'ticker_symbol': ticker_symbol,
         'stock_name': stock_name,
         'stock_journals': stock_journals, # Individual StockJournal objects
+        'posts': posts,  # 해당 종목 관련 포스트들
         'summary': {
             'avg_buy_price': avg_buy_price,
             'net_qty': net_qty,
@@ -238,6 +358,11 @@ def stock_summary_detail(request, ticker_symbol):
             'current_price': current_price,
             'current_value': current_value,
             'return_rate': return_rate,
+            'total_buy_amount': agg.get('total_buy_value_sum') or Decimal(0),
+            'total_sell_amount': agg.get('total_sell_value_sum') or Decimal(0),
+            'realized_pnl': agg.get('realized_pnl_sum') or Decimal(0),
+            'target_price': target_price,
+            'stop_price': stop_price,
         },
         'filters': {
             'period': period,
