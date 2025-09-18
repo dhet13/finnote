@@ -19,12 +19,10 @@ https://finnote-8ozn.onrender.com/
 ## 기획서 및 DB설계
 
 **기획서**
-
 https://www.figma.com/design/E6wMvTz5ItLLMSOKEdY6Ci/%ED%95%80%ED%85%8C%ED%81%AC%EC%95%B1?t=MXYaLRfPn1zPiugN-1
 
 
-**개발 방식 정의 및 DB설게**  
-
+**개발 방식 정의 및 DB설계**  
 https://docs.google.com/spreadsheets/d/13FqeeXjzW6RZpImLNQQsNSNjfXjApLTLjHvIFvt5gvQ/edit?gid=1277123083#gid=1277123083
 
 
